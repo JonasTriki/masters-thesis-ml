@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+pandas = "*"
 
 [packages]
 jupyter = "*"
@@ -12,6 +13,12 @@ spacy = "*"
 keras = "*"
 tensorflow = "*"
 en-core-web-sm = {file = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.5/en_core_web_sm-2.2.5.tar.gz"}
+pydot = "*"
+scipy = "*"
+scikit-learn = "*"
+matplotlib = "*"
+umap-learn = "*"
+hdbscan = "*"
 
 [requires]
 python_version = "3.7"

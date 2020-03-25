@@ -1,1 +1,4 @@
 .DS_Store
+**/*/.vscode
+**/*/.ipynb_checkpoints
+code/word_2_vec_impl/checkpoints/
