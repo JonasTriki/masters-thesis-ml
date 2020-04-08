@@ -73,7 +73,7 @@ class TokenizedSkipgramDataGenerator(Sequence):
                  num_negative_samples: int,
                  corpus_batch_size: int,
                  pairs_batch_size: int,
-                 categorical_pairs: bool,
+                 categorical_pairs: bool = False,
                  shuffle: bool = True):
         '''Initialization of the tokenized skipgram data generator
         
@@ -84,8 +84,8 @@ class TokenizedSkipgramDataGenerator(Sequence):
             num_negative_samples: Number of negative samples to generate
             corpus_batch_size: Number of tokenized text corpuses to process per epoch
             pairs_batch_size: Number of skipgram word pairs to process at once per epoch
-            categorical_pairs: Whether to use categorical (one-hot encoded) target/context pairs
-            shuffle: Whether to shuffle the data at generation
+            categorical_pairs: Whether to use categorical (one-hot encoded) target/context pairs. Default: False
+            shuffle: Whether to shuffle the data at generation. Default: True
         '''
         self.tokenized_data = tokenized_data
         self.vocab_size = vocab_size
@@ -168,7 +168,10 @@ class TokenizedSkipgramDataGenerator(Sequence):
         batch_indices = self._get_batch_indices(batch_nr)
         
         # Get batch
-        X_batch = self.skipgram_pairs[:, batch_indices, :]
+        if self.categorical_pairs:
+            X_batch = self.skipgram_pairs[:, batch_indices]
+        else:
+            X_batch = self.skipgram_pairs[batch_indices].T
         y_batch = self.skipgram_labels[batch_indices]
         
         # [None] value fixes the following error (assuming tf version < 2.2):

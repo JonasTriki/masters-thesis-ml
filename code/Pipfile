@@ -6,6 +6,8 @@ verify_ssl = true
 [dev-packages]
 pandas = "*"
 pylint = "*"
+flake8 = "*"
+pep8 = "*"
 
 [packages]
 jupyter = "*"
@@ -23,6 +25,11 @@ hdbscan = "*"
 scispacy = "*"
 en-core-sci-lg = {file = "https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.2.4/en_core_sci_lg-0.2.4.tar.gz"}
 spacy-langdetect = "*"
+nltk = "*"
+beautifulsoup4 = "*"
+lxml = "*"
+kaggle = "*"
+h5py = "*"
 
 [requires]
 python_version = "3.7"
