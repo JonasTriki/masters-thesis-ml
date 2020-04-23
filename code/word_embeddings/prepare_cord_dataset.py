@@ -42,13 +42,13 @@ if download_cord_dataset:
     api.dataset_download_files(kaggle_dataset, path=cord_data_raw_dir, quiet=False, unzip=True)
 
 # Process raw CORD-19 data into Pandas DataFrame
-process_cord_data = False
+process_cord_data = True
 if process_cord_data:
     cord_df = CORD19Data(cord_data_raw_dir).process_data()
     cord_df.to_csv(cord_data_out_path, index=False)
 
 # Extract texts from Pandas DataFrame and prepare datasets for Word2Vec
-prepare_datasets_for_w2v = True
+prepare_datasets_for_w2v = False
 if prepare_datasets_for_w2v:
     cord_df = pd.read_csv(cord_data_out_path)
 
@@ -88,7 +88,7 @@ if prepare_datasets_for_w2v:
         with open(cord_data_tokenizer_config_path, 'w') as file:
             file.write(tokenizer.to_json())
     else:
-        print('Reading vocabulary...')
+        print('Reading vocabulary...') 
         with open(cord_data_tokenizer_config_path, 'r') as file:
             tokenizer = tokenizer_from_json(file.read())
     vocab_size = len(tokenizer.word_index)
@@ -109,15 +109,20 @@ if prepare_datasets_for_w2v:
     #         with open(cleaned_text_path, 'w') as file:
     #             file.write(clean_text(text))
 
+    # print('Reading textfiles...')
+    # train_texts = []
+    # for train_text_path in tqdm(train_text_paths):
+    #     with open(train_text_path, 'r') as file:
+    #         train_texts.append(file.read())
+
     # # Convert texts to integer sequences, generate skipgram pairs and save to file.
-    # for dataset_name, indices in zip(['train', 'val', 'test'], [train_indices, val_indices, test_indices]):
+    # for dataset_name, dataset_texts in zip(['train'], [train_texts]):
     #     print(f'Creating skipgram pairs for {dataset_name}...')
     #     cord_dataset_path = join_path(data_dir, f'cord_{dataset_name}.h5')
-    #     dataset_text_paths = cleaned_text_paths[indices]
-    #     num_articles_dataset = len(dataset_text_paths)
+    #     num_articles_dataset = len(dataset_texts)
 
     #     # Create skipgram pairs generator
-    #     seq_gen = tokenizer.texts_to_sequences_generator(text_files_gen(dataset_text_paths))
+    #     seq_gen = tokenizer.texts_to_sequences(dataset_texts)
     #     skipgram_gen = text_sequences_to_skipgrams_generator(
     #         seq_gen,
     #         vocab_size,
@@ -125,8 +130,33 @@ if prepare_datasets_for_w2v:
     #         num_negative_samples
     #     )
 
+    #     for i, skipgrams in enumerate(tqdm(skipgram_gen)):
+    #         if len(skipgrams) == 0:
+    #             print(dataset_texts[i])
+    #             print(seq_gen[i])
+    #             break
+
     #     # Save skipgram pairs to file
-    #     save_to_h5_generator(cord_dataset_path, skipgram_gen, num_articles_dataset)
+    #     #save_to_h5_generator(cord_dataset_path, skipgram_gen, num_articles_dataset)
 
     #     break
-    # print(len(tokenizer.word_index))
+
+    # Convert texts to integer sequences, generate skipgram pairs and save to file.
+    for dataset_name, dataset_paths in zip(['train', 'val', 'test'], [train_text_paths, val_text_paths, test_text_paths]):
+        print(f'Creating skipgram pairs for {dataset_name}...')
+        cord_dataset_path = join_path(data_dir, f'cord_{dataset_name}.h5')
+        num_articles_dataset = len(dataset_paths)
+
+        # Create skipgram pairs generator
+        seq_gen = tokenizer.texts_to_sequences_generator(text_files_gen(dataset_paths))
+        skipgram_gen = text_sequences_to_skipgrams_generator(
+            seq_gen,
+            vocab_size,
+            sampling_window_size,
+            num_negative_samples
+        )
+
+        # Save skipgram pairs to file
+        save_to_h5_generator(cord_dataset_path, skipgram_gen, num_articles_dataset)
+
+        break

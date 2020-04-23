@@ -30,6 +30,7 @@ beautifulsoup4 = "*"
 lxml = "*"
 kaggle = "*"
 h5py = "*"
+plotly = "*"
 
 [requires]
 python_version = "3.7"

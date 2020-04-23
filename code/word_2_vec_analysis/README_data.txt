@@ -1,1 +1,0 @@
-Data should be downloaded from https://www.kaggle.com/allen-institute-for-ai/CORD-19-research-challenge/download and extracted into the data directory.

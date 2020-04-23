@@ -1,16 +1,16 @@
 import re
 import os
 import json
+from typing import Union
 import h5py
 import numpy as np
 import pickle
 from tqdm.auto import tqdm
-from bs4 import BeautifulSoup
 import nltk
 from nltk.corpus import stopwords as nltk_stopwords
 from nltk.stem import WordNetLemmatizer
 from tensorflow.keras.preprocessing.sequence import skipgrams, make_sampling_table
-from tensorflow.keras.preprocessing.text import text_to_word_sequence
+from tensorflow.keras.preprocessing.text import Tokenizer, text_to_word_sequence, tokenizer_from_json
 
 wnl = WordNetLemmatizer()
 eng_stopwords = nltk_stopwords.words('english')
@@ -41,8 +41,6 @@ def clean_text(text: str) -> str:
     '''
     TODO: Docs
     '''
-    # Remove potential HTML entries
-    text = BeautifulSoup(text, 'lxml').get_text()
     
     # Remove URLs
     text = remove_urls(text)
@@ -61,13 +59,52 @@ def clean_text(text: str) -> str:
     
     return text
 
-def text_files_gen(file_paths: list):
+def clean_texts_to_files(texts: Union[list, np.ndarray], text_paths_clean: list):
     '''
     TODO: Docs
     '''
-    for path in tqdm(file_paths, unit='file'):
+    print('Cleaning texts...')
+    for text, clean_text_path in zip(tqdm(texts, unit='text'), text_paths_clean):
+        with open(clean_text_path, 'w') as file:
+            file.write(clean_text(text))
+
+def read_text_files_gen(file_paths: list, show_progress: bool = False):
+    '''
+    TODO: Docs
+    '''
+    for path in tqdm(file_paths, unit='file', disable=not show_progress):
         with open(path, 'r') as file:
             yield file.read()
+
+def create_tokenizer(max_vocab_size: int, texts: Union[list, 'Generator'], save_to_file_path: str = None):
+    '''
+    TODO: Docs
+    '''
+    print('Creating vocabulary...')
+    tokenizer = Tokenizer(max_vocab_size)
+    tokenizer.fit_on_texts(tqdm(texts, unit='text'))
+
+    if not save_to_file_path is None:
+        with open(save_to_file_path, 'w') as file:
+            file.write(tokenizer.to_json())
+    
+    return tokenizer
+
+def create_tokenizer_paths(max_vocab_size: int, text_paths: list, save_to_file_path: str = None):
+    '''
+    TODO: Docs
+    '''
+    text_gen = read_text_files_gen(text_paths)
+    return create_tokenizer_paths(max_vocab_size, text_gen, save_to_file_path)
+
+def read_tokenizer(tokenizer_json_path: str):
+    '''
+    TODO: Docs
+    '''
+    print('Reading vocabulary...') 
+    with open(tokenizer_json_path, 'r') as file:
+        tokenizer = tokenizer_from_json(file.read())
+    return tokenizer
 
 def save_pickle(result: any, filename: str) -> None:
     '''Saves to file using Pickle.
@@ -95,27 +132,31 @@ def text_sequences_to_skipgrams_generator(seq_gen: 'Sequences generator', vocab_
     '''
     TODO: Docs
     '''
+    # We use sampling table to randomly downsample words which occur often.
     sampling_table = make_sampling_table(vocab_size + 1)
     for text_seq in seq_gen:
 
-        # Create skipgram pairs
-        data_pairs, data_labels = skipgrams(
-            text_seq,
-            vocab_size,
-            sampling_table=sampling_table,
-            window_size=sampling_window_size,
-            negative_samples=num_negative_samples
-        )
+        # By using sampling table, we might get empty skipgram pairs at random.
+        # We ensure this does not happend by generating skipgrams until we get a result.
+        has_data = False
+        while not has_data:
+
+            # Create skipgram pairs
+            data_pairs, data_labels = skipgrams(
+                text_seq,
+                vocab_size,
+                sampling_table=sampling_table,
+                window_size=sampling_window_size,
+                negative_samples=num_negative_samples
+            )
+            if len(data_pairs) > 0:
+                has_data = True
+
         data_pairs = np.array(data_pairs)
         data_labels = np.array(data_labels).reshape(-1, 1)
 
-        try:
-            # Yield combined data
-            yield np.concatenate((data_pairs, data_labels), axis=1)
-        except:
-            print(text_seq)
-            print(data_pairs.shape, data_labels.shape)
-            print(data_pairs[:10], data_labels[:10])
+        # Yield combined data
+        yield data_pairs, data_labels
 
 def save_to_h5_generator(target_path: str, generator: 'Generator object', generator_len: int):
     '''

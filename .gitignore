@@ -4,6 +4,6 @@
 **/*/__pycache__
 **/*/.ipynb_checkpoints
 code/word_2_vec_impl/checkpoints
-code/word_2_vec_analysis/data
 code/**/data
 code/**/kaggle.json
+code/word_embeddings/checkpoints/

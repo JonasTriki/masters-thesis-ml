@@ -62,6 +62,15 @@ class CORD19Data():
         print('Done!')
         return metadata_df
     
+    def _del_substring_by_indices(self, text: str, rem_indices_pairs: list):
+        '''
+        TODO: Docs
+        '''                                                                         
+        rem_indices = set()
+        for pairs in rem_indices_pairs:
+            rem_indices.update(range(*pairs))
+        return ''.join([c for i, c in enumerate(text) if i not in rem_indices])
+
     def _parse_metadata(self, metadata_df: pd.DataFrame) -> pd.DataFrame:
         '''
         TODO: Docs
@@ -107,13 +116,23 @@ class CORD19Data():
 
                 # Body text
                 for item in content['body_text']:
-                    body_text.append(item['text'])
+                    text = item['text']
+                    cite_spans = item['cite_spans']
 
-            if len(body_text) == 0:
+                    # Remove cite spans from text
+                    indices_to_remove = list(map(lambda obj: (obj['start'], obj['end']), cite_spans))
+                    text = self._del_substring_by_indices(text, indices_to_remove)
+
+                    body_text.append(text)
+            body_text = '\n'.join(body_text)
+
+            # We exclude possible false positive papers that
+            # are less than 1000 characters from our dataset
+            if len(body_text) < 1000:
                 continue
             
             # Append to dict
-            cord_dict['body_text'].append('\n'.join(body_text))
+            cord_dict['body_text'].append(body_text)
 
             # Append columns from metadata
             cord_dict['cord_uid'].append(row.cord_uid)
@@ -151,6 +170,7 @@ class CORD19Data():
         TODO: Docs
         '''
         # Extract language using spaCy
+
         text_first_words = ' '.join(text.split(maxsplit=self.nlp_words_to_check)[:self.nlp_words_to_check])
         lang = self.nlp(text_first_words)._.language['language']
         
