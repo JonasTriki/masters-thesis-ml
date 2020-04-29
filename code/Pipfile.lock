@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "4ed1e289450a25fc34681eb8e28cba1af73e3370530479600c1594aa87abaf56"
+            "sha256": "139750c5067bfa21fe42a184b1449bb2941eedb182e9a40b644687159c38dd44"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -22,14 +22,6 @@
             ],
             "version": "==0.9.0"
         },
-        "appnope": {
-            "hashes": [
-                "sha256:5b26757dc6f79a3b7dc9fab95359328d5747fcb2409d331ea66d0272b90ab2a0",
-                "sha256:8b995ffe925347a2138d7ac0fe77155e4311a0ea6d6da4f5128fe4b3cbe5ed71"
-            ],
-            "markers": "sys_platform == 'darwin'",
-            "version": "==0.1.0"
-        },
         "astor": {
             "hashes": [
                 "sha256:070a54e890cefb5b3739d19f30f5a5ec840ffc9c50ffa7d23cc9fc1a38ebbfc5",
@@ -46,10 +38,10 @@
         },
         "awscli": {
             "hashes": [
-                "sha256:559801f89b45201475e6eda8578b35f08e2681372386dc25d261ab1d85569e11",
-                "sha256:f5bc53025ece68040dabff2762c669a5dd8cd7fef27c69d1acbbc86d7fb9c08b"
+                "sha256:23a7beafea55f0f1e879d70d670b0d286bba6bbc8a41f045249303b29e9aeb8d",
+                "sha256:95efe67a364ae4c033f4d1b4f08600a5def131a3cbc851e6360067c453647d61"
             ],
-            "version": "==1.18.43"
+            "version": "==1.18.45"
         },
         "backcall": {
             "hashes": [
@@ -97,10 +89,10 @@
         },
         "botocore": {
             "hashes": [
-                "sha256:3b315934b20d7e4e3398a74fd90ea73622e0c1f609942ae0209506a041ae257f",
-                "sha256:9721e7b413e3b1b2b7670940e89d0088d1b83bd54cae1ccfe7305eb2e9361c17"
+                "sha256:036183d917429a7145b031c55e7c1b9ea24f0d034fc612669963e8a78e662d74",
+                "sha256:5540477cecdc6b86c5659b747ddc5e8bfde8b722fa3e3ddd909a2b4c57864d74"
             ],
-            "version": "==1.15.43"
+            "version": "==1.15.45"
         },
         "cachetools": {
             "hashes": [
@@ -211,6 +203,7 @@
                 "sha256:f516d11179627f95471cc0674afe8710d4dc5de764297db7f5bdb34bd92caff9",
                 "sha256:fd6496b41eb529349d58f3f6a09a64cceb156c9720f79cebdf975ea4fafc05f0"
             ],
+            "index": "pypi",
             "version": "==0.29.16"
         },
         "decorator": {
