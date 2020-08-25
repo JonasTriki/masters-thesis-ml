@@ -130,7 +130,7 @@ def normalize(words: list) -> list:
     words = to_lowercase(words)
     words = remove_punctuation(words)
     words = replace_numbers(words)
-    # words = remove_stopwords(words)
+    words = remove_stopwords(words)
     words = lemmatize_words(words)
     return words
 

@@ -27,8 +27,6 @@ def preprocess_data() -> None:
         (book_word_occurences, book_word_dict, book_rev_word_dict) = build_vocabulary(
             book_content
         )
-        if book_name == "dracula":
-            print(book_word_dict)
 
         # Save vocab to file
         print("Saving vocabulary to file...")

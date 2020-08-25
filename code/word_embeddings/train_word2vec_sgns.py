@@ -3,6 +3,7 @@ import os
 from os.path import join as join_path
 
 from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.models import load_model
 
 from models import build_word2vec_model
 from SGNSDataGenerator import SGNSDataGenerator
@@ -29,12 +30,12 @@ def parse_args() -> argparse.Namespace:
         "--batch_size", type=int, default=128, help="Batch size used for training",
     )
     parser.add_argument(
-        "--n_epochs", type=int, default=10, help="Number of epochs to train our model on",
+        "--n_epochs", type=int, default=20, help="Number of epochs to train our model on",
     )
     parser.add_argument(
         "--learning_rate",
         type=float,
-        default=0.001,
+        default=0.01,
         help="Learning rate to use when training",
     )
     parser.add_argument(
@@ -58,7 +59,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--num_negative_samples",
         type=int,
-        default=20,
+        default=15,
         help="Number of negative samples to use when generating skipgram couples",
     )
     parser.add_argument(
@@ -83,6 +84,18 @@ def parse_args() -> argparse.Namespace:
         https://www.tensorflow.org/api_docs/python/tf/keras/callbacks/ModelCheckpoint
         """,
     )
+    parser.add_argument(
+        "--pretrained_model_filepath",
+        type=str,
+        default="",
+        help="Load an already trained Word2vec model from file",
+    )
+    parser.add_argument(
+        "--pretrained_model_epoch_nr",
+        type=int,
+        default=None,
+        help="Epoch number of an already trained Word2vec model",
+    )
     return parser.parse_args()
 
 
@@ -99,6 +112,8 @@ def train_word2vec_sgns(
     sampling_factor: float,
     model_checkpoint_dir: str,
     model_checkpoint_filename: str,
+    pretrained_model_filepath: str,
+    pretrained_model_epoch_nr: int,
 ) -> None:
     """
     Trains a Word2vec model using skipgram negative sampling
@@ -120,9 +135,13 @@ def train_word2vec_sgns(
     print("Done!")
 
     # Initialize model
-    print("Initializing Word2vec model...")
-    model = build_word2vec_model(vocab_size, vector_dim, learning_rate)
-    model.summary()
+    if pretrained_model_filepath == "":
+        print("Initializing Word2vec model...")
+        model = build_word2vec_model(vocab_size, vector_dim, learning_rate)
+        model.summary()
+    else:
+        print("Loading Word2vec model...")
+        model = load_model(pretrained_model_filepath)
     print("Done!")
 
     # Initialize callbacks
@@ -131,9 +150,16 @@ def train_word2vec_sgns(
     model_checkpoint = ModelCheckpoint(filepath=model_checkpoint_filepath, monitor="loss")
     model_callbacks = [model_checkpoint]
 
+    if pretrained_model_filepath == "":
+        epoch_range = range(n_epochs)
+    else:
+        epoch_range = range(
+            pretrained_model_epoch_nr, pretrained_model_epoch_nr + n_epochs
+        )
+
     # Fit model
     print(f"-- Training for {n_epochs} epochs... --")
-    for epoch in range(n_epochs):
+    for epoch in epoch_range:
         # print(f"Epoch {epoch + 1}/{n_epochs}")
         model.fit(
             train_generator,
@@ -160,4 +186,6 @@ if __name__ == "__main__":
         args.sampling_factor,
         args.model_checkpoint_dir,
         args.model_checkpoint_filename,
+        args.pretrained_model_filepath,
+        args.pretrained_model_epoch_nr,
     )
