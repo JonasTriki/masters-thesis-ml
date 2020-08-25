@@ -1,61 +1,47 @@
 from tensorflow.keras import Model
-from tensorflow.keras.layers import Input, Dense, Reshape, dot, Embedding, Dot
+from tensorflow.keras.layers import Dense, Dot, Embedding, Input, Reshape
+from tensorflow.keras.optimizers import Adam
 
-# Create the model
-def build_word2vec_model_embedding(vocab_size: int, vector_dim: int):
-    '''
-    TODO: Docs
-    '''
+
+def build_word2vec_model(
+    vocab_size: int, vector_dim: int, learning_rate: float = 0.001
+) -> Model:
+    """
+    Builds a Word2vec model using skipgram negative sampling
+
+    Based on this paper by Mikolov et al.:
+    https://arxiv.org/pdf/1301.3781v3.pdf
+    """
     # Input to network
-    input_target = Input((1,), name='input_target')
-    input_context = Input((1,), name='input_context')
+    input_shape = (1,)
+    input_target = Input(input_shape, name="input_target")
+    input_context = Input(input_shape, name="input_context")
 
-    # Embedding layer
-    embedding = Embedding(vocab_size + 1, vector_dim, input_length=1, name='embedding')
-    target = embedding(input_target)
-    target = Reshape((vector_dim, 1), name='target_word_vector')(target)
-    context = embedding(input_context)
-    context = Reshape((vector_dim, 1), name='context_word_vector')(context)
-    
+    # We add 1 to the vocabulary size to account for
+    # the unknown word
+    vocab_size_new = vocab_size + 1
+
+    # Embedding layers
+    target_embedding = Embedding(
+        vocab_size_new, vector_dim, input_length=1, name="target_embedding"
+    )
+    target = target_embedding(input_target)
+    target = Reshape((vector_dim,), name="target_word_vector")(target)
+    context_embedding = Embedding(
+        vocab_size_new, vector_dim, input_length=1, name="context_embedding"
+    )
+    context = context_embedding(input_context)
+    context = Reshape((vector_dim,), name="context_word_vector")(context)
+
     # Compute (unnormalized) cosine similarity
-    dot_product = Dot(axes=1, name='dot_product')([target, context])
-    dot_product = Reshape((1,), name='dot_product_reshape')(dot_product)
-    
+    dot_product = Dot(axes=1, name="dot_product")([target, context])
+
     # Sigmoid activation (output)
-    output = Dense(1, activation='sigmoid', name='sigmoid_activation')(dot_product)
-    
+    output = Dense(1, activation="sigmoid", name="sigmoid_activation")(dot_product)
+
     # Create model
     model = Model(inputs=[input_target, input_context], outputs=output)
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    
-    return model
+    adam = Adam(learning_rate=learning_rate)
+    model.compile(loss="binary_crossentropy", optimizer=adam)
 
-# Create (slower) model using Dense instead of Embedding layer
-def build_word2vec_model_dense(vocab_size: int, vector_dim: int):
-    '''
-    TODO: Docs
-    '''
-    # Input to network
-    input_shape = (vocab_size + 1,)
-    input_target = Input(input_shape, name='input_target')
-    input_context = Input(input_shape, name='input_context')
-
-    # Embedding layer using Dense layers
-    embedding = Dense(vector_dim, input_shape=input_shape, name='embedding')
-    target = embedding(input_target)
-    target = Reshape((vector_dim, 1), name='target_word_vector')(target)
-    context = embedding(input_context)
-    context = Reshape((vector_dim, 1), name='context_word_vector')(context)
-    
-    # Compute (unnormalized) cosine similarity
-    dot_product = Dot(axes=1, name='dot_product')([target, context])
-    dot_product = Reshape((1,), name='dot_product_reshape')(dot_product)
-    
-    # Sigmoid activation (output)
-    output = Dense(1, activation='sigmoid', name='sigmoid_activation')(dot_product)
-    
-    # Create model
-    model = Model(inputs=[input_target, input_context], outputs=output)
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    
     return model

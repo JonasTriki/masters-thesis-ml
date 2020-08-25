@@ -1,10 +1,7 @@
 .DS_Store
 **/*/.idea
-**/*/.vscode
 **/*/__pycache__
 **/*/.ipynb_checkpoints
-code/word_2_vec_impl/checkpoints
 code/**/data/*
 !code/word_embeddings/data/wikifil.pl
-code/**/kaggle.json
-code/word_embeddings/checkpoints*
+code/word_embeddings*/checkpoints*

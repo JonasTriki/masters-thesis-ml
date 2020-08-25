@@ -1,0 +1,15 @@
+{
+  "python.venvPath": "${workspaceFolder}/.venv/bin/python",
+  "python.pythonPath": "/Users/triki/.local/share/virtualenvs/code-gd-a4ILK/bin/python",
+  "python.linting.enabled": true,
+  "git.ignoreLimitWarning": true,
+  "python.linting.flake8Enabled": true,
+  "python.formatting.provider": "black",
+  "python.sortImports.args": ["-rc", "-sp isort.cfg"],
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
+  "python.linting.mypyEnabled": true
+}
