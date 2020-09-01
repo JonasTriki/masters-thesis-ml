@@ -7,6 +7,7 @@ from tensorflow.keras.models import load_model
 
 from models import build_word2vec_model
 from SGNSDataGenerator import SGNSDataGenerator
+from text_preprocessing_utils import preprocess_text, preprocess_text8
 
 
 def parse_args() -> argparse.Namespace:
@@ -17,25 +18,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--text_filepath",
         type=str,
-        default="data/dracula.txt",  # TODO: Remove default
+        default="",
         help="Text filepath containing the text we wish to train on",
     )
     parser.add_argument(
         "--vocab_filepath",
         type=str,
-        default="data/dracula_vocab.pickle",  # TODO: Remove default
+        default="",
         help="Vocabulary filepath containing the word vocabulary we want to use",
     )
     parser.add_argument(
-        "--batch_size", type=int, default=128, help="Batch size used for training",
+        "--text8", action="store_true", help="Flags that your text is text8"
     )
     parser.add_argument(
-        "--n_epochs", type=int, default=20, help="Number of epochs to train our model on",
+        "--batch_size", type=int, default=1024, help="Batch size used for training",
+    )
+    parser.add_argument(
+        "--n_epochs", type=int, default=10, help="Number of epochs to train our model on",
     )
     parser.add_argument(
         "--learning_rate",
         type=float,
-        default=0.01,
+        default=0.001,
         help="Learning rate to use when training",
     )
     parser.add_argument(
@@ -53,7 +57,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--sampling_window_size",
         type=int,
-        default=5,
+        default=4,
         help="Window size to use when generating skipgram couples",
     )
     parser.add_argument(
@@ -102,6 +106,7 @@ def parse_args() -> argparse.Namespace:
 def train_word2vec_sgns(
     text_filepath: str,
     vocab_filepath: str,
+    is_text8: bool,
     batch_size: int,
     n_epochs: int,
     learning_rate: float,
@@ -122,9 +127,14 @@ def train_word2vec_sgns(
 
     # Initialize data generator
     print("Initializing data generator...")
+    if is_text8:
+        preprocess_func = preprocess_text8
+    else:
+        preprocess_func = preprocess_text
     train_generator = SGNSDataGenerator(
         text_filepath,
         vocab_filepath,
+        preprocess_func,
         batch_size,
         sampling_window_size,
         num_negative_samples,
@@ -176,6 +186,7 @@ if __name__ == "__main__":
     train_word2vec_sgns(
         args.text_filepath,
         args.vocab_filepath,
+        args.text8,
         args.batch_size,
         args.n_epochs,
         args.learning_rate,

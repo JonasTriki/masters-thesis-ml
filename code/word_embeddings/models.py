@@ -4,7 +4,10 @@ from tensorflow.keras.optimizers import Adam
 
 
 def build_word2vec_model(
-    vocab_size: int, vector_dim: int, learning_rate: float = 0.001
+    vocab_size: int,
+    vector_dim: int,
+    learning_rate: float,
+    target_embedding_layer_name: str = "target_embedding",
 ) -> Model:
     """
     Builds a Word2vec model using skipgram negative sampling
@@ -17,18 +20,14 @@ def build_word2vec_model(
     input_target = Input(input_shape, name="input_target")
     input_context = Input(input_shape, name="input_context")
 
-    # We add 1 to the vocabulary size to account for
-    # the unknown word
-    vocab_size_new = vocab_size + 1
-
     # Embedding layers
     target_embedding = Embedding(
-        vocab_size_new, vector_dim, input_length=1, name="target_embedding"
+        vocab_size, vector_dim, input_length=1, name=target_embedding_layer_name
     )
     target = target_embedding(input_target)
     target = Reshape((vector_dim,), name="target_word_vector")(target)
     context_embedding = Embedding(
-        vocab_size_new, vector_dim, input_length=1, name="context_embedding"
+        vocab_size, vector_dim, input_length=1, name="context_embedding"
     )
     context = context_embedding(input_context)
     context = Reshape((vector_dim,), name="context_word_vector")(context)

@@ -1,10 +1,16 @@
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 from tensorflow.keras.preprocessing.sequence import make_sampling_table, skipgrams
 from tensorflow.keras.utils import Sequence, to_categorical
+from tqdm import tqdm
 
-from utils import load_text_data_tokenized
+from utils import (
+    calc_skipgram_pairs_number,
+    load_text_data_tokenized,
+    skipgram_pairs_generator,
+    subsample_words_by_freq,
+)
 
 
 class SGNSDataGenerator(Sequence):
@@ -17,6 +23,7 @@ class SGNSDataGenerator(Sequence):
         self,
         text_filepath: str,
         vocab_filepath: str,
+        preprocess_text: Callable[[str], list],
         batch_size: int,
         sampling_window_size: int,
         num_negative_samples: int,
@@ -30,13 +37,32 @@ class SGNSDataGenerator(Sequence):
         """
         Initializes a skipgram negative sampling generator
         """
-        self.tokenized_text, self.word_dict = load_text_data_tokenized(
-            text_filepath, vocab_filepath
-        )
-        self.batch_size = batch_size
+        print("Loading data...")
+        (
+            self.tokenized_text,
+            self.word_dict,
+            self.word_counts_dict,
+            self.word_noise_dict,
+        ) = load_text_data_tokenized(text_filepath, vocab_filepath, preprocess_text)
+        print("Done!")
 
+        # Subsample data using sampling factor
+        print("Randomly subsampling data...")
+        self.tokenized_text = subsample_words_by_freq(
+            self.tokenized_text, sampling_factor=sampling_factor
+        )
+        print("Done!")
+
+        self.batch_size = batch_size
         self.sampling_window_size = sampling_window_size
         self.num_negative_samples = num_negative_samples
+
+        print("Counting number of skipgram pairs...")
+        self.num_skipgram_pairs = calc_skipgram_pairs_number(
+            self.tokenized_text, self.sampling_window_size, self.num_negative_samples
+        )
+        print(f"Done! Will generate {self.num_skipgram_pairs} skipgram pairs per epoch.")
+
         if vocab_size is None:
             self.vocab_size = len(self.word_dict)
         else:
@@ -45,10 +71,9 @@ class SGNSDataGenerator(Sequence):
             if vocab_size > len(self.word_dict):
                 self.vocab_size = len(self.word_dict)
             else:
-                self.vocab_size = vocab_size
-        self.sampling_table = make_sampling_table(
-            self.vocab_size + 1, sampling_factor=sampling_factor
-        )
+                # Add 1 to account for the unknown word
+                self.vocab_size = vocab_size + 1
+
         self.one_hot_skipgram_pairs = one_hot_skipgram_pairs
 
         self.shuffle = shuffle
@@ -63,48 +88,71 @@ class SGNSDataGenerator(Sequence):
         Generates new pair of skipgram couples and
         updates indices after every epoch
         """
-        # Create skipgram pairs
-        skipgram_pairs, skipgram_labels = skipgrams(
+        # Initialize skipgram pairs generator
+        self.skipgram_pairs_gen = skipgram_pairs_generator(
             self.tokenized_text,
-            self.vocab_size + 1,
-            sampling_table=self.sampling_table,
-            window_size=self.sampling_window_size,
-            negative_samples=self.num_negative_samples,
+            self.word_noise_dict,
+            self.sampling_window_size,
+            self.num_negative_samples,
         )
-        self.skipgram_pairs = np.array(skipgram_pairs)
-        self.skipgram_labels = np.array(skipgram_labels)
-        self.indices = np.arange(len(self.skipgram_pairs))
-        print(f"Generated {len(skipgram_pairs)} skipgram couples => {len(self)} batches")
+        self.add_to_next_batch: list = []
 
-        if self.shuffle:
-            np.random.shuffle(self.indices)
+        lala: list = []
+        for pair in tqdm(self.skipgram_pairs_gen, total=self.num_skipgram_pairs):
+            lala += pair
+        print(len(lala))
+        # Create skipgram pairs
+        # print("Preparing skipgram pairs...")
+        # skipgram_pairs, skipgram_labels = skipgrams(
+        #     self.tokenized_text,
+        #     self.vocab_size,
+        #     sampling_table=self.sampling_table,
+        #     window_size=self.sampling_window_size,
+        #     negative_samples=self.num_negative_samples,
+        # )
+        # self.skipgram_pairs = np.array(skipgram_pairs)
+        # self.skipgram_labels = np.array(skipgram_labels)
+        # self.indices = np.arange(len(self.skipgram_pairs))
+        # print(f"Generated {len(skipgram_pairs)} skipgram couples => {len(self)} batches")
+
+        # if self.shuffle:
+        #     np.random.shuffle(self.indices)
 
     def __len__(self) -> int:
         """
         Denotes the number of batches per epoch
         """
-        return int(np.ceil(len(self.indices) / float(self.batch_size)))
+        return int(np.ceil(self.num_skipgram_pairs / float(self.batch_size)))
 
     def __getitem__(self, index: int) -> object:
         """
         Generates one batch of skipgram negative sampling data
         """
-        # Get indices of batch
-        batch_indices = self.indices[
-            index * self.batch_size : (index + 1) * self.batch_size
-        ]
+        # Generate batch of data
+        pairs_batch = []
+        if len(self.add_to_next_batch) > 0:
+            pairs_batch += self.add_to_next_batch
+            self.add_to_next_batch = []
+        while len(pairs_batch) < self.batch_size:
+            pairs_batch += next(self.skipgram_pairs_gen)
 
-        # Get batched skipgram couples
-        # (X = target/context pairs, y = labels)
-        X_batch = self.skipgram_pairs[batch_indices]
-        X_batch_target = X_batch[:, 0]
-        X_batch_context = X_batch[:, 1]
-        y_batch = self.skipgram_labels[batch_indices]
+        if len(pairs_batch) > self.batch_size:
+            self.add_to_next_batch += pairs_batch[self.batch_size :]
+            pairs_batch = pairs_batch[: self.batch_size]
+
+        # Convert to numpy matrix to easier access the columns
+        pairs_batch_mat = np.array(pairs_batch)
+
+        # Get batched skipgram pairs/labels
+        # batch = [target, context, label]
+        X_batch_target = pairs_batch_mat[:, 0]
+        X_batch_context = pairs_batch_mat[:, 1]
+        y_batch = pairs_batch_mat[:, 2]
 
         # One-hot encode target/context pairs
         if self.one_hot_skipgram_pairs:
-            X_batch_target = to_categorical(X_batch_target, self.vocab_size + 1)
-            X_batch_context = to_categorical(X_batch_context, self.vocab_size + 1)
+            X_batch_target = to_categorical(X_batch_target, self.vocab_size)
+            X_batch_context = to_categorical(X_batch_context, self.vocab_size)
 
         # Create batch using object notation
         batch_obj = (

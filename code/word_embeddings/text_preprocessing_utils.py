@@ -6,6 +6,7 @@ https://gist.github.com/MrEliptik/b3f16179aa2f530781ef8ca9a16499af
 
 import re
 import unicodedata
+from collections import Counter
 
 import contractions
 import inflect
@@ -158,3 +159,18 @@ def preprocess_text(text: str) -> list:
     words = normalize(words)
 
     return words
+
+
+def preprocess_text8(raw_text8: str, min_word_count: int = 5) -> list:
+    """
+    Preprocesses raw text8 text as downloaded (and extracted) from:
+    http://mattmahoney.net/dc/text8.zip
+    """
+    # Split text into list of words
+    words = raw_text8.split()
+
+    # Remove all words with fewer occurences than `min_word_count`
+    word_counts = Counter(words)
+    new_words = [word for word in words if word_counts[word] > min_word_count]
+
+    return new_words

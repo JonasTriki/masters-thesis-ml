@@ -13,16 +13,12 @@ from utils import (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model_filepath",
-        type=str,
-        # TODO: Remove default
-        default="checkpoints/model-sgns.09-0.11971963942050934.h5",
-        help="Path of saved model checkpoint",
+        "--model_filepath", type=str, default="", help="Path of saved model checkpoint",
     )
     parser.add_argument(
         "--vocab_filepath",
         type=str,
-        default="data/dracula_vocab.pickle",  # TODO: Remove default
+        default="",
         help="Vocabulary filepath containing the word vocabulary we want to use",
     )
     return parser.parse_args()
@@ -50,7 +46,7 @@ def evaluate_word2vec_sgns(model_filepath: str, vocab_filepath: str) -> None:
     # print(target_embedding_weights.shape, words.shape)
 
     # Test similarities
-    print(similar_words("one", target_embedding_weights, words))
+    print(similar_words("vampire", target_embedding_weights, words))
 
 
 if __name__ == "__main__":

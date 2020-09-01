@@ -1,6 +1,8 @@
 from os.path import join as join_path
 
-from utils import build_vocabulary, get_cached_download, save_vocabulary_to_file
+from text_preprocessing_utils import preprocess_text
+from utils import (build_vocabulary, get_cached_download,
+                   save_vocabulary_to_file)
 
 # Constants
 data_dir = "data"
@@ -24,15 +26,22 @@ def preprocess_data() -> None:
 
         # Build vocabulary from text content
         print("Building vocabulary...")
-        (book_word_occurences, book_word_dict, book_rev_word_dict) = build_vocabulary(
-            book_content
-        )
+        (
+            book_word_dict,
+            book_rev_word_dict,
+            book_word_counts,
+            book_word_noise_dict,
+        ) = build_vocabulary(book_content, preprocess_text)
 
         # Save vocab to file
         print("Saving vocabulary to file...")
         vocab_filepath = join_path(data_dir, f"{book_name}_vocab.pickle")
         save_vocabulary_to_file(
-            vocab_filepath, book_word_occurences, book_word_dict, book_rev_word_dict
+            vocab_filepath,
+            book_word_dict,
+            book_rev_word_dict,
+            book_word_counts,
+            book_word_noise_dict,
         )
 
         print("Done!")
