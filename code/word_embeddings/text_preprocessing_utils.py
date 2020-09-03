@@ -6,7 +6,6 @@ https://gist.github.com/MrEliptik/b3f16179aa2f530781ef8ca9a16499af
 
 import re
 import unicodedata
-from collections import Counter
 
 import contractions
 import inflect
@@ -21,9 +20,19 @@ nltk.download("wordnet")
 nltk.download("averaged_perceptron_tagger")
 
 
-def remove_URLs(text: str) -> str:
+def remove_urls(text: str) -> str:
     """
-    Remove URLs from a text
+    Remove URLs from a text.
+
+    Parameters
+    ----------
+    text : str
+        Text to remove URLs from.
+
+    Returns
+    -------
+    new_text : str
+        New text without URLs.
     """
     url_regex = r"(?:(?:http|ftp)s?:\/\/|www\.)[\n\S]+"
     return re.sub(url_regex, "", text)
@@ -32,13 +41,40 @@ def remove_URLs(text: str) -> str:
 def replace_contractions(text: str, slang: bool = False) -> str:
     """
     Replace contractions in string of text
+
+    Parameters
+    ----------
+    text : str
+        Text to replace contractions from.
+
+        Example replacements:
+        - isn't --> is not
+        - don't --> do not
+        - I'll --> I will
+    slang : bool, optional
+        Whether or not to include slang contractions (defaults to False).
+
+    Returns
+    -------
+    new_text : str
+        New text without contractions.
     """
     return contractions.fix(text, slang=slang)
 
 
 def remove_non_ascii(words: list) -> list:
     """
-    Remove non-ASCII characters from a list of tokenized words
+    Remove non-ASCII characters from a list of tokenized words.
+
+    Parameters
+    ----------
+    words : list
+        List of tokenized words.
+
+    Returns
+    -------
+    new_words : list
+        List of new words without non-ASCII characters.
     """
     new_words = []
     for word in words:
@@ -51,7 +87,17 @@ def remove_non_ascii(words: list) -> list:
 
 def to_lowercase(words: list) -> list:
     """
-    Convert all characters to lowercase from list of tokenized words
+    Convert all characters to lowercase from list of tokenized words.
+
+    Parameters
+    ----------
+    words : list
+        List of tokenized words.
+
+    Returns
+    -------
+    new_words : list
+        List of words in lowercase.
     """
     new_words = []
     for word in words:
@@ -62,7 +108,17 @@ def to_lowercase(words: list) -> list:
 
 def remove_punctuation(words: list) -> list:
     """
-    Remove punctuation from list of tokenized words
+    Remove punctuation from list of tokenized words.
+
+    Parameters
+    ----------
+    words : list
+        List of tokenized words.
+
+    Returns
+    -------
+    new_words : list
+        List of new words without punctuations.
     """
     new_words = []
     for word in words:
@@ -78,8 +134,18 @@ def remove_punctuation(words: list) -> list:
 
 def replace_numbers(words: list) -> list:
     """
-    Replace all interger occurrences in list of tokenized
-    words with textual representation
+    Replace all integer occurrences in list of tokenized
+    words with textual representation.
+
+    Parameters
+    ----------
+    words : list
+        List of tokenized words.
+
+    Returns
+    -------
+    new_words : list
+        List of new words with textual representation of numbers.
     """
     p = inflect.engine()
     new_words = []
@@ -100,7 +166,19 @@ def replace_numbers(words: list) -> list:
 
 def remove_stopwords(words: list, language: str = "english") -> list:
     """
-    Remove stop words from list of tokenized words
+    Remove stop words from list of tokenized words.
+
+    Parameters
+    ----------
+    words : list
+        List of tokenized words.
+    language : str, optional
+        Words' language (defaults to "english").
+
+    Returns
+    -------
+    new_words : list
+        List of new words with stop words removed.
     """
     new_words = []
     for word in words:
@@ -110,7 +188,19 @@ def remove_stopwords(words: list, language: str = "english") -> list:
 
 
 def lemmatize_words(words: list) -> list:
-    """Lemmatize words in list of tokenized words"""
+    """
+    Lemmatize words in list of tokenized words.
+
+    Parameters
+    ----------
+    words : list
+        List of tokenized words.
+
+    Returns
+    -------
+    new_words : list
+        List of new, lemmatized words.
+    """
     lemmatizer = WordNetLemmatizer()
     lemmas = []
     for word, word_pos_tag in pos_tag(words):
@@ -121,19 +211,6 @@ def lemmatize_words(words: list) -> list:
             lemma = lemmatizer.lemmatize(word)
         lemmas.append(lemma)
     return lemmas
-
-
-def normalize(words: list) -> list:
-    """
-    Normalizes a list of words
-    """
-    words = remove_non_ascii(words)
-    words = to_lowercase(words)
-    words = remove_punctuation(words)
-    words = replace_numbers(words)
-    words = remove_stopwords(words)
-    words = lemmatize_words(words)
-    return words
 
 
 def preprocess_text(text: str) -> list:
@@ -147,30 +224,30 @@ def preprocess_text(text: str) -> list:
     - Removes punctuation
     - Replaces numbers with textual representation
     - Removes stop words
+
+    Parameters
+    ----------
+    text : str
+        Text to preprocess.
+
+    Returns
+    -------
+    words : list of str
+        Preprocessed text split into a list of words.
     """
     # Remove URLs and replace contradictions
-    text = remove_URLs(text)
+    text = remove_urls(text)
     text = replace_contractions(text)
 
     # Tokenize text (convert into words)
     words = word_tokenize(text)
 
-    # Normalize text
-    words = normalize(words)
+    # Apply a series of techniques to the words
+    words = remove_non_ascii(words)
+    words = to_lowercase(words)
+    words = remove_punctuation(words)
+    words = replace_numbers(words)
+    # words = remove_stopwords(words)
+    # words = lemmatize_words(words)
 
     return words
-
-
-def preprocess_text8(raw_text8: str, min_word_count: int = 5) -> list:
-    """
-    Preprocesses raw text8 text as downloaded (and extracted) from:
-    http://mattmahoney.net/dc/text8.zip
-    """
-    # Split text into list of words
-    words = raw_text8.split()
-
-    # Remove all words with fewer occurences than `min_word_count`
-    word_counts = Counter(words)
-    new_words = [word for word in words if word_counts[word] > min_word_count]
-
-    return new_words

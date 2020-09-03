@@ -1,4 +1,3 @@
-import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
 from tqdm import tqdm
 
@@ -10,30 +9,6 @@ with open("data/text8", "r") as file:
 # To sentences
 print("Sentence tokenizing...")
 text8_sentences = sent_tokenize(text8_content)
-
-# Merge sentences with less than N words into previous sentence
-# new_sentences = []
-# for i in tqdm(range(0, len(text8_sentences) - 1, 2)):
-#     j = i + 1
-
-#     # Tokenize sentences
-#     sent_words_i = word_tokenize(text8_sentences[i])[:-1]
-#     sent_words_j = word_tokenize(text8_sentences[j])[:-1]
-
-#     if len(sent_words_i) > 0 and len(sent_words_j) > 0:
-
-#         # Ensure than sentence #i is longer than sentence
-#         if len(sent_words_i) > len(sent_words_j) and len(sent_words_j) <= 3:
-#             sent = " ".join(sent_words_i + sent_words_j)
-#             new_sentences.append(sent)
-#         else:
-#             new_sentences.append(" ".join(sent_words_i))
-#             new_sentences.append(" ".join(sent_words_j))
-#     else:
-#         if len(sent_words_i) > 0:
-#             new_sentences.append(" ".join(sent_words_i))
-#         if len(sent_words_j) > 0:
-#             new_sentences.append(" ".join(sent_words_j))
 
 # Filter out sentences that have less than N words in them
 min_sent_word_count = 5

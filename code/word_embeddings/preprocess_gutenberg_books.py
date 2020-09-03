@@ -1,7 +1,7 @@
 from os.path import join as join_path
 
-from text_preprocessing_utils import preprocess_text
-from utils import (build_vocabulary, get_cached_download,
+from .text_preprocessing_utils import preprocess_text
+from .utils import (build_vocabulary, get_cached_download,
                    save_vocabulary_to_file)
 
 # Constants
@@ -14,7 +14,7 @@ gutenberg_books = [
 
 def preprocess_data() -> None:
     """
-    Preprocess data for training a Word2vec model
+    Preprocess data for training a Word2vec model.
     """
     # Preprocess all books
     for book_name, url in gutenberg_books:

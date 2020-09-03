@@ -1,34 +1,32 @@
 import argparse
-import os
-from os.path import join as join_path
 
-from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras.models import load_model
-
-from models import build_word2vec_model
-from SGNSDataGenerator import SGNSDataGenerator
-from text_preprocessing_utils import preprocess_text, preprocess_text8
+from .data_utils import Tokenizer
+from .utils import text_file_into_texts
+from .word2vec import Word2vec
 
 
 def parse_args() -> argparse.Namespace:
     """
-    Parses arguments from the commandline
+    Parses arguments sent to the python script.
+
+    Returns
+    -------
+    parsed_args : argparse.Namespace
+        Parsed arguments
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--text_filepath",
+        "--text_data_filepath",
         type=str,
         default="",
         help="Text filepath containing the text we wish to train on",
     )
     parser.add_argument(
-        "--vocab_filepath",
+        "--dataset_name",
         type=str,
         default="",
-        help="Vocabulary filepath containing the word vocabulary we want to use",
-    )
-    parser.add_argument(
-        "--text8", action="store_true", help="Flags that your text is text8"
+        help="Name of the dataset we are training on. "
+        "Used to denote saved checkpoints during training",
     )
     parser.add_argument(
         "--batch_size", type=int, default=1024, help="Batch size used for training",
@@ -43,13 +41,19 @@ def parse_args() -> argparse.Namespace:
         help="Learning rate to use when training",
     )
     parser.add_argument(
-        "--vocab_size",
+        "--max_vocab_size",
         type=int,
         default=None,
-        help="Vocabulary size to use when training. Defaults to use all words",
+        help="Maximum vocabulary size to use when training. Defaults to use all words",
     )
     parser.add_argument(
-        "--vector_dim",
+        "--min_word_count",
+        type=int,
+        default=10,
+        help="Minimum number of times a word might occur for it to be in the vocabulary",
+    )
+    parser.add_argument(
+        "--embedding_dim",
         type=int,
         default=300,
         help="Number of latent dimensions to use in the embedding layers",
@@ -58,35 +62,25 @@ def parse_args() -> argparse.Namespace:
         "--sampling_window_size",
         type=int,
         default=4,
-        help="Window size to use when generating skipgram couples",
+        help="Window size to use when generating skip-gram couples",
     )
     parser.add_argument(
         "--num_negative_samples",
         type=int,
         default=15,
-        help="Number of negative samples to use when generating skipgram couples",
+        help="Number of negative samples to use when generating skip-gram couples",
     )
     parser.add_argument(
         "--sampling_factor",
         type=float,
         default=1e-5,
-        help="Sampling factor to use when generating skipgram couples",
+        help="Sampling factor to use when generating skip-gram couples",
     )
     parser.add_argument(
-        "--model_checkpoint_dir",
+        "--model_checkpoints_dir",
         type=str,
-        default="checkpoints/",
-        help="Where to save the intermediate model after each epoch",
-    )
-    parser.add_argument(
-        "--model_checkpoint_filename",
-        type=str,
-        default="model-sgns.{epoch:02d}-{loss}.h5",
-        help="""Filename to use when saving intermediate models after each epoch.
-
-        For more information, please refer to the documentation:
-        https://www.tensorflow.org/api_docs/python/tf/keras/callbacks/ModelCheckpoint
-        """,
+        default="checkpoints",
+        help="Where to save checkpoints of the model after each epoch",
     )
     parser.add_argument(
         "--pretrained_model_filepath",
@@ -95,88 +89,100 @@ def parse_args() -> argparse.Namespace:
         help="Load an already trained Word2vec model from file",
     )
     parser.add_argument(
-        "--pretrained_model_epoch_nr",
+        "--starting_epoch_nr",
         type=int,
-        default=None,
-        help="Epoch number of an already trained Word2vec model",
+        default=1,
+        help="Epoch number to start the training from",
     )
     return parser.parse_args()
 
 
 def train_word2vec_sgns(
-    text_filepath: str,
-    vocab_filepath: str,
-    is_text8: bool,
+    text_data_filepath: str,
+    dataset_name: str,
     batch_size: int,
     n_epochs: int,
     learning_rate: float,
-    vocab_size: int,
-    vector_dim: int,
+    max_vocab_size: int,
+    min_word_count: int,
+    embedding_dim: int,
     sampling_window_size: int,
     num_negative_samples: int,
     sampling_factor: float,
-    model_checkpoint_dir: str,
-    model_checkpoint_filename: str,
+    model_checkpoints_dir: str,
     pretrained_model_filepath: str,
-    pretrained_model_epoch_nr: int,
+    starting_epoch_nr: int,
 ) -> None:
     """
-    Trains a Word2vec model using skipgram negative sampling
+    Trains a Word2vec model using skip-gram negative sampling.
+
+    Parameters
+    ----------
+    text_data_filepath : str
+        Text filepath containing the text we wish to train on.
+    dataset_name : str
+        Name of the dataset we are training on. Used to denote saved checkpoints
+        during training.
+    batch_size : int
+        Batch size used for training.
+    n_epochs : int
+        Number of epochs to train our model on.
+    learning_rate : float
+        Learning rate to use when training.
+    max_vocab_size : int
+        Maximum vocabulary size to use when training.
+    min_word_count : int
+        Minimum number of times a word might occur for it to be in the vocabulary.
+    embedding_dim : int
+        Number of latent dimensions to use in the embedding layers.
+    sampling_window_size : int
+        Window size to use when generating skip-gram couples.
+    num_negative_samples : int
+        Number of negative samples to use when generating skip-gram couples.
+    sampling_factor : float
+        Sampling factor to use when generating skip-gram couples.
+    model_checkpoints_dir : str
+        Where to save checkpoints of the model after each epoch.
+    pretrained_model_filepath : str
+        Load an already trained Word2vec model from file.
+    starting_epoch_nr : int
+        Epoch number to start the training from.
     """
-    print(f"-- Training Word2vec on {text_filepath}... --")
+    # Read text from file
+    data_texts = text_file_into_texts(text_data_filepath)
 
-    # Initialize data generator
-    print("Initializing data generator...")
-    if is_text8:
-        preprocess_func = preprocess_text8
-    else:
-        preprocess_func = preprocess_text
-    train_generator = SGNSDataGenerator(
-        text_filepath,
-        vocab_filepath,
-        preprocess_func,
-        batch_size,
-        sampling_window_size,
-        num_negative_samples,
-        vocab_size,
-        sampling_factor,
+    # Initialize tokenizer and build its vocabulary
+    tokenizer = Tokenizer(
+        max_vocab_size=max_vocab_size,
+        min_word_count=min_word_count,
+        sampling_factor=sampling_factor,
     )
-    vocab_size = train_generator.vocab_size
+    print("Building vocabulary...")
+    tokenizer.build_vocab(text_data_filepath)
     print("Done!")
 
-    # Initialize model
-    if pretrained_model_filepath == "":
-        print("Initializing Word2vec model...")
-        model = build_word2vec_model(vocab_size, vector_dim, learning_rate)
-        model.summary()
-    else:
-        print("Loading Word2vec model...")
-        model = load_model(pretrained_model_filepath)
+    # Initialize Word2vec instance
+    print("Initializing Word2vec model...")
+    word2vec = Word2vec(
+        tokenizer=tokenizer,
+        embedding_dim=embedding_dim,
+        learning_rate=learning_rate,
+        sampling_window_size=sampling_window_size,
+        num_negative_samples=num_negative_samples,
+        model_checkpoints_dir=model_checkpoints_dir,
+    )
+    if pretrained_model_filepath != "":
+        word2vec.load_model(pretrained_model_filepath)
     print("Done!")
 
-    # Initialize callbacks
-    os.makedirs(model_checkpoint_dir, exist_ok=True)
-    model_checkpoint_filepath = join_path(model_checkpoint_dir, model_checkpoint_filename)
-    model_checkpoint = ModelCheckpoint(filepath=model_checkpoint_filepath, monitor="loss")
-    model_callbacks = [model_checkpoint]
-
-    if pretrained_model_filepath == "":
-        epoch_range = range(n_epochs)
-    else:
-        epoch_range = range(
-            pretrained_model_epoch_nr, pretrained_model_epoch_nr + n_epochs
-        )
-
-    # Fit model
-    print(f"-- Training for {n_epochs} epochs... --")
-    for epoch in epoch_range:
-        # print(f"Epoch {epoch + 1}/{n_epochs}")
-        model.fit(
-            train_generator,
-            epochs=epoch + 1,
-            initial_epoch=epoch,
-            callbacks=model_callbacks,
-        )
+    # Train model
+    word2vec.fit(
+        texts=data_texts,
+        dataset_name=dataset_name,
+        n_epochs=n_epochs,
+        batch_size=batch_size,
+        starting_epoch_nr=starting_epoch_nr,
+    )
 
 
 if __name__ == "__main__":
@@ -184,19 +190,18 @@ if __name__ == "__main__":
 
     # Perform training
     train_word2vec_sgns(
-        args.text_filepath,
-        args.vocab_filepath,
-        args.text8,
+        args.text_data_filepath,
+        args.dataset_name,
         args.batch_size,
         args.n_epochs,
         args.learning_rate,
-        args.vocab_size,
-        args.vector_dim,
+        args.max_vocab_size,
+        args.min_word_count,
+        args.embedding_dim,
         args.sampling_window_size,
         args.num_negative_samples,
         args.sampling_factor,
-        args.model_checkpoint_dir,
-        args.model_checkpoint_filename,
+        args.model_checkpoints_dir,
         args.pretrained_model_filepath,
-        args.pretrained_model_epoch_nr,
+        args.starting_epoch_nr,
     )

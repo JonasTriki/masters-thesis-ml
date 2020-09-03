@@ -1,15 +1,59 @@
-import pickle
 from collections import Counter
 from typing import Generator, List, Optional, Tuple
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.data.experimental import AUTOTUNE
+
+
+def create_noise_distribution(
+        word_counts: dict, word_to_int: dict, corpus_size: int, alpha: float
+) -> dict:
+    """
+    Creates a noise distribution using the word frequencies from a dictionary of word
+    counts.
+
+    Parameters
+    ----------
+    word_counts : dict
+        Dictionary mapping words to its word counts
+    word_to_int : dict
+        Dictionary mapping words to its integer representation
+    corpus_size : int
+        Size of the text corpus
+    alpha : float
+        Value of the power we raise the noise distribution, as specified in the
+        skip-grams paper by Mikolov et al., section 2.2: Negative Sampling:
+        https://arxiv.org/pdf/1310.4546.pdf
+
+    Returns
+    -------
+    noise_dist : dict
+        Noise distribution represented as a dictionary, mapping word integer
+        representation to its probability of being sampled.
+    """
+    # Normalize word frequencies
+    word_freqs_normalized = {
+        word_to_int[word]: word_count / corpus_size
+        for word, word_count in word_counts.items()
+    }
+
+    # Create noise distribution
+    noise_dist = {
+        word_int: word_freq_frac ** alpha
+        for word_int, word_freq_frac in word_freqs_normalized.items()
+    }
+    z_noise_dist = sum(noise_dist.values())
+    noise_dist_normalized = {
+        word_int: word_freq_frac / z_noise_dist
+        for word_int, word_freq_frac in noise_dist.items()
+    }
+
+    return noise_dist_normalized
 
 
 class Tokenizer:
     """
-    TODO: Docs
+    Text tokenization class.
     """
 
     def __init__(
@@ -21,7 +65,29 @@ class Tokenizer:
         unknown_word_int: int = -1,
     ) -> None:
         """
-        TODO: Docs
+        Initializes the Tokenizer class.
+
+        Parameters
+        ------–---
+        max_vocab_size : int, optional
+            Maximum vocabulary size to use (defaults to None,
+            i.e. all words in vocabulary).
+
+            If specified, the top `max_vocab_size` words will be taken into account
+            when tokenizing texts.
+        min_word_count : int, optional
+            Minimum word count (defaults to 10).
+            
+            Words that have fewer occurrences than `min_word_count`
+            will be ignored during tokenization of texts.
+        sampling_factor : float, optional
+            Sampling factor to use when computing the probability
+            of keeping a word during random subsampling of words (defaults to 1e-5).
+        noise_dist_alpha : float, optional
+            Value of alpha to use when computing the noise distribution (defaults to 3/4).
+        unknown_word_int : int, optional
+            Integer value to use for characterizing unknown words, i.e words that are
+            out of the vocabulary (defaults to -1).
         """
         self._max_vocab_size = max_vocab_size
         self._min_word_count = min_word_count
@@ -29,10 +95,11 @@ class Tokenizer:
         self._noise_dist_alpha = noise_dist_alpha
         self._unknown_word_int = unknown_word_int
 
+        self._corpus_size: Optional[int] = None
         self._vocab_size: Optional[int] = None
         self._word_to_int: Optional[dict] = None
         self._int_to_word: Optional[dict] = None
-        self._words: Optional[list] = None
+        self._words: Optional[np.ndarray] = None
         self._word_counts: Optional[dict] = None
         self._word_keep_probs: Optional[list] = None
         self._word_noise_dist: Optional[dict] = None
@@ -40,11 +107,21 @@ class Tokenizer:
     @property
     def vocab_size(self) -> int:
         """
-        TODO: Docs
+        Gets the vocabulary size.
+
+        Returns
+        -------
+        vocab_size : int
+            Size of the tokenizers vocabulary.
+        
+        Raises
+        ------
+        TypeError
+            If the vocabulary has not been built yet.
         """
         if self._vocab_size is None:
             raise TypeError(
-                "Vocabulary size is not determined yet."
+                "Vocabulary size is not determined yet. "
                 "Did you forget to build the vocabulary?"
             )
         return self._vocab_size
@@ -52,11 +129,25 @@ class Tokenizer:
     @property
     def word_negative_sampling_probs(self) -> List[float]:
         """
-        TODO: Docs
+        Gets a list of probabilities of sampling a negative word sample from the
+        vocabulary.
+        
+        The list is sorted by the order of the words in the vocabulary (i.e. most common
+        words have indices 0, 1, 2, etc.).
+
+        Returns
+        -------
+        negative_sampling_probs : list of int
+            List of probabiltiies of sampling a negative word sample from the vocabulary.
+            
+        Raises
+        ------
+        TypeError
+            If the vocabulary has not been built yet.
         """
         if self._word_noise_dist is None:
             raise TypeError(
-                "Noise distribution for negative sampling is None."
+                "Noise distribution for negative sampling is None. "
                 "Did you forget to build the vocabulary?"
             )
         return list(self._word_noise_dist.values())
@@ -64,11 +155,23 @@ class Tokenizer:
     @property
     def word_keep_probs(self) -> List[float]:
         """
-        TODO: Docs
+        Gets a list of probabilities of keeping a word during subsampling of texts.
+        The list is sorted by the order of the words in the vocabulary (i.e. most common
+        words have indices 0, 1, 2, etc.).
+
+        Returns
+        -------
+        word_keep_probs : list of float
+            List of probabilities of keeping a word during sampling of texts.
+
+        Raises
+        ------
+        TypeError
+            If the vocabulary has not been built yet.
         """
         if self._word_keep_probs is None:
             raise TypeError(
-                "Word keep probabilities list is empty."
+                "Word keep probabilities list is empty. "
                 "Did you forget to build the vocabulary?"
             )
         return self._word_keep_probs
@@ -76,25 +179,50 @@ class Tokenizer:
     @property
     def unknown_word_int(self) -> int:
         """
-        TODO: Docs
+        Gets the value for denoting an unknown word during tokenization.
+
+        Returns
+        -------
+        unknown_word_int : int
+            Unknown word integer value.
         """
         return self._unknown_word_int
 
     @property
     def words(self) -> np.ndarray:
         """
-        TODO: Docs
+        Gets a numpy array of words containing the words of the vocabulary.
+
+        Returns
+        -------
+        words : np.ndarray
+            Numpy array of words from the vocabulary.
+
+        Raises
+        ------
+        TypeError
+            If the vocabulary has not been built yet.
         """
         if self._words is None:
             raise TypeError(
-                "List of words is empty." "Did you forget to build the vocabulary?"
+                "List of words is empty. " "Did you forget to build the vocabulary?"
             )
         return self._words
 
     @property
     def word_to_int(self) -> dict:
         """
-        TODO: Docs
+        Gets a dictionary mapping from a word to its integer representation
+
+        Returns
+        -------
+        word_to_int : dict
+            Dictionary for mapping a word to its integer representation
+
+        Raises
+        ------
+        TypeError
+            If the vocabulary has not been built yet.
         """
         if self._word_to_int is None:
             raise TypeError(
@@ -106,7 +234,17 @@ class Tokenizer:
     @property
     def int_to_word(self) -> dict:
         """
-        TODO: Docs
+        Gets a dictionary mapping from an integer representation to its word
+
+        Returns
+        -------
+        int_to_word : dict
+            Dictionary for mapping an integer representation to its word
+
+        Raises
+        ------
+        TypeError
+            If the vocabulary has not been built yet.
         """
         if self._int_to_word is None:
             raise TypeError(
@@ -115,57 +253,36 @@ class Tokenizer:
             )
         return self._int_to_word
 
-    def _build_word_occurences(self, filepath: str) -> List[Tuple[str, int]]:
+    def _build_word_occurrences(self, filepath: str) -> List[Tuple[str, int]]:
         """
         Builds a list containing word and its word count
 
-        Returns:
-            word_occurences: a list containing a tuple with word and
-                its word count in the text corpus
+        Parameters
+        ----------
+        filepath : str
+            Filepath of text file to build on.
+
+        Returns
+        -------
+            word_occurrences : list of tuples of str and int
+                A list containing a tuple with word and its word count in the text corpus.
         """
         # Read file content and split into words
         with open(filepath, "r") as file:
             file_text_content = file.read()
             file_words = file_text_content.split()
 
-        # Count word occurences
-        # word_occurences: List[Tuple[str, int]] = [(self._unknown_word_key, -1)]
-        word_occurences = Counter(file_words).most_common(self._max_vocab_size)
+        # Count word occurrences
+        word_occurrences = Counter(file_words).most_common(self._max_vocab_size)
 
-        # Exclude words with less than `self._min_word_count` occurences
-        word_occurences = [
+        # Exclude words with less than `self._min_word_count` occurrences
+        word_occurrences = [
             (word, word_count)
-            for word, word_count in word_occurences
+            for word, word_count in word_occurrences
             if word_count >= self._min_word_count
         ]
 
-        return word_occurences
-
-    def _create_noise_distribution(
-        self, word_counts: dict, word_to_int: dict, corpus_size: int, alpha: float
-    ) -> dict:
-        """
-        Creates a noise distribution using the word frequencies
-        from a dictionary of word counts
-        """
-        # Normalize word frequencies
-        word_freqs_normalized = {
-            word_to_int[word]: word_count / corpus_size
-            for word, word_count in word_counts.items()
-        }
-
-        # Create noise distribution
-        noise_dist = {
-            word_int: word_freq_frac ** alpha
-            for word_int, word_freq_frac in word_freqs_normalized.items()
-        }
-        Z_noise_dist = sum(noise_dist.values())
-        noise_dist_normalized = {
-            word_int: word_freq_frac / Z_noise_dist
-            for word_int, word_freq_frac in noise_dist.items()
-        }
-
-        return noise_dist_normalized
+        return word_occurrences
 
     def build_vocab(self, filepath: str) -> None:
         """
@@ -178,15 +295,20 @@ class Tokenizer:
         - word_counts = Dictionary to lookup the word count of a word
         - word_keep_probs = List of probabilities of keeping a word during subsampling
         - word_noise_dist = Noise distribution used for negative sampling
+
+        Parameters
+        ----------
+        filepath : str
+            Filepath of the text file to build the vocabulary on.
         """
-        # Get word occurences from text file
-        word_occurences = self._build_word_occurences(filepath)
+        # Get word occurrences from text file
+        word_occurrences = self._build_word_occurrences(filepath)
 
         # Set vocabulary size
-        self._vocab_size = len(word_occurences)
+        self._vocab_size = len(word_occurrences)
 
         # Calculate how many words we have in the text corpus
-        self._corpus_size = sum([word_count for _, word_count in word_occurences])
+        self._corpus_size = sum([word_count for _, word_count in word_occurrences])
 
         # Set word_to_int, int_to_word, word_counts
         # and word_keep_probs
@@ -195,7 +317,7 @@ class Tokenizer:
         self._words = []
         self._word_counts = {}
         self._word_keep_probs = []
-        for word_idx, (word, word_count) in enumerate(word_occurences):
+        for word_idx, (word, word_count) in enumerate(word_occurrences):
 
             # Lookup tables
             self._word_to_int[word] = word_idx
@@ -210,8 +332,8 @@ class Tokenizer:
                 word_frequency_frac = word_count / float(self._corpus_size)
 
                 # As specified by word2vec's source code:
-                # - https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c#L407
-                # - https://www.quora.com/How-does-sub-sampling-of-frequent-words-work-in-the-context-of-Word2Vec
+                # - https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c#L407 # noqa: E501
+                # - https://www.quora.com/How-does-sub-sampling-of-frequent-words-work-in-the-context-of-Word2Vec # noqa: E501
                 keep_prob = (
                     np.sqrt(self._sampling_factor / word_frequency_frac)
                     + self._sampling_factor / word_frequency_frac
@@ -225,7 +347,7 @@ class Tokenizer:
         self._words = np.asarray(self._words)
 
         # Create noise distribution for negative sampling
-        self._word_noise_dist = self._create_noise_distribution(
+        self._word_noise_dist = create_noise_distribution(
             self._word_counts,
             self._word_to_int,
             self._corpus_size,
@@ -235,9 +357,19 @@ class Tokenizer:
     def tokenize_text(self, text: str) -> list:
         """
         Tokenizes a text where each word is separated by a space.
+
+        Parameters
+        ----------
+        text : str
+            Space-separated text to tokenize.
+        
+        Returns
+        -------
+        tokenized_words : list of str
+            List of words tokenized into their integer representations.
         """
         if self._word_to_int is None:
-            raise Exception(
+            raise TypeError(
                 "Word to word integer lookup table is None."
                 "Did you forget to build the vocabulary?"
             )
@@ -254,26 +386,24 @@ class Tokenizer:
 
         return tokenized_words
 
-    def save_vocab(self, vocab_filepath: str) -> None:
-        """
-        Saves the tokenizer's vocabulary to file
-        """
-        with open(vocab_filepath, "wb") as file:
-            pickle.dump(self.__dict__, file)
-
-    def load_vocab(self, vocab_filepath: str) -> None:
-        """
-        Loads the tokenizer's vocabulary from file
-        """
-        with open(vocab_filepath, "rb") as file:
-            self.__dict__ = pickle.loads(file.read())
-
 
 def tokenized_text_generator(
     texts: list, tokenizer: Tokenizer
 ) -> Generator[list, None, None]:
     """
-    TODO: Docs
+    Generator that yields tokenized texts from a list of texts.
+
+    Parameters
+    --–-------
+    texts : list
+        List of texts to tokenize.
+    tokenizer : Tokenizer
+        Tokenizer instance to use for tokenizing texts.
+
+    Yields
+    ------
+    tokenized_text : list
+        Tokenized text in a list.
     """
     for text in texts:
         yield tokenizer.tokenize_text(text)
@@ -283,29 +413,66 @@ def sample_words_from_noise_distribution(
     word_indices_sampling_prob: tf.Tensor, num_words: int
 ) -> tf.Tensor:
     """
-    TODO: Docs
+    Sampling words from a noise distribution.
+
+    Parameters
+    ----------
+    word_indices_sampling_prob : tf.Tensor
+        Tensor containing probabilities of sampling a word from the noise distribution.
+    num_words : int
+        Number of words to sample from noise distribution.
+
+    Returns
+    -------
+    sample_indices : tf.Tensor
+        Tensor containing sampled word indices.
     """
-    sample_indices = tf.random.categorical(
+    sampled_indices: tf.Tensor = tf.random.categorical(
         tf.math.log([word_indices_sampling_prob]), num_words
     )[0]
-    return sample_indices
+    return sampled_indices
 
 
-def generate_skipgram_pairs(
+def generate_skip_gram_pairs(
     word_indices: tf.Tensor,
     window_size: int,
     num_negative_samples: int,
     word_indices_sampling_prob: tf.Tensor,
 ) -> tf.Tensor:
     """
-    TODO: Docs
+    Generates skip-gram target/context pairs.
+
+    Parameters
+    ----------
+    word_indices : tf.Tensor
+        Tokenized words in a Tensor.
+    window_size : int
+        Number of words to the left and right of the target word to generate positive samples from.
+    num_negative_samples : int
+        Number of negative samples to generate.
+    word_indices_sampling_prob : tf.Tensor
+        Tensor containing probabilities of sampling a word from the noise distribution.
     """
 
-    def skipgram_pairs_from_word(
-        word_index: int, init_array: tf.TensorArray
+    def skip_gram_pairs_from_word(
+        word_index: int, skip_grams_array: tf.TensorArray
     ) -> Tuple[int, tf.TensorArray]:
         """
-        TODO: Docs
+        Helper method for generating skip-gram target/context pairs from a single word integer.
+
+        Parameters
+        ----------
+        word_index : int
+            Word integer representation of word.
+        skip_grams_array : tf.TensorArray
+            TensorArray containing generated skip-gram target/context pairs.
+
+        Returns
+        -------
+        next_word_index : int
+            Next word_index to generate from.
+        next_skip_grams_array : tf.TensorArray
+            TensorArray containing newly generated skip-gram target/context pairs-
         """
 
         # Get word integer
@@ -354,13 +521,13 @@ def generate_skipgram_pairs(
         # Merge positive and negative samples
         pairs = tf.concat([positive_samples, negative_samples], axis=0)
 
-        return word_index + 1, init_array.write(word_index, pairs)
+        return word_index + 1, skip_grams_array.write(word_index, pairs)
 
     size = tf.size(word_indices)
     # initialize a tensor array of length `tf.size(word_indices)`
     init_array = tf.TensorArray(tf.int64, size=size, infer_shape=False)
     _, result_array = tf.while_loop(
-        lambda i, ta: i < size, skipgram_pairs_from_word, [0, init_array]
+        lambda i, ta: i < size, skip_gram_pairs_from_word, [0, init_array]
     )
     instances = tf.cast(result_array.concat(), tf.int64)
     instances.set_shape([None, 3])
@@ -372,7 +539,25 @@ def subsample_words(
     word_indices: tf.Tensor, word_keep_probs: tf.Tensor, unknown_word_int: int
 ) -> tf.Tensor:
     """
-    TODO: Docs
+    Applies subsampling to a tensor of words with a certain probability for each word.
+
+    Parameters
+    ----------
+    word_indices : tf.Tensor
+        Tokenized words in a Tensor.
+    word_keep_probs : tf.Tensor
+        Tensor containing probabilities of keeping a word during subsampling.
+
+        It is ordered such that the first probability corresponds to the word with the
+        most occurrences, the second probability to the second most occurring word, etc.
+    unknown_word_int : int
+        Word integer representation of the unknown word, e.g. a word outside
+        the vocabulary.
+
+    Returns
+    -------
+    word_indices_subsampled : tf.Tensor
+        Tensor containing subsampled word indices.
     """
 
     # Filter out unknown words
@@ -405,7 +590,25 @@ def create_dataset(
     batch_size: int,
 ) -> tf.data.Dataset:
     """
-    TODO: Docs
+    Creates a tf.data.Dataset for training a Word2vec model using skip-grams and negative sampling.
+
+    Parameters
+    ----------
+    texts : list
+        List of texts to generate skip-gram target/context pairs from.
+    tokenizer : Tokenizer
+        Tokenizer instance for tokenizing individual texts.
+    sampling_window_size : int
+        Number of words to the left and right of a target word during sampling of positive words.
+    num_negative_samples : int
+        Number of negative samples to generate per word.
+    batch_size : int
+        Number of skip-gram target/context pairs to yield for each batch of data.
+
+    Returns
+    -------
+    dataset : tf.data.Dataset
+        Dataset used for yielding skip-gram target/context pairs.
     """
 
     # Convert word noise distribution and word keep probs to tensors
@@ -439,10 +642,10 @@ def create_dataset(
         lambda word_indices, sent_idx: tf.greater(tf.size(word_indices), 1)
     )
 
-    # Generate skipgram target/context pairs
+    # Generate skip-gram target/context pairs
     dataset = dataset.map(
         lambda word_indices, sent_idx: (
-            generate_skipgram_pairs(
+            generate_skip_gram_pairs(
                 word_indices,
                 sampling_window_size,
                 num_negative_samples,
@@ -471,5 +674,5 @@ def create_dataset(
     dataset = dataset.batch(batch_size)  # , drop_remainder=True
 
     # Enable prefetching to prepare data while training
-    dataset = dataset.prefetch(buffer_size=AUTOTUNE)
+    dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     return dataset

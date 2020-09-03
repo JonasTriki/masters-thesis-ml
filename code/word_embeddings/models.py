@@ -8,12 +8,31 @@ def build_word2vec_model(
     vector_dim: int,
     learning_rate: float,
     target_embedding_layer_name: str = "target_embedding",
+    model_name: str = "word2vec_sgns",
 ) -> Model:
     """
-    Builds a Word2vec model using skipgram negative sampling
+    Builds a Word2vec model using skip-gram negative sampling.
 
     Based on this paper by Mikolov et al.:
     https://arxiv.org/pdf/1301.3781v3.pdf
+
+    Parameters
+    ----------
+    vocab_size : int
+        Number of unique words we have in our vocabulary.
+    vector_dim : int
+        Latent embedding dimension to use for the target/embedding layers.
+    learning_rate : float
+        Learning rate.
+    target_embedding_layer_name : str, optional
+        Name to use for the target embedding layer (defaults to "target_embedding").
+    model_name : str, optional
+        Name of the model (defaults to "word2vec_sgns").
+
+    Returns
+    -------
+    model : tf.keras.Model
+        Keras Word2vec model
     """
     # Input to network
     input_shape = (1,)
@@ -39,7 +58,7 @@ def build_word2vec_model(
     output = Dense(1, activation="sigmoid", name="sigmoid_activation")(dot_product)
 
     # Create model
-    model = Model(inputs=[input_target, input_context], outputs=output)
+    model = Model(inputs=[input_target, input_context], outputs=output, name=model_name)
     adam = Adam(learning_rate=learning_rate)
     model.compile(loss="binary_crossentropy", optimizer=adam)
 

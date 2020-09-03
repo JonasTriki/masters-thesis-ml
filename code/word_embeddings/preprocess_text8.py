@@ -3,8 +3,8 @@ from os import makedirs, rename
 from os.path import isfile
 from os.path import join as join_path
 
-from text_preprocessing_utils import preprocess_text8
-from utils import build_vocabulary, download_from_url, save_vocabulary_to_file
+from .text_preprocessing_utils import preprocess_text8
+from .utils import build_vocabulary, download_from_url, save_vocabulary_to_file
 
 # Constants
 data_dir = "data"
@@ -19,7 +19,7 @@ vocab_size = None
 
 def load_and_preprocess_data() -> None:
     """
-    Loads and preprocess text8 data for training a Word2vec model
+    Loads and preprocess text8 data for training a Word2vec model.
     """
     # Download raw data if not present
     if not isfile(data_zip_filepath):
