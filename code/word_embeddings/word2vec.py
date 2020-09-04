@@ -3,12 +3,11 @@ import pickle
 from typing import Optional
 
 import numpy as np
+from data_utils import Tokenizer, create_dataset
+from models import build_word2vec_model
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
-
-from .data_utils import Tokenizer, create_dataset
-from .models import build_word2vec_model
-from .train_utils import get_model_checkpoint_filepath
+from train_utils import get_model_checkpoint_filepath
 
 
 class Word2vec:

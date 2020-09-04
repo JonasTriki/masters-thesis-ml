@@ -32,7 +32,9 @@ def similar_words_vec(
         List of `top_n` similar words and their cosine similarities.
     """
     word_vec_weights_dotted = target_word_vec @ weights.T
-    word_vec_weights_norm = np.linalg.norm(target_word_vec) * np.linalg.norm(weights, axis=1)
+    word_vec_weights_norm = np.linalg.norm(target_word_vec) * np.linalg.norm(
+        weights, axis=1
+    )
     cos_sims = word_vec_weights_dotted / word_vec_weights_norm
     cos_sims = np.clip(cos_sims, 0, 1)
     sorted_indices = cos_sims.argsort()[::-1]

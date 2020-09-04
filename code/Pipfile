@@ -39,8 +39,8 @@ requests = "*"
 hdbscan = "*"
 black = "==19.10b0"
 contractions = "*"
-inflect = "*"
 tensorflow-addons = "*"
+num2words = "*"
 
 [requires]
 python_version = "3.7"

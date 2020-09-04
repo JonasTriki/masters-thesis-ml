@@ -1,8 +1,8 @@
 import argparse
 
-from .data_utils import Tokenizer
-from .utils import text_file_into_texts
-from .word2vec import Word2vec
+from data_utils import Tokenizer
+from utils import text_file_into_texts
+from word2vec import Word2vec
 
 
 def parse_args() -> argparse.Namespace:
@@ -29,10 +29,16 @@ def parse_args() -> argparse.Namespace:
         "Used to denote saved checkpoints during training",
     )
     parser.add_argument(
-        "--batch_size", type=int, default=1024, help="Batch size used for training",
+        "--batch_size",
+        type=int,
+        default=1024,
+        help="Batch size used for training",
     )
     parser.add_argument(
-        "--n_epochs", type=int, default=10, help="Number of epochs to train our model on",
+        "--n_epochs",
+        type=int,
+        default=10,
+        help="Number of epochs to train our model on",
     )
     parser.add_argument(
         "--learning_rate",

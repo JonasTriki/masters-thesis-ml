@@ -32,11 +32,13 @@ def download_from_url(
                     progressbar.update(chunk_size)
 
 
-def get_cached_download_str(
-    url: str, target_dir: str, filename: str,
+def get_cached_download_text_file(
+    url: str,
+    target_dir: str,
+    filename: str,
 ) -> str:
     """
-    Downloads and caches file from url.
+    Downloads and caches text file from url.
 
     Parameters
     ----------

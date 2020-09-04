@@ -6,7 +6,7 @@ import tensorflow as tf
 
 
 def create_noise_distribution(
-        word_counts: dict, word_to_int: dict, corpus_size: int, alpha: float
+    word_counts: dict, word_to_int: dict, corpus_size: int, alpha: float
 ) -> dict:
     """
     Creates a noise distribution using the word frequencies from a dictionary of word
@@ -77,7 +77,7 @@ class Tokenizer:
             when tokenizing texts.
         min_word_count : int, optional
             Minimum word count (defaults to 10).
-            
+
             Words that have fewer occurrences than `min_word_count`
             will be ignored during tokenization of texts.
         sampling_factor : float, optional
@@ -113,7 +113,7 @@ class Tokenizer:
         -------
         vocab_size : int
             Size of the tokenizers vocabulary.
-        
+
         Raises
         ------
         TypeError
@@ -131,7 +131,7 @@ class Tokenizer:
         """
         Gets a list of probabilities of sampling a negative word sample from the
         vocabulary.
-        
+
         The list is sorted by the order of the words in the vocabulary (i.e. most common
         words have indices 0, 1, 2, etc.).
 
@@ -139,7 +139,7 @@ class Tokenizer:
         -------
         negative_sampling_probs : list of int
             List of probabiltiies of sampling a negative word sample from the vocabulary.
-            
+
         Raises
         ------
         TypeError
@@ -362,7 +362,7 @@ class Tokenizer:
         ----------
         text : str
             Space-separated text to tokenize.
-        
+
         Returns
         -------
         tokenized_words : list of str

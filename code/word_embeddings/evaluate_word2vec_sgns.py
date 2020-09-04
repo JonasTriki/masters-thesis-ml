@@ -1,8 +1,8 @@
 import argparse
 from pprint import pprint
 
-from .eval_utils import get_word_vec, similar_words_vec
-from .word2vec import Word2vec
+from eval_utils import get_word_vec, similar_words_vec
+from word2vec import Word2vec
 
 
 def parse_args() -> argparse.Namespace:

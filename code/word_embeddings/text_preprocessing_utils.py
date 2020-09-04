@@ -8,7 +8,6 @@ import re
 import unicodedata
 
 import contractions
-import inflect
 import nltk
 from nltk import pos_tag, word_tokenize
 from nltk.corpus import stopwords
@@ -18,6 +17,8 @@ from nltk.stem import WordNetLemmatizer
 nltk.download("stopwords")
 nltk.download("wordnet")
 nltk.download("averaged_perceptron_tagger")
+
+from num2words import num2words
 
 
 def remove_urls(text: str) -> str:
@@ -132,36 +133,63 @@ def remove_punctuation(words: list) -> list:
     return new_words
 
 
-def replace_numbers(words: list) -> list:
+def replace_numbers(words: list, ordinal: bool = False) -> list:
     """
-    Replace all integer occurrences in list of tokenized
-    words with textual representation.
+    Replaces (ordinal) numbers with its textual representation.
 
     Parameters
     ----------
     words : list
-        List of tokenized words.
+        List of words.
+    ordinal : bool, optional
+        Whether or not to use ordinal textual representation.
 
     Returns
     -------
     new_words : list
         List of new words with textual representation of numbers.
     """
-    p = inflect.engine()
     new_words = []
     for word in words:
-        if word.isdigit():
-            new_word = p.number_to_words(word, comma=" ")
+        if ordinal:
+            re_results = re.findall(r"(\d+)(?:st|nd|rd|th)", word)
+        else:
+            re_results = re.findall(r"\d+", word)
+        if len(re_results) > 0:
+            number = int(re_results[0])
+            number_words = num2words(number, ordinal=ordinal)
 
-            # Splitting new word on space
+            # Remove commas
+            number_words = number_words.replace(",", "")
+
+            # Splitting number word on space
             # and adding them separately
-            # e.g. one hundred and sixteen
-            # --> one, hundred, and, sixteen
-            for new_word in new_word.split():
+            # e.g. one hundred and sixteenth
+            # --> one, hundred, and, sixteenth
+            for new_word in number_words.split():
                 new_words.append(new_word)
         else:
             new_words.append(word)
     return new_words
+
+
+def replace_all_numbers(words: list) -> list:
+    """
+    Replaces normal and ordinal numbers with its textual representation.
+
+    Parameters
+    ----------
+    words : list
+        List of words.
+
+    Returns
+    -------
+    new_words : list
+        List of new words with textual representation of numbers.
+    """
+    words = replace_numbers(words, ordinal=True)
+    words = replace_numbers(words)
+    return words
 
 
 def remove_stopwords(words: list, language: str = "english") -> list:
@@ -246,7 +274,7 @@ def preprocess_text(text: str) -> list:
     words = remove_non_ascii(words)
     words = to_lowercase(words)
     words = remove_punctuation(words)
-    words = replace_numbers(words)
+    words = replace_all_numbers(words)
     # words = remove_stopwords(words)
     # words = lemmatize_words(words)
 

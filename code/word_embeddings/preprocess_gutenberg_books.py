@@ -1,15 +1,16 @@
-from os.path import join as join_path
+from os import makedirs
 
-from .text_preprocessing_utils import preprocess_text
-from .utils import (build_vocabulary, get_cached_download,
-                   save_vocabulary_to_file)
+from text_preprocessing_utils import preprocess_text
+from utils import get_cached_download_text_file
 
 # Constants
-data_dir = "data"
+raw_data_dir = "raw_data"
+makedirs(raw_data_dir, exist_ok=True)
 gutenberg_books = [
     ("dracula", "http://www.gutenberg.org/cache/epub/345/pg345.txt"),
     ("alice_in_wonderland", "https://www.gutenberg.org/files/11/11-0.txt"),
 ]
+# TODO: ^ Indicate the starting and ending part of the book.
 
 
 def preprocess_data() -> None:
@@ -22,27 +23,11 @@ def preprocess_data() -> None:
 
         # Fetch book content
         print("Fetching book content...")
-        book_content = get_cached_download(book_name, data_dir, url)
-
-        # Build vocabulary from text content
-        print("Building vocabulary...")
-        (
-            book_word_dict,
-            book_rev_word_dict,
-            book_word_counts,
-            book_word_noise_dict,
-        ) = build_vocabulary(book_content, preprocess_text)
-
-        # Save vocab to file
-        print("Saving vocabulary to file...")
-        vocab_filepath = join_path(data_dir, f"{book_name}_vocab.pickle")
-        save_vocabulary_to_file(
-            vocab_filepath,
-            book_word_dict,
-            book_rev_word_dict,
-            book_word_counts,
-            book_word_noise_dict,
+        book_content = get_cached_download_text_file(
+            url, raw_data_dir, f"{book_name}.txt"
         )
+
+        # TODO: Preprocess the content of the book
 
         print("Done!")
 
