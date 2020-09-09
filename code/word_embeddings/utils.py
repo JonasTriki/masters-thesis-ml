@@ -62,9 +62,11 @@ def get_cached_download_text_file(
 
         # Download file from url to destination filepath
         download_from_url(url, destination_filepath)
-    else:
-        with open(destination_filepath, "r") as file:
-            file_content = file.read()
+
+    # Read cached content from file
+    with open(destination_filepath, "r") as file:
+        file_content = file.read()
+
     return file_content
 
 

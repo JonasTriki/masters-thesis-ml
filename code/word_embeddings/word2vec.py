@@ -7,7 +7,7 @@ from data_utils import Tokenizer, create_dataset
 from models import build_word2vec_model
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
-from train_utils import get_model_checkpoint_filepath
+from train_utils import create_model_checkpoint_filepath
 
 
 class Word2vec:
@@ -227,7 +227,7 @@ class Word2vec:
             # Save intermediate model to file
             if verbose == 1:
                 print("Saving model to file...")
-            checkpoint_path = get_model_checkpoint_filepath(
+            checkpoint_path = create_model_checkpoint_filepath(
                 self._model_checkpoints_dir,
                 self._model_name,
                 dataset_name,
@@ -237,8 +237,6 @@ class Word2vec:
             self.save_model(checkpoint_path)
             if verbose == 1:
                 print("Done!")
-
-            # TODO: Generate UMAP embeddings?
 
     def save_model(self, target_filepath: str) -> None:
         """

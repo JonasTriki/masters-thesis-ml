@@ -4,7 +4,6 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-pandas = "*"
 pylint = "*"
 flake8 = "*"
 pep8 = "*"
@@ -12,35 +11,25 @@ isort = "*"
 mypy = "*"
 
 [packages]
+pandas = "*"
 jupyter = "*"
 numpy = "*"
-spacy = "*"
-keras = "*"
 tensorflow = "*"
-en-core-web-sm = {file = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.5/en_core_web_sm-2.2.5.tar.gz"}
 pydot = "*"
 scipy = "*"
 scikit-learn = "*"
 matplotlib = "*"
 umap-learn = "*"
-scispacy = "*"
-en-core-sci-lg = {file = "https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.2.4/en_core_sci_lg-0.2.4.tar.gz"}
-spacy-langdetect = "*"
 nltk = "*"
-beautifulsoup4 = "*"
-lxml = "*"
-kaggle = "*"
-h5py = "*"
 plotly = "*"
 cython = "*"
-gensim = "*"
-smart-open = "*"
 requests = "*"
 hdbscan = "*"
 black = "==19.10b0"
 contractions = "*"
 tensorflow-addons = "*"
 num2words = "*"
+ipywidgets = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.7.6"

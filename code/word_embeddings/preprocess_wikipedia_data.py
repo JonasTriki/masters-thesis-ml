@@ -1,3 +1,4 @@
+import argparse
 import subprocess
 import zipfile
 from os import makedirs, rename
@@ -6,33 +7,80 @@ from os.path import join as join_path
 from typing import List
 
 from nltk.tokenize import sent_tokenize, word_tokenize
-from text_preprocessing_utils import replace_all_numbers, replace_contractions
+from text_preprocessing_utils import (preprocess_text, replace_all_numbers,
+                                      replace_contractions)
 from tqdm import tqdm
 from utils import download_from_url
 
-# Constants
-dataset_name = "enwik8"
-compressed_dataset_name = "text8"
 
-raw_data_dir = "raw_data"
-makedirs(raw_data_dir, exist_ok=True)
-raw_data_url = f"http://mattmahoney.net/dc/{dataset_name}.zip"
-raw_data_zip_filepath = join_path(raw_data_dir, f"{dataset_name}.zip")
-raw_data_filepath_no_ext = join_path(raw_data_dir, dataset_name)
-raw_data_filepath = f"{raw_data_filepath_no_ext}.txt"
-raw_data_processed_wikifil_filepath = join_path(
-    raw_data_dir, f"{compressed_dataset_name}.txt"
-)
+def parse_args() -> argparse.Namespace:
+    """
+    Parses arguments sent to the python script.
 
-data_dir = "data"
-makedirs(data_dir, exist_ok=True)
-data_filepath = join_path(data_dir, f"{compressed_dataset_name}.txt")
+    Returns
+    -------
+    parsed_args : argparse.Namespace
+        Parsed arguments
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dataset_name",
+        type=str,
+        default="enwik8",
+        help="Name of the wikipedia dataset to download from (either enwik8 or enwik9)",
+    )
+    parser.add_argument(
+        "--compressed_dataset_name",
+        type=str,
+        default="text8",
+        help="Name of the compressed wikipedia dataset (either text8 or fil9)",
+    )
+    parser.add_argument(
+        "--raw_data_dir",
+        type=str,
+        default="raw_data",
+        help="Path to the raw data directory (where files will be downloaded to and extracted from)",
+    )
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        default="data",
+        help="Path of the processed data directory",
+    )
+    return parser.parse_args()
 
 
-def load_and_preprocess_data() -> None:
+def load_and_preprocess_data(
+    dataset_name: str, compressed_dataset_name: str, raw_data_dir: str, data_dir: str
+) -> None:
     """
     Loads and preprocess text8 data for training a Word2vec model.
+
+    Parameters
+    ----------
+    dataset_name : str
+        Name of the wikipedia dataset to use (either enwik8 or enwik9)
+    compressed_dataset_name : str
+        Name of the compressed wikipedia dataset to use (either text8 or fil9)
+    raw_data_dir : str
+        Path to the raw data directory (where files will be downloaded to and extracted from)
+    data_dir : str
+        Path of the processed data directory
     """
+    # Ensure data directories exist
+    makedirs(raw_data_dir, exist_ok=True)
+    makedirs(data_dir, exist_ok=True)
+
+    # Initialize paths
+    raw_data_url = f"http://mattmahoney.net/dc/{dataset_name}.zip"
+    raw_data_zip_filepath = join_path(raw_data_dir, f"{dataset_name}.zip")
+    raw_data_filepath_no_ext = join_path(raw_data_dir, dataset_name)
+    raw_data_filepath = f"{raw_data_filepath_no_ext}.txt"
+    raw_data_processed_wikifil_filepath = join_path(
+        raw_data_dir, f"{compressed_dataset_name}.txt"
+    )
+    data_filepath = join_path(data_dir, f"{compressed_dataset_name}.txt")
+
     # Download raw data if not present
     if not isfile(raw_data_zip_filepath):
         print(f"Downloading raw {dataset_name} data...")
@@ -68,8 +116,7 @@ def load_and_preprocess_data() -> None:
     text8_sentences = sent_tokenize(wikifil_output)
     print("Done!")
 
-    # TODO: Do this?
-    # Replace contractions in sentences, filter out sentences with less than
+    # Preprocesses sentences into lists of words and filters out sentences with less than
     # `min_sent_word_count` words in them and convert numbers to their textual
     # representations.
     min_sent_word_count = 5
@@ -77,22 +124,12 @@ def load_and_preprocess_data() -> None:
     print("Processing sentences...")
     for sent in tqdm(text8_sentences):
 
-        # Fix contractions
-        sent_clean = replace_contractions(sent)
-
-        # Convert sentence into list of words
-        words = word_tokenize(sent_clean)
-
-        # Remove "." if it is in the list of words
-        if len(words) > 0 and words[-1] == ".":
-            words = words[:-1]
+        # Preprocess sentence into a list of words
+        words = preprocess_text(sent)
 
         # Filter out sentences that have less than `min_sent_word_count` words in them
         if len(words) < min_sent_word_count:
             continue
-
-        # Convert numbers to its textual representation.
-        words = replace_all_numbers(words)
 
         new_text8_sentences.append(" ".join(words))
     print("Done!")
@@ -107,4 +144,10 @@ def load_and_preprocess_data() -> None:
 
 
 if __name__ == "__main__":
-    load_and_preprocess_data()
+    args = parse_args()
+    load_and_preprocess_data(
+        dataset_name=args.dataset_name,
+        compressed_dataset_name=args.compressed_dataset_name,
+        raw_data_dir=args.raw_data_dir,
+        data_dir=args.data_dir,
+    )

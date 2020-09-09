@@ -241,6 +241,62 @@ def lemmatize_words(words: list) -> list:
     return lemmas
 
 
+def text_to_words(text: str) -> list:
+    """
+    Converts text into a list of words. Removes URLs and replaces contractions
+    from the original text, before tokenizing into words.
+
+    Parameters
+    ----------
+    text : Text to process.
+
+    Returns
+    -------
+    words : list
+        List of words from the original text.
+    """
+    text = remove_urls(text)
+    text = replace_contractions(text)
+
+    # Tokenize text (convert into words)
+    words = word_tokenize(text)
+
+    return words
+
+
+def preprocess_words(words: list) -> list:
+    """
+    Preprocesses list of words using a series of techniques:
+    - Removes URLs
+    - Replaces contractions
+    - Tokenizes text
+    - Removes non-ASCII
+    - Converts to lower-case
+    - Removes punctuation
+    - Replaces numbers with textual representation
+    - Removes stop words
+
+    Parameters
+    ----------
+    words : list of str
+        List of words to preprocess.
+
+    Returns
+    -------
+    words : list of str
+        Preprocessed list of words.
+    """
+    # Apply a series of techniques to the words
+    # words = remove_non_ascii(words)
+    words = to_lowercase(words)
+    words = remove_punctuation(words)
+    words = replace_all_numbers(words)
+    # words = remove_stopwords(words)
+    # words = lemmatize_words(words)
+
+    return words
+
+
 def preprocess_text(text: str) -> list:
     """
     Preprocesses text using a series of techniques:
@@ -263,19 +319,10 @@ def preprocess_text(text: str) -> list:
     words : list of str
         Preprocessed text split into a list of words.
     """
-    # Remove URLs and replace contradictions
-    text = remove_urls(text)
-    text = replace_contractions(text)
+    # Convert to list of words
+    words = text_to_words(text)
 
-    # Tokenize text (convert into words)
-    words = word_tokenize(text)
-
-    # Apply a series of techniques to the words
-    words = remove_non_ascii(words)
-    words = to_lowercase(words)
-    words = remove_punctuation(words)
-    words = replace_all_numbers(words)
-    # words = remove_stopwords(words)
-    # words = lemmatize_words(words)
+    # Process words
+    words = preprocess_words(words)
 
     return words
