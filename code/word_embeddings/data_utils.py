@@ -472,7 +472,7 @@ def generate_skip_gram_pairs(
         next_word_index : int
             Next word_index to generate from.
         next_skip_grams_array : tf.TensorArray
-            TensorArray containing newly generated skip-gram target/context pairs-
+            TensorArray containing newly generated skip-gram target/context pairs.
         """
 
         # Get word integer
