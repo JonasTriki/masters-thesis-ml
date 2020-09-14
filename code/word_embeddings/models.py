@@ -1,6 +1,6 @@
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Dot, Embedding, Input, Reshape
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import SGD
 
 
 def build_word2vec_model(
@@ -59,7 +59,7 @@ def build_word2vec_model(
 
     # Create model
     model = Model(inputs=[input_target, input_context], outputs=output, name=model_name)
-    adam = Adam(learning_rate=learning_rate)
-    model.compile(loss="binary_crossentropy", optimizer=adam)
+    optimizer = SGD(learning_rate=learning_rate)
+    model.compile(loss="binary_crossentropy", optimizer=optimizer)
 
     return model
