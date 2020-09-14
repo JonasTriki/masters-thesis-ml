@@ -11,6 +11,7 @@
 *.cb
 *.cb2
 .*.lb
+*__latexindent_temp.tex
 
 ## Intermediate documents:
 *.dvi
