@@ -3,11 +3,12 @@ import pickle
 from typing import Optional
 
 import numpy as np
+import tensorflow as tf
 from data_utils import Tokenizer, create_dataset
-from models import build_word2vec_model
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from train_utils import create_model_checkpoint_filepath
+from word2vec_model import Word2VecSGNSModel
 
 
 class Word2vec:
@@ -19,7 +20,8 @@ class Word2vec:
         self,
         tokenizer: Optional[Tokenizer] = None,
         embedding_dim: int = 300,
-        learning_rate: float = 0.001,
+        learning_rate: float = 0.0025,
+        min_learning_rate: float = 0.0001,
         sampling_window_size: int = 4,
         num_negative_samples: int = 15,
         model_name: str = "word2vec_sgns",
@@ -36,7 +38,7 @@ class Word2vec:
         embedding_dim : int, optional
             Word2vec embedding dimensions (defaults to 300).
         learning_rate : float, optional
-            Training learning rate (defaults to 0.0001).
+            Training learning rate (defaults to 0.0025).
         sampling_window_size : int
             Window size to use when generating skip-gram couples (defaults to 4).
         num_negative_samples : int
@@ -53,17 +55,14 @@ class Word2vec:
         self._tokenizer = tokenizer
         self._embedding_dim = embedding_dim
         self._learning_rate = learning_rate
+        self._min_learning_rate = min_learning_rate
         self._sampling_window_size = sampling_window_size
         self._num_negative_samples = num_negative_samples
         self._model_name = model_name
         self._target_embedding_layer_name = target_embedding_layer_name
         self._model_checkpoints_dir = model_checkpoints_dir
 
-        # Build Word2vec model
-        if self._tokenizer is not None:
-            self.build_model()
-        else:
-            self._model: Optional[Model] = None
+        self._model: Optional[Model] = None
 
     @property
     def tokenizer(self) -> Tokenizer:
@@ -88,20 +87,6 @@ class Word2vec:
             The new tokenizer instance to use.
         """
         self._tokenizer = tokenizer
-
-    def build_model(self) -> None:
-        """
-        Builds a Word2vec Keras model.
-        """
-        if self._tokenizer is None:
-            raise TypeError("Can not build Word2vec model: tokenizer has not been set.")
-        self._model = build_word2vec_model(
-            self._tokenizer.vocab_size,
-            self._embedding_dim,
-            self._learning_rate,
-            self._target_embedding_layer_name,
-            self._model_name,
-        )
 
     @property
     def embedding_weights(self) -> np.ndarray:
@@ -155,13 +140,59 @@ class Word2vec:
             Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose).
             Defaults to 1 (verbose).
         """
-        if self._model is None:
-            raise TypeError(
-                "Model has not been built yet. Did you forget to call `build_model`?"
-            )
+        # TODO: Fix params of model
+        self._model = Word2VecSGNSModel(
+            unigram_counts=self._tokenizer.word_counts,
+            hidden_size=self._embedding_dim,
+            batch_size=batch_size,
+            negatives=self._num_negative_samples,
+            power=3 / 4,
+            alpha=self._learning_rate,
+            min_alpha=0.0001,
+            add_bias=True,
+        )
 
         # Ensure checkpoints directory exists before training
         os.makedirs(self._model_checkpoints_dir, exist_ok=True)
+
+        # Set up optimizer
+        optimizer = tf.keras.optimizers.SGD(1.0)
+
+        # TODO: Set train step signature
+        inputs_spec = tf.TensorSpec(shape=(batch_size,), dtype="int64")
+        labels_spec = tf.TensorSpec(shape=(batch_size,), dtype="int64")
+        progress_spec = tf.TensorSpec(shape=(batch_size,), dtype="float32")
+        train_step_signature = [inputs_spec, labels_spec, progress_spec]
+
+        @tf.function(input_signature=train_step_signature)
+        def train_step(inputs, labels, progress):
+            loss = self._model(inputs, labels)
+            gradients = tf.gradients(loss, self._model.trainable_variables)
+
+            learning_rate = tf.maximum(
+                self._learning_rate * (1 - progress[0])
+                + self._min_learning_rate * progress[0],
+                self._min_learning_rate,
+            )
+
+            if hasattr(gradients[0], "_values"):
+                gradients[0]._values *= learning_rate
+            else:
+                gradients[0] *= learning_rate
+
+            if hasattr(gradients[1], "_values"):
+                gradients[1]._values *= learning_rate
+            else:
+                gradients[1] *= learning_rate
+
+            if hasattr(gradients[2], "_values"):
+                gradients[2]._values *= learning_rate
+            else:
+                gradients[2] *= learning_rate
+
+            optimizer.apply_gradients(zip(gradients, self._model.trainable_variables))
+
+            return loss, learning_rate
 
         # Train model
         if verbose == 1:
@@ -193,32 +224,38 @@ class Word2vec:
                 self._num_negative_samples,
                 batch_size,
             )
+            # builder = Word2VecDatasetBuilder(
+            #    self._tokenizer,
+            #    batch_size=batch_size,
+            #    window_size=self._sampling_window_size,
+            # )
+            # train_dataset, data_num_sents = builder.build_dataset(["data/text8.txt"])
 
             avg_loss = 0.0
             steps = 0
-            for skip_gram_pairs_batch, sent_idx_tf in train_dataset:
-
-                # Extract from Tensors
-                sent_nr = sent_idx_tf[-1].numpy() + 1
-
-                # Prepare batch for training
-                skip_gram_pairs_batch_target = skip_gram_pairs_batch[:, 0]
-                skip_gram_pairs_batch_context = skip_gram_pairs_batch[:, 1]
-                skip_gram_pairs_batch_input = [
-                    skip_gram_pairs_batch_target,
-                    skip_gram_pairs_batch_context,
-                ]
-                skip_gram_pairs_batch_labels = skip_gram_pairs_batch[:, 2]
+            for input_targets, input_contexts, progress in train_dataset:
 
                 # Train on batch
-                loss = self._model.train_on_batch(
-                    x=skip_gram_pairs_batch_input, y=skip_gram_pairs_batch_labels
-                )
-                avg_loss += loss
+                loss, learning_rate = train_step(input_targets, input_contexts, progress)
+
+                # Perform forward pass and compute loss
+                # with tf.GradientTape() as tape:
+                #    loss = self._model(input_targets, input_contexts)
+
+                # Get gradients and apply optimizer to perform gradient descent
+                #    grads = tape.gradient(loss, self._model.trainable_weights)
+                #    optimizer.apply_gradients(zip(grads, self._model.trainable_weights))
+
+                # Train on batch
+                loss_np = loss.numpy().mean()
+                avg_loss += loss_np
                 steps += 1
 
                 # Update progressbar
-                progbar.update(sent_nr, values=[("loss", loss)])
+                sent_nr = int(progress[0].numpy() * len(texts))
+                progbar.update(
+                    sent_nr, values=[("loss", loss_np), ("learning_rate", learning_rate)]
+                )
             print()
 
             # Compute average loss
@@ -284,6 +321,7 @@ class Word2vec:
         self.__dict__.update(saved_model_dict["__dict__"])
 
         # Build model and load weights from file
-        self.build_model()
+        # TODO: Fix loading model from file
+        # self.build_model()
         if self._model is not None:
             self._model.set_weights(saved_model_dict["_model_weights"])

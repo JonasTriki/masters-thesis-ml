@@ -5,19 +5,15 @@ import numpy as np
 import tensorflow as tf
 
 
-def create_noise_distribution(
-    word_counts: dict, word_to_int: dict, corpus_size: int, alpha: float
-) -> dict:
+def create_noise_distribution(word_counts: list, corpus_size: int, alpha: float) -> dict:
     """
     Creates a noise distribution using the word frequencies from a dictionary of word
     counts.
 
     Parameters
     ----------
-    word_counts : dict
-        Dictionary mapping words to its word counts
-    word_to_int : dict
-        Dictionary mapping words to its integer representation
+    word_counts : list
+        List of word counts sorted by the most occurring word.
     corpus_size : int
         Size of the text corpus
     alpha : float
@@ -33,8 +29,7 @@ def create_noise_distribution(
     """
     # Normalize word frequencies
     word_freqs_normalized = {
-        word_to_int[word]: word_count / corpus_size
-        for word, word_count in word_counts.items()
+        word_i: word_count / corpus_size for word_i, word_count in enumerate(word_counts)
     }
 
     # Create noise distribution
@@ -100,7 +95,7 @@ class Tokenizer:
         self._word_to_int: Optional[dict] = None
         self._int_to_word: Optional[dict] = None
         self._words: Optional[np.ndarray] = None
-        self._word_counts: Optional[dict] = None
+        self._word_counts: Optional[list] = None
         self._word_keep_probs: Optional[list] = None
         self._word_noise_dist: Optional[dict] = None
 
@@ -210,6 +205,28 @@ class Tokenizer:
         return self._words
 
     @property
+    def word_counts(self) -> List[int]:
+        """
+        Gets a list containing word counts sorted by the most occurring word.
+
+        Returns
+        -------
+        word_counts : np.ndarray
+            List containing word counts
+
+        Raises
+        ------
+        TypeError
+            If the vocabulary has not been built yet.
+        """
+        if self._word_counts is None:
+            raise TypeError(
+                "List of words counts is empty. "
+                "Did you forget to build the vocabulary?"
+            )
+        return self._word_counts
+
+    @property
     def word_to_int(self) -> dict:
         """
         Gets a dictionary mapping from a word to its integer representation
@@ -315,7 +332,7 @@ class Tokenizer:
         self._word_to_int = {}
         self._int_to_word = {}
         self._words = []
-        self._word_counts = {}
+        self._word_counts = []
         self._word_keep_probs = []
         for word_idx, (word, word_count) in enumerate(word_occurrences):
 
@@ -325,7 +342,7 @@ class Tokenizer:
 
             # Add word and its count to the lists
             self._words.append(word)
-            self._word_counts[word] = word_count
+            self._word_counts.append(word_count)
 
             # Add probability of keeping a word during subsampling
             if word_count > 0:
@@ -349,7 +366,6 @@ class Tokenizer:
         # Create noise distribution for negative sampling
         self._word_noise_dist = create_noise_distribution(
             self._word_counts,
-            self._word_to_int,
             self._corpus_size,
             self._noise_dist_alpha,
         )
@@ -491,37 +507,33 @@ def generate_skip_gram_pairs(
         )
         context_indices = tf.concat([left, right], axis=0)
         context_word_indices = tf.gather(word_indices, context_indices)
-        # num_positive_samples = context_word_indices.shape[0]
         positive_samples = tf.stack(
-            [
-                tf.fill(tf.shape(context_word_indices), word_int),
-                context_word_indices,
-                tf.ones(tf.shape(context_word_indices), dtype=tf.int64),
-            ],
+            [tf.fill(tf.shape(context_word_indices), word_int), context_word_indices],
             axis=1,
         )
 
         # Generate negative samples
         # Sample negative samples from noise distribution
-        negative_words = sample_words_from_noise_distribution(
-            word_indices_sampling_prob,
-            num_negative_samples,  # positive_samples.shape[0] * num_negative_samples
-        )
+        # num_positive_samples = context_word_indices.shape[0]
+        # negative_words = sample_words_from_noise_distribution(
+        #     word_indices_sampling_prob,
+        #     num_negative_samples,  # num_positive_samples * num_negative_samples
+        # )
 
         # Merge negative words into target/context --> 0 triples
-        negative_samples = tf.stack(
-            [
-                tf.fill(tf.shape(negative_words), word_int),
-                negative_words,
-                tf.zeros(tf.shape(negative_words), dtype=tf.int64),
-            ],
-            axis=1,
-        )
+        # negative_samples = tf.stack(
+        #     [
+        #         tf.fill(tf.shape(negative_words), word_int),
+        #         negative_words,
+        #         tf.zeros(tf.shape(negative_words), dtype=tf.int64),
+        #     ],
+        #     axis=1,
+        # )
 
         # Merge positive and negative samples
-        pairs = tf.concat([positive_samples, negative_samples], axis=0)
+        # pairs = tf.concat([positive_samples, negative_samples], axis=0)
 
-        return word_index + 1, skip_grams_array.write(word_index, pairs)
+        return word_index + 1, skip_grams_array.write(word_index, positive_samples)
 
     size = tf.size(word_indices)
     # initialize a tensor array of length `tf.size(word_indices)`
@@ -530,7 +542,7 @@ def generate_skip_gram_pairs(
         lambda i, ta: i < size, skip_gram_pairs_from_word, [0, init_array]
     )
     instances = tf.cast(result_array.concat(), tf.int64)
-    instances.set_shape([None, 3])
+    instances.set_shape([None, 2])
 
     return instances
 
@@ -625,54 +637,91 @@ def create_dataset(
                 output_types=tf.int64,
                 output_shapes=[None],
             ),
-            tf.data.Dataset.from_tensor_slices(tf.range(len(texts))),
+            tf.data.Dataset.from_tensor_slices(tf.range(len(texts)) / len(texts)),
         )
     )
 
     # Apply subsampling
     dataset = dataset.map(
-        lambda word_indices, sent_idx: (
+        lambda word_indices, sent_percentage: (
             subsample_words(word_indices, word_keep_probs_tf, tokenizer.unknown_word_int),
-            sent_idx,
+            sent_percentage,
         ),
     )
 
     # Filter out texts with less than 2 words in them
     dataset = dataset.filter(
-        lambda word_indices, sent_idx: tf.greater(tf.size(word_indices), 1)
+        lambda word_indices, sent_percentage: tf.greater(tf.size(word_indices), 1)
     )
 
     # Generate skip-gram target/context pairs
     dataset = dataset.map(
-        lambda word_indices, sent_idx: (
+        lambda word_indices, sent_percentage: (
             generate_skip_gram_pairs(
                 word_indices,
                 sampling_window_size,
                 num_negative_samples,
                 word_indices_sampling_prob_tf,
             ),
-            sent_idx,
+            sent_percentage,
         ),
     )
 
-    # Reshape `sent_idx` to have the same size as `word_indices`
+    # Reshape `sent_percentage` to have the same size as `word_indices`
     dataset = dataset.map(
-        lambda word_indices, sent_idx: (
+        lambda word_indices, sent_percentage: (
             word_indices,
-            tf.fill(tf.shape(word_indices)[:1], sent_idx),
+            tf.fill(tf.shape(word_indices)[:1], sent_percentage),
         ),
     )
 
     # Create a dataset by unstacking word_indices
     dataset = dataset.flat_map(
-        lambda word_indices, progress: tf.data.Dataset.from_tensor_slices(
-            (word_indices, progress)
+        lambda word_indices, sent_percentages: tf.data.Dataset.from_tensor_slices(
+            (word_indices, sent_percentages)
         )
     )
 
     # Perform batching
-    dataset = dataset.batch(batch_size)  # , drop_remainder=True
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+
+    def prepare_input_for_training(
+        skip_gram_pairs_batch: tf.Tensor, sent_percentages: tf.Tensor
+    ):
+        """
+        TODO
+        Parameters
+        ----------
+        skip_gram_pairs_batch : tf.Tensor
+        sent_percentages : tf.Tensor
+
+        Returns
+        -------
+        training_data : tuple of tf.Tensor
+        """
+
+        # Set shape of tf.Tensor and extract targets/contexts
+        skip_gram_pairs_batch.set_shape([batch_size, 2])
+        input_targets = skip_gram_pairs_batch[:, :1]
+        input_contexts = skip_gram_pairs_batch[:, 1:]
+
+        input_targets = tf.squeeze(input_targets, axis=1)
+        input_contexts = tf.squeeze(input_contexts, axis=1)
+        sent_percentages = tf.cast(sent_percentages, "float32")
+
+        # Combine into tuple
+        training_data = (input_targets, input_contexts, sent_percentages)
+
+        return training_data
+
+    # Prepare input for training
+    dataset = dataset.map(
+        lambda skip_gram_pairs_batch, sent_percentages: prepare_input_for_training(
+            skip_gram_pairs_batch, sent_percentages
+        )
+    )
 
     # Enable prefetching to prepare data while training
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+
     return dataset
