@@ -112,7 +112,20 @@ class Word2VecSGNSModel(tf.keras.Model):
         """
         target_embedding, context_embedding, biases = self.weights
 
-        sampled_values = tf.random.fixed_unigram_candidate_sampler(
+        # Positive samples
+        # [batch_size, hidden_size]
+        inputs_target_embedding = tf.gather(target_embedding, input_targets)
+        # [batch_size, hidden_size]
+        inputs_context_embedding = tf.gather(context_embedding, input_contexts)
+
+        # Multiply target and context embeddings to get (unnormalized) cosine similarities
+        # [batch_size]
+        positive_logits = tf.reduce_sum(
+            tf.multiply(inputs_target_embedding, inputs_context_embedding), axis=1
+        )
+
+        # Negative samples
+        negative_sampler = tf.random.fixed_unigram_candidate_sampler(
             true_classes=tf.expand_dims(input_contexts, 1),
             num_true=1,
             num_sampled=self._batch_size * self._num_negative_samples,
@@ -121,44 +134,41 @@ class Word2VecSGNSModel(tf.keras.Model):
             distortion=self._unigram_exponent_negative_sampling,
             unigrams=self._word_counts,
         )
-
-        sampled = sampled_values.sampled_candidates
-        sampled_mat = tf.reshape(sampled, [self._batch_size, self._num_negative_samples])
-        inputs_target_embedding = tf.gather(
-            target_embedding, input_targets
-        )  # [batch_size, hidden_size]
-        true_context_embedding = tf.gather(
-            context_embedding, input_contexts
-        )  # [batch_size, hidden_size]
-        # [batch_size, negatives, hidden_size]
-        sampled_context_embedding = tf.gather(context_embedding, sampled_mat)
-        # [batch_size]
-        true_logits = tf.reduce_sum(
-            tf.multiply(inputs_target_embedding, true_context_embedding), axis=1
+        negative_samples = negative_sampler.sampled_candidates
+        negative_samples_mat = tf.reshape(
+            negative_samples, [self._batch_size, self._num_negative_samples]
         )
+        # [batch_size, negatives, hidden_size]
+        negative_samples_embedding = tf.gather(context_embedding, negative_samples_mat)
+
+        # Multiply target embeddings with embeddings of negative samples to get
+        # (unnormalized) cosine similarities
         # [batch_size, negatives]
-        sampled_logits = tf.einsum(
+        negative_logits = tf.einsum(
             "ijk,ikl->il",
             tf.expand_dims(inputs_target_embedding, 1),
-            tf.transpose(sampled_context_embedding, (0, 2, 1)),
+            tf.transpose(negative_samples_embedding, (0, 2, 1)),
         )
 
+        # Add bias
         if self._add_bias:
             # [batch_size]
-            true_logits += tf.gather(biases, input_contexts)
+            positive_logits += tf.gather(biases, input_contexts)
             # [batch_size, negatives]
-            sampled_logits += tf.gather(biases, sampled_mat)
+            negative_logits += tf.gather(biases, negative_samples_mat)
 
+        # Use cross-entropy to compute losses for both positive and negative logits
         # [batch_size]
-        true_cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=tf.ones_like(true_logits), logits=true_logits
+        positive_cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(
+            labels=tf.ones_like(positive_logits), logits=positive_logits
         )
         # [batch_size, negatives]
-        sampled_cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=tf.zeros_like(sampled_logits), logits=sampled_logits
+        negative_cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(
+            labels=tf.zeros_like(negative_logits), logits=negative_logits
         )
 
+        # Merge losses together into a single loss
         loss = tf.concat(
-            [tf.expand_dims(true_cross_entropy, 1), sampled_cross_entropy], axis=1
+            [tf.expand_dims(positive_cross_entropy, 1), negative_cross_entropy], axis=1
         )
         return loss
