@@ -5,47 +5,6 @@ import numpy as np
 import tensorflow as tf
 
 
-def create_noise_distribution(word_counts: list, corpus_size: int, alpha: float) -> dict:
-    """
-    Creates a noise distribution using the word frequencies from a dictionary of word
-    counts.
-
-    Parameters
-    ----------
-    word_counts : list
-        List of word counts sorted by the most occurring word.
-    corpus_size : int
-        Size of the text corpus
-    alpha : float
-        Value of the power we raise the noise distribution, as specified in the
-        skip-grams paper by Mikolov et al., section 2.2: Negative Sampling:
-        https://arxiv.org/pdf/1310.4546.pdf
-
-    Returns
-    -------
-    noise_dist : dict
-        Noise distribution represented as a dictionary, mapping word integer
-        representation to its probability of being sampled.
-    """
-    # Normalize word frequencies
-    word_freqs_normalized = {
-        word_i: word_count / corpus_size for word_i, word_count in enumerate(word_counts)
-    }
-
-    # Create noise distribution
-    noise_dist = {
-        word_int: word_freq_frac ** alpha
-        for word_int, word_freq_frac in word_freqs_normalized.items()
-    }
-    z_noise_dist = sum(noise_dist.values())
-    noise_dist_normalized = {
-        word_int: word_freq_frac / z_noise_dist
-        for word_int, word_freq_frac in noise_dist.items()
-    }
-
-    return noise_dist_normalized
-
-
 class Tokenizer:
     """
     Text tokenization class.
@@ -56,7 +15,6 @@ class Tokenizer:
         max_vocab_size: Optional[int] = None,
         min_word_count: int = 10,
         sampling_factor: float = 1e-5,
-        noise_dist_alpha: float = 3 / 4,
         unknown_word_int: int = -1,
     ) -> None:
         """
@@ -78,8 +36,6 @@ class Tokenizer:
         sampling_factor : float, optional
             Sampling factor to use when computing the probability
             of keeping a word during random subsampling of words (defaults to 1e-5).
-        noise_dist_alpha : float, optional
-            Value of alpha to use when computing the noise distribution (defaults to 3/4).
         unknown_word_int : int, optional
             Integer value to use for characterizing unknown words, i.e words that are
             out of the vocabulary (defaults to -1).
@@ -87,7 +43,6 @@ class Tokenizer:
         self._max_vocab_size = max_vocab_size
         self._min_word_count = min_word_count
         self._sampling_factor = sampling_factor
-        self._noise_dist_alpha = noise_dist_alpha
         self._unknown_word_int = unknown_word_int
 
         self._corpus_size: Optional[int] = None
@@ -97,7 +52,6 @@ class Tokenizer:
         self._words: Optional[np.ndarray] = None
         self._word_counts: Optional[list] = None
         self._word_keep_probs: Optional[list] = None
-        self._word_noise_dist: Optional[dict] = None
 
     @property
     def vocab_size(self) -> int:
@@ -120,32 +74,6 @@ class Tokenizer:
                 "Did you forget to build the vocabulary?"
             )
         return self._vocab_size
-
-    @property
-    def word_negative_sampling_probs(self) -> List[float]:
-        """
-        Gets a list of probabilities of sampling a negative word sample from the
-        vocabulary.
-
-        The list is sorted by the order of the words in the vocabulary (i.e. most common
-        words have indices 0, 1, 2, etc.).
-
-        Returns
-        -------
-        negative_sampling_probs : list of int
-            List of probabiltiies of sampling a negative word sample from the vocabulary.
-
-        Raises
-        ------
-        TypeError
-            If the vocabulary has not been built yet.
-        """
-        if self._word_noise_dist is None:
-            raise TypeError(
-                "Noise distribution for negative sampling is None. "
-                "Did you forget to build the vocabulary?"
-            )
-        return list(self._word_noise_dist.values())
 
     @property
     def word_keep_probs(self) -> List[float]:
@@ -363,13 +291,6 @@ class Tokenizer:
         # Convert words to numpy array
         self._words = np.asarray(self._words)
 
-        # Create noise distribution for negative sampling
-        self._word_noise_dist = create_noise_distribution(
-            self._word_counts,
-            self._corpus_size,
-            self._noise_dist_alpha,
-        )
-
     def tokenize_text(self, text: str) -> list:
         """
         Tokenizes a text where each word is separated by a space.
@@ -452,8 +373,6 @@ def sample_words_from_noise_distribution(
 def generate_skip_gram_pairs(
     word_indices: tf.Tensor,
     window_size: int,
-    num_negative_samples: int,
-    word_indices_sampling_prob: tf.Tensor,
 ) -> tf.Tensor:
     """
     Generates skip-gram target/context pairs.
@@ -464,10 +383,6 @@ def generate_skip_gram_pairs(
         Tokenized words in a Tensor.
     window_size : int
         Number of words to the left and right of the target word to generate positive samples from.
-    num_negative_samples : int
-        Number of negative samples to generate.
-    word_indices_sampling_prob : tf.Tensor
-        Tensor containing probabilities of sampling a word from the noise distribution.
     """
 
     def skip_gram_pairs_from_word(
@@ -511,27 +426,6 @@ def generate_skip_gram_pairs(
             [tf.fill(tf.shape(context_word_indices), word_int), context_word_indices],
             axis=1,
         )
-
-        # Generate negative samples
-        # Sample negative samples from noise distribution
-        # num_positive_samples = context_word_indices.shape[0]
-        # negative_words = sample_words_from_noise_distribution(
-        #     word_indices_sampling_prob,
-        #     num_negative_samples,  # num_positive_samples * num_negative_samples
-        # )
-
-        # Merge negative words into target/context --> 0 triples
-        # negative_samples = tf.stack(
-        #     [
-        #         tf.fill(tf.shape(negative_words), word_int),
-        #         negative_words,
-        #         tf.zeros(tf.shape(negative_words), dtype=tf.int64),
-        #     ],
-        #     axis=1,
-        # )
-
-        # Merge positive and negative samples
-        # pairs = tf.concat([positive_samples, negative_samples], axis=0)
 
         return word_index + 1, skip_grams_array.write(word_index, positive_samples)
 
@@ -598,7 +492,6 @@ def create_dataset(
     texts: list,
     tokenizer: Tokenizer,
     sampling_window_size: int,
-    num_negative_samples: int,
     batch_size: int,
 ) -> tf.data.Dataset:
     """
@@ -612,8 +505,6 @@ def create_dataset(
         Tokenizer instance for tokenizing individual texts.
     sampling_window_size : int
         Number of words to the left and right of a target word during sampling of positive words.
-    num_negative_samples : int
-        Number of negative samples to generate per word.
     batch_size : int
         Number of skip-gram target/context pairs to yield for each batch of data.
 
@@ -623,10 +514,7 @@ def create_dataset(
         Dataset used for yielding skip-gram target/context pairs.
     """
 
-    # Convert word noise distribution and word keep probs to tensors
-    word_indices_sampling_prob_tf = tf.convert_to_tensor(
-        tokenizer.word_negative_sampling_probs
-    )
+    # Convert word keep probs to tensors
     word_keep_probs_tf = tf.convert_to_tensor(tokenizer.word_keep_probs)
 
     # Initialize tf.data.Dataset
@@ -660,8 +548,6 @@ def create_dataset(
             generate_skip_gram_pairs(
                 word_indices,
                 sampling_window_size,
-                num_negative_samples,
-                word_indices_sampling_prob_tf,
             ),
             sent_percentage,
         ),
@@ -689,15 +575,19 @@ def create_dataset(
         skip_gram_pairs_batch: tf.Tensor, sent_percentages: tf.Tensor
     ):
         """
-        TODO
+        Prepares the target/context skip-gram pairs for training. Also converts
+        the list of percentages into a single percentage.
+
         Parameters
         ----------
         skip_gram_pairs_batch : tf.Tensor
+            Tensor containing input target/context pairs
         sent_percentages : tf.Tensor
-
+            Tensor containing percentages of training progress
         Returns
         -------
         training_data : tuple of tf.Tensor
+            Tuple consisting of targets, contexts and training progress (percentage).
         """
 
         # Set shape of tf.Tensor and extract targets/contexts
@@ -705,12 +595,16 @@ def create_dataset(
         input_targets = skip_gram_pairs_batch[:, :1]
         input_contexts = skip_gram_pairs_batch[:, 1:]
 
+        # Ensure that dimensions are correct
         input_targets = tf.squeeze(input_targets, axis=1)
         input_contexts = tf.squeeze(input_contexts, axis=1)
-        sent_percentages = tf.cast(sent_percentages, "float32")
+
+        # Return percentage as a single number
+        sent_percentage = sent_percentages[0]
+        sent_percentage = tf.cast(sent_percentage, "float32")
 
         # Combine into tuple
-        training_data = (input_targets, input_contexts, sent_percentages)
+        training_data = (input_targets, input_contexts, sent_percentage)
 
         return training_data
 

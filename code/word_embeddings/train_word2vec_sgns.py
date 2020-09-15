@@ -31,7 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=1024,
+        default=256,
         help="Batch size used for training",
     )
     parser.add_argument(
@@ -43,8 +43,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--learning_rate",
         type=float,
-        default=0.001,
+        default=0.0025,
         help="Learning rate to use when training",
+    )
+    parser.add_argument(
+        "--min_learning_rate",
+        type=float,
+        default=0.0001,
+        help="Minimum learning rate to use when training",
     )
     parser.add_argument(
         "--max_vocab_size",
@@ -67,7 +73,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--sampling_window_size",
         type=int,
-        default=4,
+        default=2,
         help="Window size to use when generating skip-gram couples",
     )
     parser.add_argument(
@@ -80,7 +86,14 @@ def parse_args() -> argparse.Namespace:
         "--sampling_factor",
         type=float,
         default=1e-5,
-        help="Sampling factor to use when generating skip-gram couples",
+        help="Sampling factor to use when computing the probability of "
+        "keeping a word during random subsampling of words.",
+    )
+    parser.add_argument(
+        "--unigram_exponent_negative_sampling",
+        type=float,
+        default=3 / 4,
+        help="Which exponent to raise the unigram distribution to when performing negative sampling.",
     )
     parser.add_argument(
         "--model_checkpoints_dir",
@@ -109,12 +122,14 @@ def train_word2vec_sgns(
     batch_size: int,
     n_epochs: int,
     learning_rate: float,
+    min_learning_rate: float,
     max_vocab_size: int,
     min_word_count: int,
     embedding_dim: int,
     sampling_window_size: int,
     num_negative_samples: int,
     sampling_factor: float,
+    unigram_exponent_negative_sampling: float,
     model_checkpoints_dir: str,
     pretrained_model_filepath: str,
     starting_epoch_nr: int,
@@ -135,6 +150,8 @@ def train_word2vec_sgns(
         Number of epochs to train our model on.
     learning_rate : float
         Learning rate to use when training.
+    min_learning_rate : float
+        Minimum learning rate to use when training.
     max_vocab_size : int
         Maximum vocabulary size to use when training.
     min_word_count : int
@@ -146,7 +163,9 @@ def train_word2vec_sgns(
     num_negative_samples : int
         Number of negative samples to use when generating skip-gram couples.
     sampling_factor : float
-        Sampling factor to use when generating skip-gram couples.
+        Sampling factor to use when computing the probability of keeping a word during random subsampling of words.
+    unigram_exponent_negative_sampling : float
+        Which exponent to raise the unigram distribution to when performing negative sampling.
     model_checkpoints_dir : str
         Where to save checkpoints of the model after each epoch.
     pretrained_model_filepath : str
@@ -173,8 +192,11 @@ def train_word2vec_sgns(
         tokenizer=tokenizer,
         embedding_dim=embedding_dim,
         learning_rate=learning_rate,
+        min_learning_rate=min_learning_rate,
+        batch_size=batch_size,
         sampling_window_size=sampling_window_size,
         num_negative_samples=num_negative_samples,
+        unigram_exponent_negative_sampling=unigram_exponent_negative_sampling,
         model_checkpoints_dir=model_checkpoints_dir,
     )
     if pretrained_model_filepath != "":
@@ -186,7 +208,6 @@ def train_word2vec_sgns(
         texts=data_texts,
         dataset_name=dataset_name,
         n_epochs=n_epochs,
-        batch_size=batch_size,
         starting_epoch_nr=starting_epoch_nr,
     )
 
@@ -201,12 +222,14 @@ if __name__ == "__main__":
         args.batch_size,
         args.n_epochs,
         args.learning_rate,
+        args.min_learning_rate,
         args.max_vocab_size,
         args.min_word_count,
         args.embedding_dim,
         args.sampling_window_size,
         args.num_negative_samples,
         args.sampling_factor,
+        args.unigram_exponent_negative_sampling,
         args.model_checkpoints_dir,
         args.pretrained_model_filepath,
         args.starting_epoch_nr,

@@ -1,60 +1,75 @@
-"""Defines word2vec model using tf.keras API.
-"""
+from typing import List
+
 import tensorflow as tf
 
 
 class Word2VecSGNSModel(tf.keras.Model):
-    """Word2Vec model."""
+    """
+    Word2Vec skip-gram negative sampling Keras model.
+    """
 
     def __init__(
         self,
-        unigram_counts,
-        hidden_size=300,
-        batch_size=256,
-        negatives=5,
-        power=0.75,
-        alpha=0.025,
-        min_alpha=0.0001,
-        add_bias=True,
-        random_seed=0,
+        word_counts: List[int],
+        embedding_dim: int = 300,
+        batch_size: int = 256,
+        num_negative_samples: int = 5,
+        unigram_exponent_negative_sampling: float = 0.75,
+        learning_rate: float = 0.025,
+        min_learning_rate: float = 0.0001,
+        add_bias: bool = True,
+        name: str = "word2vec_sgns",
+        target_embedding_layer_name: str = "target_embedding",
+        **kwargs
     ):
-        """Constructor.
+        """Initializes the Word2vec skip-gram negative sampling Keras model
 
-        Args:
-          unigram_counts: a list of ints, the counts of word tokens in the corpus.
-          hidden_size: int scalar, length of word vector.
-          batch_size: int scalar, batch size.
-          negatives: int scalar, num of negative words to sample.
-          power: float scalar, distortion for negative sampling.
-          alpha: float scalar, initial learning rate.
-          min_alpha: float scalar, final learning rate.
-          add_bias: bool scalar, whether to add bias term to dot product
-            between target- and context embedding vectors.
-          random_seed: int scalar, random_seed.
+        Parameters
+        ----------
+        word_counts : a list of ints
+            The counts of word tokens in the corpus.
+        embedding_dim : int scalar
+            Length of word vector.
+        batch_size : int scalar
+            Batch size.
+        num_negative_samples : int scalar
+            Number of negative words to sample.
+        unigram_exponent_negative_sampling : float scalar
+            Distortion for negative sampling.
+        learning_rate : float scalar
+            Initial learning rate.
+        min_learning_rate : float scalar
+            Final learning rate.
+        add_bias : bool scalar
+            Whether to add bias term to dot product between target and context embedding vectors.
+        name : str
+            Name of the model
+        target_embedding_layer_name : str
+            Name to use for the target embedding layer (defaults to "target_embedding").
         """
-        super(Word2VecSGNSModel, self).__init__()
-        self._unigram_counts = unigram_counts
-        self._hidden_size = hidden_size
-        self._vocab_size = len(unigram_counts)
+        super(Word2VecSGNSModel, self).__init__(name=name, **kwargs)
+        self._word_counts = word_counts
+        self._embedding_dim = embedding_dim
+        self._vocab_size = len(word_counts)
         self._batch_size = batch_size
-        self._negatives = negatives
-        self._power = power
-        self._alpha = alpha
-        self._min_alpha = min_alpha
+        self._num_negative_samples = num_negative_samples
+        self._unigram_exponent_negative_sampling = unigram_exponent_negative_sampling
+        self._learning_rate = learning_rate
+        self._min_learning_rate = min_learning_rate
         self._add_bias = add_bias
-        self._random_seed = random_seed
+        self._target_embedding_layer_name = target_embedding_layer_name
 
         self.add_weight(
-            "target_embedding",
-            shape=[self._vocab_size, self._hidden_size],
+            self._target_embedding_layer_name,
+            shape=[self._vocab_size, self._embedding_dim],
             initializer=tf.keras.initializers.RandomUniform(
-                minval=-0.5 / self._hidden_size, maxval=0.5 / self._hidden_size
+                minval=-0.5 / self._embedding_dim, maxval=0.5 / self._embedding_dim
             ),
         )
 
         self.add_weight(
             "context_embedding",
-            shape=[self._vocab_size, self._hidden_size],
+            shape=[self._vocab_size, self._embedding_dim],
             initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1),
         )
 
@@ -62,36 +77,58 @@ class Word2VecSGNSModel(tf.keras.Model):
             "biases", shape=[self._vocab_size], initializer=tf.keras.initializers.Zeros()
         )
 
-    def call(self, inputs, labels):
-        """Runs the forward pass to compute loss.
-        Uses negative sampling to compute loss.
+    def get_config(self) -> dict:
+        """
+        Gets the config for the Word2vec model.
+        """
+        config = {
+            "word_counts": self._word_counts,
+            "embedding_dim": self._embedding_dim,
+            "vocab_size": self.__vocab_size,
+            "batch_size": self._batch_size,
+            "num_negative_samples": self._num_negative_samples,
+            "unigram_exponent_negative_sampling": self._unigram_exponent_negative_sampling,
+            "learning_rate": self._learning_rate,
+            "min_learning_rate": self._min_learning_rate,
+            "add_bias": self._add_bias,
+        }
+        return config
 
-        Args:
-          inputs: int tensor of shape [batch_size]
-          labels: int tensor of shape [batch_size]
+    def call(self, input_targets: tf.Tensor, input_contexts: tf.Tensor) -> tf.Tensor:
+        """
+        Runs the forward pass to compute loss. Uses negative sampling to compute loss.
 
-        Returns:
-          loss: float tensor, cross entropy loss, of shape [batch_size, negatives + 1].
+        Parameters
+        ----------
+        input_targets: int tensor of shape [batch_size]
+            Input targets to train on.
+        input_contexts: int tensor of shape [batch_size]
+            Input contexts to train on.
+
+        Returns
+        -------
+        loss: float tensor
+            Cross entropy loss, of shape [batch_size, negatives + 1].
         """
         target_embedding, context_embedding, biases = self.weights
 
         sampled_values = tf.random.fixed_unigram_candidate_sampler(
-            true_classes=tf.expand_dims(labels, 1),
+            true_classes=tf.expand_dims(input_contexts, 1),
             num_true=1,
-            num_sampled=self._batch_size * self._negatives,
+            num_sampled=self._batch_size * self._num_negative_samples,
             unique=True,
-            range_max=len(self._unigram_counts),
-            distortion=self._power,
-            unigrams=self._unigram_counts,
+            range_max=len(self._word_counts),
+            distortion=self._unigram_exponent_negative_sampling,
+            unigrams=self._word_counts,
         )
 
         sampled = sampled_values.sampled_candidates
-        sampled_mat = tf.reshape(sampled, [self._batch_size, self._negatives])
+        sampled_mat = tf.reshape(sampled, [self._batch_size, self._num_negative_samples])
         inputs_target_embedding = tf.gather(
-            target_embedding, inputs
+            target_embedding, input_targets
         )  # [batch_size, hidden_size]
         true_context_embedding = tf.gather(
-            context_embedding, labels
+            context_embedding, input_contexts
         )  # [batch_size, hidden_size]
         # [batch_size, negatives, hidden_size]
         sampled_context_embedding = tf.gather(context_embedding, sampled_mat)
@@ -108,7 +145,7 @@ class Word2VecSGNSModel(tf.keras.Model):
 
         if self._add_bias:
             # [batch_size]
-            true_logits += tf.gather(biases, labels)
+            true_logits += tf.gather(biases, input_contexts)
             # [batch_size, negatives]
             sampled_logits += tf.gather(biases, sampled_mat)
 
