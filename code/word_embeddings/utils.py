@@ -21,7 +21,11 @@ def download_from_url(
     chunk_size : int, optional
         Chunk size for downloading (default 1024).
     """
-    file_size = int(requests.head(url).headers["Content-Length"])
+    file_size = int(
+        requests.head(url, headers={"Accept-Encoding": "identity"}).headers[
+            "Content-Length"
+        ]
+    )
     with tqdm(total=file_size, initial=0, unit="B", unit_scale=True) as progressbar:
         req = requests.get(url, stream=True)
         req.encoding = "utf-8"
