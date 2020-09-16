@@ -6,12 +6,14 @@ from os.path import isfile
 from os.path import join as join_path
 from typing import List
 
+import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
 from text_preprocessing_utils import (preprocess_text, replace_all_numbers,
                                       replace_contractions)
 from tqdm import tqdm
 from utils import download_from_url
 
+nltk.download("punkt")
 
 def parse_args() -> argparse.Namespace:
     """
