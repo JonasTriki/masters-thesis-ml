@@ -8,8 +8,7 @@ from typing import List
 
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
-from text_preprocessing_utils import (preprocess_text, replace_all_numbers,
-                                      replace_contractions)
+from text_preprocessing_utils import preprocess_text
 from tqdm import tqdm
 from utils import download_from_url
 

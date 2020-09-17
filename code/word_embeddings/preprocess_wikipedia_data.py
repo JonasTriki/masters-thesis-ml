@@ -6,15 +6,9 @@ from os.path import isdir, isfile
 from os.path import join as join_path
 from typing import List, Optional
 
-import nltk
-from nltk.tokenize import sent_tokenize, word_tokenize
-from text_preprocessing_utils import (preprocess_text, replace_all_numbers,
-                                      replace_contractions)
 from tqdm import tqdm
 from utils import download_from_url
 from wikiextractor_utils import wikiextractor_outputs_to_file
-
-nltk.download("punkt")
 
 
 def parse_args() -> argparse.Namespace:
@@ -30,7 +24,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--language",
         type=str,
-        default="norwegian",  # TODO: Change to english
+        default="english",
         help="Language of the wikipedia dump",
     )
     parser.add_argument(
