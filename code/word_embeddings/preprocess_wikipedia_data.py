@@ -2,9 +2,9 @@ import argparse
 import subprocess
 import zipfile
 from os import makedirs, rename
-from os.path import isfile
+from os.path import isdir, isfile
 from os.path import join as join_path
-from typing import List
+from typing import List, Optional
 
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -12,8 +12,10 @@ from text_preprocessing_utils import (preprocess_text, replace_all_numbers,
                                       replace_contractions)
 from tqdm import tqdm
 from utils import download_from_url
+from wikiextractor_utils import wikiextractor_outputs_to_file
 
 nltk.download("punkt")
+
 
 def parse_args() -> argparse.Namespace:
     """
@@ -26,16 +28,16 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--dataset_name",
+        "--language",
         type=str,
-        default="enwik8",
-        help="Name of the wikipedia dataset to download from (either enwik8 or enwik9)",
+        default="norwegian",  # TODO: Change to english
+        help="Language of the wikipedia dump",
     )
     parser.add_argument(
-        "--compressed_dataset_name",
-        type=str,
-        default="text8",
-        help="Name of the compressed wikipedia dataset (either text8 or fil9)",
+        "--wiki_dump_time",
+        type=int,
+        default=20200901,  # TODO: Remove default
+        help="Time of the wikipedia dump",
     )
     parser.add_argument(
         "--raw_data_dir",
@@ -49,107 +51,105 @@ def parse_args() -> argparse.Namespace:
         default="data",
         help="Path of the processed data directory",
     )
+    parser.add_argument(
+        "--min_sent_word_count",
+        type=int,
+        default=5,
+        help="Minimum sentence word count",
+    )
+    parser.add_argument(
+        "--max_wikipedia_files",
+        type=int,
+        default=-1,
+        help="Maximum number of wikipedia files to process (-1 denotes all files)",
+    )
     return parser.parse_args()
 
 
 def load_and_preprocess_data(
-    dataset_name: str, compressed_dataset_name: str, raw_data_dir: str, data_dir: str
+    language: str,
+    wiki_dump_time: str,
+    raw_data_dir: str,
+    data_dir: str,
+    min_sent_word_count: int,
+    max_wikipedia_files: int,
 ) -> None:
     """
     Loads and preprocess text8 data for training a Word2vec model.
 
     Parameters
     ----------
-    dataset_name : str
-        Name of the wikipedia dataset to use (either enwik8 or enwik9)
-    compressed_dataset_name : str
-        Name of the compressed wikipedia dataset to use (either text8 or fil9)
+    language : str
+        Language of the wikipedia dump.
+    wiki_dump_time : str
+        Time of the wikipedia dump.
     raw_data_dir : str
-        Path to the raw data directory (where files will be downloaded to and extracted from)
+        Path to the raw data directory (where files will be downloaded to and extracted from).
     data_dir : str
-        Path of the processed data directory
+        Path of the processed data directory.
+    min_sent_word_count : int
+        Minimum sentence word count.
+    max_wikipedia_files : int
+        Maximum number of wikipedia files to process (-1 denotes all files).
     """
     # Ensure data directories exist
     makedirs(raw_data_dir, exist_ok=True)
     makedirs(data_dir, exist_ok=True)
 
     # Initialize paths
-    raw_data_url = f"http://mattmahoney.net/dc/{dataset_name}.zip"
-    raw_data_zip_filepath = join_path(raw_data_dir, f"{dataset_name}.zip")
-    raw_data_filepath_no_ext = join_path(raw_data_dir, dataset_name)
-    raw_data_filepath = f"{raw_data_filepath_no_ext}.txt"
-    raw_data_processed_wikifil_filepath = join_path(
-        raw_data_dir, f"{compressed_dataset_name}.txt"
+    wiki_name = f"{language[:2]}wiki"
+    dataset_name = f"{wiki_name}-{wiki_dump_time}"
+    raw_data_url = (
+        f"https://dumps.wikimedia.org/{wiki_name}/{wiki_dump_time}/"
+        f"{dataset_name}-pages-articles-multistream.xml.bz2"
     )
-    data_filepath = join_path(data_dir, f"{compressed_dataset_name}.txt")
+    raw_data_bz2_filepath = join_path(raw_data_dir, f"{dataset_name}.xml.bz2")
+    raw_data_bz2_extracted_dir = join_path(raw_data_dir, f"{dataset_name}_extracted")
+    data_filepath = join_path(data_dir, f"{dataset_name}.txt")
 
     # Download raw data if not present
-    if not isfile(raw_data_zip_filepath):
-        print(f"Downloading raw {dataset_name} data...")
-        download_from_url(raw_data_url, raw_data_zip_filepath)
+    if not isfile(raw_data_bz2_filepath):
+        print(f"Downloading {wiki_name}-{wiki_dump_time} dump...")
+        download_from_url(url=raw_data_url, destination_filepath=raw_data_bz2_filepath)
         print("Done!")
 
     # Extract raw data if not present
-    if not isfile(raw_data_filepath):
-        print("Extracting raw data...")
-        with zipfile.ZipFile(raw_data_zip_filepath) as zip_file:
-            zip_file.extractall(raw_data_dir)
-        rename(raw_data_filepath_no_ext, raw_data_filepath)
-        print("Done!")
-
-    # Preprocess output from `wikifil.pl` script
-    if not isfile(raw_data_processed_wikifil_filepath):
-        print("Running `wikifil.pl` to process raw Wikipedia data...")
-        result = subprocess.run(
-            ["perl", "scripts/wikifil.pl", raw_data_filepath],
-            capture_output=True,
-            text=True,
+    if not isdir(raw_data_bz2_extracted_dir):
+        print("Extracting articles from {wiki_name}-{wiki_dump_time} dump...")
+        subprocess.run(
+            [
+                "python",
+                "-m",
+                "wikiextractor.WikiExtractor",
+                "-cb",
+                "250K",
+                "-o",
+                raw_data_bz2_extracted_dir,
+                raw_data_bz2_filepath,
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
         )
         print("Done!")
-        wikifil_output = result.stdout
-        with open(raw_data_processed_wikifil_filepath, "w") as file:
-            file.write(wikifil_output)
-    else:
-        with open(raw_data_processed_wikifil_filepath, "r") as file:
-            wikifil_output = file.read()
 
-    # To sentences
-    print("Sentence tokenizing...")
-    text8_sentences = sent_tokenize(wikifil_output)
-    print("Done!")
-
-    # Preprocesses sentences into lists of words and filters out sentences with less than
-    # `min_sent_word_count` words in them and convert numbers to their textual
-    # representations.
-    min_sent_word_count = 5
-    new_text8_sentences: List[str] = []
-    print("Processing sentences...")
-    for sent in tqdm(text8_sentences):
-
-        # Preprocess sentence into a list of words
-        words = preprocess_text(sent)
-
-        # Filter out sentences that have less than `min_sent_word_count` words in them
-        if len(words) < min_sent_word_count:
-            continue
-
-        new_text8_sentences.append(" ".join(words))
-    print("Done!")
-
-    # Save to file
-    print("Saving to file...")
-    with open(data_filepath, "w") as file:
-        for sent in new_text8_sentences:
-            file.write(f"{sent}\n")
-
+    print("Combining and processing extracted files into single text file...")
+    wikiextractor_outputs_to_file(
+        extracted_dir=raw_data_bz2_extracted_dir,
+        language=language,
+        output_filepath=data_filepath,
+        max_num_files=max_wikipedia_files,
+        min_sent_word_count=min_sent_word_count,
+    )
     print("Done!")
 
 
 if __name__ == "__main__":
     args = parse_args()
     load_and_preprocess_data(
-        dataset_name=args.dataset_name,
-        compressed_dataset_name=args.compressed_dataset_name,
+        language=args.language,
+        wiki_dump_time=args.wiki_dump_time,
         raw_data_dir=args.raw_data_dir,
         data_dir=args.data_dir,
+        min_sent_word_count=args.min_sent_word_count,
+        max_wikipedia_files=args.max_wikipedia_files,
     )

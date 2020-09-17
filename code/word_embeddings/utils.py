@@ -1,6 +1,7 @@
 import os
-from os.path import join as join_path
-from typing import List
+from os import listdir
+from os.path import isdir, isfile, join
+from typing import AnyStr, Callable, Generator, List
 
 import requests
 from tqdm import tqdm
@@ -60,7 +61,7 @@ def get_cached_download_text_file(
     """
     # Create target directory if it does not exist.
     os.makedirs(target_dir, exist_ok=True)
-    destination_filepath = join_path(target_dir, filename)
+    destination_filepath = join(target_dir, filename)
 
     if not os.path.exists(destination_filepath):
 
@@ -96,3 +97,76 @@ def text_file_into_texts(filepath: str) -> List[str]:
     texts = text_content.split("\n")
 
     return texts
+
+
+def _make_file_gen(
+    reader: Callable[[int], AnyStr], buffer_size: int = 1024 * 1024
+) -> Generator[AnyStr, None, None]:
+    """
+    Helper function for reading file in batches (used in `text_file_line_count`).
+
+    Parameters
+    ----------
+    reader : Callable[[int], AnyStr]
+        file.read function.
+    buffer_size : int
+        Buffer size.
+
+    Returns
+    -------
+    b : AnyStr
+        File buffer.
+    """
+    b = reader(buffer_size)
+    while b:
+        yield b
+        b = reader(buffer_size)
+
+
+def text_file_line_count(filepath: str) -> int:
+    """
+    Counts number of lines in a given text file.
+
+    Parameters
+    ----------
+    filepath : str
+        Filepath of the text file to count
+
+    Returns
+    -------
+    line_count : int
+        Number of lines in text file
+    """
+    f = open(filepath, "rb")
+    f_gen = _make_file_gen(f.read)  # f.raw.read
+    return sum(buf.count(b"\n") for buf in f_gen)
+
+
+def get_all_filepaths_recursively(root_dir: str, file_ext: str) -> List[str]:
+    """
+    Gets all paths of files of a specific file extension recursively in a directory.
+
+    Parameters
+    ----------
+    root_dir : str
+        Root directory to start the search from.
+    file_ext : str
+        File extension (including dot).
+
+    Returns
+    -------
+    filepaths : list of str
+        List of filepaths in root directory with given file extension.
+    """
+    filepaths = [
+        join(root_dir, f)
+        for f in listdir(root_dir)
+        if isfile(join(root_dir, f)) and f.endswith(file_ext)
+    ]
+    dirs = [d for d in listdir(root_dir) if isdir(join(root_dir, d))]
+    for d in dirs:
+        files_in_d = get_all_filepaths_recursively(join(root_dir, d), file_ext)
+        if files_in_d:
+            for f in files_in_d:
+                filepaths.append(join(f))
+    return filepaths

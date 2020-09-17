@@ -133,7 +133,7 @@ def remove_punctuation(words: list) -> list:
     return new_words
 
 
-def replace_numbers(words: list, ordinal: bool = False) -> list:
+def replace_numbers(words: list, lang: str, ordinal: bool = False) -> list:
     """
     Replaces (ordinal) numbers with its textual representation.
 
@@ -141,6 +141,8 @@ def replace_numbers(words: list, ordinal: bool = False) -> list:
     ----------
     words : list
         List of words.
+    lang: str
+        Language of words (stripped)
     ordinal : bool, optional
         Whether or not to use ordinal textual representation.
 
@@ -157,7 +159,7 @@ def replace_numbers(words: list, ordinal: bool = False) -> list:
             re_results = re.findall(r"\d+", word)
         if len(re_results) > 0:
             number = int(re_results[0])
-            number_words = num2words(number, ordinal=ordinal)
+            number_words = num2words(number, lang=lang, ordinal=ordinal)
 
             # Remove commas
             number_words = number_words.replace(",", "")
@@ -173,7 +175,7 @@ def replace_numbers(words: list, ordinal: bool = False) -> list:
     return new_words
 
 
-def replace_all_numbers(words: list) -> list:
+def replace_all_numbers(words: list, language: str) -> list:
     """
     Replaces normal and ordinal numbers with its textual representation.
 
@@ -181,14 +183,17 @@ def replace_all_numbers(words: list) -> list:
     ----------
     words : list
         List of words.
+    language : str
+        Language of words
 
     Returns
     -------
     new_words : list
         List of new words with textual representation of numbers.
     """
-    words = replace_numbers(words, ordinal=True)
-    words = replace_numbers(words)
+    lang = language[:2]  # Extract first two characters (e.g. english --> en)
+    words = replace_numbers(words, lang, ordinal=True)
+    words = replace_numbers(words, lang)
     return words
 
 
@@ -241,14 +246,17 @@ def lemmatize_words(words: list) -> list:
     return lemmas
 
 
-def text_to_words(text: str) -> list:
+def text_to_words(text: str, language: str = "english") -> list:
     """
     Converts text into a list of words. Removes URLs and replaces contractions
     from the original text, before tokenizing into words.
 
     Parameters
     ----------
-    text : Text to process.
+    text : str
+        Text to process.
+    language : str
+        Language (defaults to "english").
 
     Returns
     -------
@@ -256,15 +264,20 @@ def text_to_words(text: str) -> list:
         List of words from the original text.
     """
     text = remove_urls(text)
-    text = replace_contractions(text)
+    try:
+        if language == "english":
+            text = replace_contractions(text)
+    except IndexError:
+        # TODO: Figure out why we have an error here sometimes.
+        print(f"Contractions index error on:\n'{text}'")
 
     # Tokenize text (convert into words)
-    words = word_tokenize(text)
+    words = word_tokenize(text, language)
 
     return words
 
 
-def preprocess_words(words: list) -> list:
+def preprocess_words(words: list, language: str = "english") -> list:
     """
     Preprocesses list of words using a series of techniques:
     - Removes URLs
@@ -280,6 +293,8 @@ def preprocess_words(words: list) -> list:
     ----------
     words : list of str
         List of words to preprocess.
+    language : str
+        Language (defaults to "english")
 
     Returns
     -------
@@ -290,14 +305,14 @@ def preprocess_words(words: list) -> list:
     # words = remove_non_ascii(words)
     words = to_lowercase(words)
     words = remove_punctuation(words)
-    words = replace_all_numbers(words)
+    words = replace_all_numbers(words, language)
     # words = remove_stopwords(words)
     # words = lemmatize_words(words)
 
     return words
 
 
-def preprocess_text(text: str) -> list:
+def preprocess_text(text: str, language: str = "english") -> list:
     """
     Preprocesses text using a series of techniques:
     - Removes URLs
@@ -313,6 +328,8 @@ def preprocess_text(text: str) -> list:
     ----------
     text : str
         Text to preprocess.
+    language : str
+        Language (defaults to "english")
 
     Returns
     -------
@@ -320,9 +337,9 @@ def preprocess_text(text: str) -> list:
         Preprocessed text split into a list of words.
     """
     # Convert to list of words
-    words = text_to_words(text)
+    words = text_to_words(text, language)
 
     # Process words
-    words = preprocess_words(words)
+    words = preprocess_words(words, language)
 
     return words

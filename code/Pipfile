@@ -30,6 +30,9 @@ contractions = "*"
 tensorflow-addons = "*"
 num2words = "*"
 ipywidgets = "*"
+beautifulsoup4 = "*"
+wikiextractor = "*"
+lxml = "*"
 
 [requires]
 python_version = "3.7"
