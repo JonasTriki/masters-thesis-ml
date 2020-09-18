@@ -8,6 +8,7 @@ from data_utils import Tokenizer, create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from train_utils import create_model_checkpoint_filepath
+from utils import text_file_line_count
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -168,7 +169,8 @@ class Word2vec:
 
     def fit(
         self,
-        texts: list,
+        text_data_filepath: str,
+        num_texts: int,
         dataset_name: str,
         n_epochs: int,
         starting_epoch_nr: int = 1,
@@ -179,8 +181,10 @@ class Word2vec:
 
         Parameters
         ----------
-        texts : list
-            List of texts to fit/train the Word2vec model on.
+        text_data_filepath : str
+            Path of text data to fit/train the Word2vec model on.
+        num_texts : int
+            Number of texts (or sentences) of the content of `text_data_filepath`.
         dataset_name : str
             Name of the dataset we are fitting/training on.
         n_epochs : int
@@ -264,7 +268,6 @@ class Word2vec:
                 f"- num_negative_samples={self._num_negative_samples}"
             )
             print("---")
-        num_texts = len(texts)
         end_epoch_nr = n_epochs + starting_epoch_nr - 1
         for epoch_nr in range(starting_epoch_nr, end_epoch_nr + 1):
             if verbose >= 1:
@@ -280,7 +283,8 @@ class Word2vec:
 
             # Initialize new dataset per epoch
             train_dataset = create_dataset(
-                texts,
+                text_data_filepath,
+                num_texts,
                 self._tokenizer,
                 self._sampling_window_size,
                 self._batch_size,
@@ -313,7 +317,7 @@ class Word2vec:
                 steps += 1
 
                 # Update progressbar
-                sent_nr = int(epoch_progress.numpy() * len(texts))
+                sent_nr = int(epoch_progress.numpy() * num_texts)
                 progressbar.update(
                     sent_nr,
                     values=[

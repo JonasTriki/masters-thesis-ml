@@ -1,7 +1,7 @@
 import argparse
 
 from data_utils import Tokenizer
-from utils import text_file_into_texts
+from utils import text_file_line_count
 from word2vec import Word2vec
 
 
@@ -173,8 +173,10 @@ def train_word2vec_sgns(
     starting_epoch_nr : int
         Epoch number to start the training from.
     """
-    # Read text from file
-    data_texts = text_file_into_texts(text_data_filepath)
+    # Count number of lines in text data file.
+    print("Counting lines in text data file...")
+    num_texts = text_file_line_count(text_data_filepath)
+    print("Done!")
 
     # Initialize tokenizer and build its vocabulary
     tokenizer = Tokenizer(
@@ -183,7 +185,7 @@ def train_word2vec_sgns(
         sampling_factor=sampling_factor,
     )
     print("Building vocabulary...")
-    tokenizer.build_vocab(text_data_filepath)
+    tokenizer.build_vocab(text_data_filepath, num_texts)
     print("Done!")
 
     # Initialize Word2vec instance
@@ -205,7 +207,7 @@ def train_word2vec_sgns(
 
     # Train model
     word2vec.fit(
-        texts=data_texts,
+        text_data_filepath=text_data_filepath,
         dataset_name=dataset_name,
         n_epochs=n_epochs,
         starting_epoch_nr=starting_epoch_nr,

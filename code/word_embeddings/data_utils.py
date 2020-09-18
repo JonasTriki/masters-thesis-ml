@@ -1,8 +1,11 @@
+import itertools
 from collections import Counter
 from typing import Generator, List, Optional, Tuple
 
 import numpy as np
 import tensorflow as tf
+from tqdm import tqdm
+from utils import text_file_line_count
 
 
 class Tokenizer:
@@ -198,7 +201,9 @@ class Tokenizer:
             )
         return self._int_to_word
 
-    def _build_word_occurrences(self, filepath: str) -> List[Tuple[str, int]]:
+    def _build_word_occurrences(
+        self, filepath: str, num_texts: int
+    ) -> List[Tuple[str, int]]:
         """
         Builds a list containing word and its word count
 
@@ -206,37 +211,48 @@ class Tokenizer:
         ----------
         filepath : str
             Filepath of text file to build on.
+        num_texts : int
+            Number of texts (or sentences) of the content of `filepath`.
 
         Returns
         -------
-            word_occurrences : list of tuples of str and int
-                A list containing a tuple with word and its word count in the text corpus.
+        word_occurrences : list of tuples of str and int
+            A list containing a tuple with word and its word count in the text corpus.
         """
         # Read file content and split into words
-        with open(filepath, "r") as file:
-            file_text_content = file.read()
-            file_words = file_text_content.split()
+        lines = []
+        with tf.io.gfile.GFile(filepath) as f:
+            lines.append(f)
+        lines = itertools.chain(*lines)
 
-        # Count word occurrences
-        word_occurrences = Counter(file_words).most_common(self._max_vocab_size)
+        word_occurrences = Counter()
+        for line in tqdm(
+            lines,
+            desc="- Building word occurences",
+            total=num_texts,
+        ):
+            word_occurrences.update(line.strip().split())
+        word_occurrences = word_occurrences.most_common(self._max_vocab_size)
 
         # Exclude words with less than `self._min_word_count` occurrences
         word_occurrences = [
             (word, word_count)
-            for word, word_count in word_occurrences
+            for word, word_count in tqdm(
+                word_occurrences, desc="- Filtering word occurences"
+            )
             if word_count >= self._min_word_count
         ]
 
         return word_occurrences
 
-    def build_vocab(self, filepath: str) -> None:
+    def build_vocab(self, filepath: str, num_texts: int) -> None:
         """
         Builds the vocabulary for the tokenizer class.
 
         Sets the following class variables:
         - word_to_int = Dictionary to lookup a word and get its integer representation
         - int_to_word = Dictionary to lookup a word integer and get the respective word
-        - words = List of words sorted by word counts (descendingly)
+        - words = List of words sorted by word counts (descending)
         - word_counts = Dictionary to lookup the word count of a word
         - word_keep_probs = List of probabilities of keeping a word during subsampling
         - word_noise_dist = Noise distribution used for negative sampling
@@ -245,15 +261,24 @@ class Tokenizer:
         ----------
         filepath : str
             Filepath of the text file to build the vocabulary on.
+        num_texts : int
+            Number of texts (or sentences) of the content of `filepath`.
         """
         # Get word occurrences from text file
-        word_occurrences = self._build_word_occurrences(filepath)
+        word_occurrences = self._build_word_occurrences(filepath, num_texts)
 
         # Set vocabulary size
         self._vocab_size = len(word_occurrences)
 
         # Calculate how many words we have in the text corpus
-        self._corpus_size = sum([word_count for _, word_count in word_occurrences])
+        self._corpus_size = sum(
+            [
+                word_count
+                for _, word_count in tqdm(
+                    word_occurrences, desc="- Computing corpus size"
+                )
+            ]
+        )
 
         # Set word_to_int, int_to_word, word_counts
         # and word_keep_probs
@@ -262,7 +287,9 @@ class Tokenizer:
         self._words = []
         self._word_counts = []
         self._word_keep_probs = []
-        for word_idx, (word, word_count) in enumerate(word_occurrences):
+        for word_idx, (word, word_count) in tqdm(
+            enumerate(word_occurrences), desc="- Finalizing vocabulary"
+        ):
 
             # Lookup tables
             self._word_to_int[word] = word_idx
@@ -325,15 +352,15 @@ class Tokenizer:
 
 
 def tokenized_text_generator(
-    texts: list, tokenizer: Tokenizer
+    text_data_filepath: str, tokenizer: Tokenizer
 ) -> Generator[list, None, None]:
     """
     Generator that yields tokenized texts from a list of texts.
 
     Parameters
     --–-------
-    texts : list
-        List of texts to tokenize.
+    text_data_filepath : str
+        Path of data text file to tokenize texts from.
     tokenizer : Tokenizer
         Tokenizer instance to use for tokenizing texts.
 
@@ -342,8 +369,9 @@ def tokenized_text_generator(
     tokenized_text : list
         Tokenized text in a list.
     """
-    for text in texts:
-        yield tokenizer.tokenize_text(text)
+    with tf.io.gfile.GFile(text_data_filepath) as file:
+        for text in file:
+            yield tokenizer.tokenize_text(text)
 
 
 def sample_words_from_noise_distribution(
@@ -489,7 +517,8 @@ def subsample_words(
 
 # Create dataset
 def create_dataset(
-    texts: list,
+    text_data_filepath: str,
+    num_texts: int,
     tokenizer: Tokenizer,
     sampling_window_size: int,
     batch_size: int,
@@ -499,8 +528,10 @@ def create_dataset(
 
     Parameters
     ----------
-    texts : list
-        List of texts to generate skip-gram target/context pairs from.
+    text_data_filepath : list
+        Path of text data to generate skip-gram target/context pairs from.
+    num_texts : int
+        Number of texts (or sentences) in the text data file.
     tokenizer : Tokenizer
         Tokenizer instance for tokenizing individual texts.
     sampling_window_size : int
@@ -521,11 +552,11 @@ def create_dataset(
     dataset = tf.data.Dataset.zip(
         (
             tf.data.Dataset.from_generator(
-                generator=lambda: tokenized_text_generator(texts, tokenizer),
+                generator=lambda: tokenized_text_generator(text_data_filepath, tokenizer),
                 output_types=tf.int64,
                 output_shapes=[None],
             ),
-            tf.data.Dataset.from_tensor_slices(tf.range(len(texts)) / len(texts)),
+            tf.data.Dataset.from_tensor_slices(tf.range(num_texts) / num_texts),
         )
     )
 
