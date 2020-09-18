@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--wiki_dump_time",
         type=int,
-        default=20200901,  # TODO: Remove default
+        default="latest",
         help="Time of the wikipedia dump",
     )
     parser.add_argument(

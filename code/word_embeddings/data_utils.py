@@ -1,11 +1,11 @@
 import itertools
+import pickle
 from collections import Counter
 from typing import Generator, List, Optional, Tuple
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from utils import text_file_line_count
 
 
 class Tokenizer:
@@ -232,7 +232,9 @@ class Tokenizer:
             total=num_texts,
         ):
             word_occurrences.update(line.strip().split())
+        print(f"Initial vocabulary size: {len(word_occurrences)}")
         word_occurrences = word_occurrences.most_common(self._max_vocab_size)
+        print(f"New vocabulary size after maximization: {len(word_occurrences)}")
 
         # Exclude words with less than `self._min_word_count` occurrences
         word_occurrences = [
@@ -242,6 +244,9 @@ class Tokenizer:
             )
             if word_count >= self._min_word_count
         ]
+        print(
+            f"Final vocabulary size after filtering on minimum word count: {len(word_occurrences)}"
+        )
 
         return word_occurrences
 
@@ -288,7 +293,9 @@ class Tokenizer:
         self._word_counts = []
         self._word_keep_probs = []
         for word_idx, (word, word_count) in tqdm(
-            enumerate(word_occurrences), desc="- Finalizing vocabulary"
+            enumerate(word_occurrences),
+            desc="- Finalizing vocabulary",
+            total=len(word_occurrences),
         ):
 
             # Lookup tables
@@ -349,6 +356,30 @@ class Tokenizer:
         ]
 
         return tokenized_words
+
+    def save(self, destination_filepath: str) -> None:
+        """
+        Saves the tokenizer to file.
+
+        Parameters
+        ----------
+        destination_filepath : str
+            Where to save the tokenizer to.
+        """
+        with open(destination_filepath, "wb") as file:
+            pickle.dump(self.__dict__, file)
+
+    def load(self, tokenizer_filepath: str) -> None:
+        """
+        Loads the tokenizer vocabulary from file.
+
+        Parameters
+        ----------
+        tokenizer_filepath : str
+            Filepath of the Tokenizer.
+        """
+        with open(tokenizer_filepath, "rb") as file:
+            self.__dict__ = pickle.loads(file.read())
 
 
 def tokenized_text_generator(

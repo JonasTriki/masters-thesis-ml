@@ -33,6 +33,7 @@ beautifulsoup4 = "*"
 wikiextractor = "*"
 lxml = "*"
 contractions = "*"
+tqdm = "*"
 
 [requires]
 python_version = "3.7"

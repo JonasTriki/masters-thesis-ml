@@ -8,7 +8,6 @@ from data_utils import Tokenizer, create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from train_utils import create_model_checkpoint_filepath
-from utils import text_file_line_count
 from word2vec_model import Word2VecSGNSModel
 
 

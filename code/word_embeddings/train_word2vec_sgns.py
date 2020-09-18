@@ -22,6 +22,18 @@ def parse_args() -> argparse.Namespace:
         help="Text filepath containing the text we wish to train on",
     )
     parser.add_argument(
+        "--tokenizer_filepath",
+        type=str,
+        default="",
+        help="Filepath of a built tokenizer",
+    )
+    parser.add_argument(
+        "--save_to_tokenizer_filepath",
+        type=str,
+        default="",
+        help="Filepath to use for saving the tokenizer",
+    )
+    parser.add_argument(
         "--dataset_name",
         type=str,
         default="",
@@ -118,6 +130,8 @@ def parse_args() -> argparse.Namespace:
 
 def train_word2vec_sgns(
     text_data_filepath: str,
+    tokenizer_filepath: str,
+    save_to_tokenizer_filepath: str,
     dataset_name: str,
     batch_size: int,
     n_epochs: int,
@@ -141,6 +155,10 @@ def train_word2vec_sgns(
     ----------
     text_data_filepath : str
         Text filepath containing the text we wish to train on.
+    tokenizer_filepath : str
+        Filepath of the built Tokenizer.
+    save_to_tokenizer_filepath : str
+        Filepath to use for saving the tokenizer
     dataset_name : str
         Name of the dataset we are training on. Used to denote saved checkpoints
         during training.
@@ -178,14 +196,22 @@ def train_word2vec_sgns(
     num_texts = text_file_line_count(text_data_filepath)
     print("Done!")
 
-    # Initialize tokenizer and build its vocabulary
-    tokenizer = Tokenizer(
-        max_vocab_size=max_vocab_size,
-        min_word_count=min_word_count,
-        sampling_factor=sampling_factor,
-    )
-    print("Building vocabulary...")
-    tokenizer.build_vocab(text_data_filepath, num_texts)
+    # Initialize tokenizer (and build its vocabulary if necessary)
+    if tokenizer_filepath == "":
+        tokenizer = Tokenizer(
+            max_vocab_size=max_vocab_size,
+            min_word_count=min_word_count,
+            sampling_factor=sampling_factor,
+        )
+        print("Building vocabulary...")
+        tokenizer.build_vocab(text_data_filepath, num_texts)
+        if save_to_tokenizer_filepath != "":
+            print("Done!\nSaving vocabulary...")
+            tokenizer.save(save_to_tokenizer_filepath)
+    else:
+        tokenizer = Tokenizer()
+        print("Loading tokenizer...")
+        tokenizer.load(tokenizer_filepath)
     print("Done!")
 
     # Initialize Word2vec instance
@@ -208,6 +234,7 @@ def train_word2vec_sgns(
     # Train model
     word2vec.fit(
         text_data_filepath=text_data_filepath,
+        num_texts=num_texts,
         dataset_name=dataset_name,
         n_epochs=n_epochs,
         starting_epoch_nr=starting_epoch_nr,
@@ -219,20 +246,22 @@ if __name__ == "__main__":
 
     # Perform training
     train_word2vec_sgns(
-        args.text_data_filepath,
-        args.dataset_name,
-        args.batch_size,
-        args.n_epochs,
-        args.learning_rate,
-        args.min_learning_rate,
-        args.max_vocab_size,
-        args.min_word_count,
-        args.embedding_dim,
-        args.sampling_window_size,
-        args.num_negative_samples,
-        args.sampling_factor,
-        args.unigram_exponent_negative_sampling,
-        args.model_checkpoints_dir,
-        args.pretrained_model_filepath,
-        args.starting_epoch_nr,
+        text_data_filepath=args.text_data_filepath,
+        tokenizer_filepath=args.tokenizer_filepath,
+        save_to_tokenizer_filepath=args.save_to_tokenizer_filepath,
+        dataset_name=args.dataset_name,
+        batch_size=args.batch_size,
+        n_epochs=args.n_epochs,
+        learning_rate=args.learning_rate,
+        min_learning_rate=args.min_learning_rate,
+        max_vocab_size=args.max_vocab_size,
+        min_word_count=args.min_word_count,
+        embedding_dim=args.embedding_dim,
+        sampling_window_size=args.sampling_window_size,
+        num_negative_samples=args.num_negative_samples,
+        sampling_factor=args.sampling_factor,
+        unigram_exponent_negative_sampling=args.unigram_exponent_negative_sampling,
+        model_checkpoints_dir=args.model_checkpoints_dir,
+        pretrained_model_filepath=args.pretrained_model_filepath,
+        starting_epoch_nr=args.starting_epoch_nr,
     )
