@@ -1,0 +1,38 @@
+# Use an official Python runtime as a parent image
+FROM tensorflow/tensorflow:latest-gpu
+
+# Copy code into working directory
+COPY $PWD/code /project
+
+# Set the working directory
+WORKDIR /project
+
+# User configuration - override with --build-arg
+ARG user=jtr008
+ARG group=mas
+ARG uid=1000
+ARG gid=1000
+
+# Some debs want to interact, even with apt-get install -y, this fixes it
+ENV DEBIAN_FRONTEND=noninteractive
+ENV HOME=/project
+
+# Install any needed packages from apt
+RUN python3 -m pip install --upgrade pip
+RUN pip3 install --trusted-host pypi.python.org pipenv
+RUN pipenv lock -r > requirements.txt
+RUN pip3 install --trusted-host pypi.python.org -r requirements.txt --ignore-installed
+# RUN pipenv install --system --deploy
+
+# Configure user
+# RUN groupadd -g $gid $user
+RUN useradd -u $uid -g $gid $user
+RUN usermod -a -G sudo $user
+RUN passwd -d $user
+
+# Make port 8888 available to the world outside this container (for jupyter notebooks)
+EXPOSE 8888
+
+# Define environment variable
+# Use only GPU 0
+ENV CUDA_VISIBLE_DEVICES 0
