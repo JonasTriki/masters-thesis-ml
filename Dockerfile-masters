@@ -18,7 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV HOME=/project
 
 # Install any needed packages from apt
-RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install --trusted-host pypi.python.org --upgrade pip
 RUN pip3 install --trusted-host pypi.python.org pipenv
 RUN pipenv lock -r > requirements.txt
 RUN pip3 install --trusted-host pypi.python.org -r requirements.txt --ignore-installed
