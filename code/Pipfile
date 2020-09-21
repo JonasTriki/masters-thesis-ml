@@ -10,7 +10,6 @@ pep8 = "*"
 isort = "*"
 mypy = "*"
 jupyter = "*"
-wikiextractor = "*"
 
 [packages]
 pandas = "*"
@@ -34,6 +33,7 @@ beautifulsoup4 = "*"
 lxml = "*"
 contractions = "*"
 tqdm = "*"
+wikiextractor = "*"
 
 [requires]
 python_version = "3.6"
