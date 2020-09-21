@@ -3,7 +3,7 @@
 IMAGENAME = docker-jtr008-masters
 CONFIG    = masters
 COMMAND   = bash
-DISKS     = -v /data/jtr008-masters/data:/data -v /data/jtr008-masters/raw_data:/raw_data -v $(PWD):/project
+DISKS     = -v $(PWD)/code:/project # -v /data/jtr008-masters/data:/data -v /data/jtr008-masters/raw_data:/raw_data
 USERID    = $(shell id -u)
 GROUPID   = $(shell id -g)
 USERNAME  = $(shell whoami)
