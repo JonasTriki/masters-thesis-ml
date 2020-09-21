@@ -8,6 +8,8 @@ USERID    = $(shell id -u)
 GROUPID   = $(shell id -g)
 USERNAME  = $(shell whoami)
 PORT      = -p 8888:8888
+NETWORK   = --network host
+GPUS      = --gpus device=0 # Only use GPU #1.
 RUNTIME   =
 # --runtime=nvidia 
 # No need to change anything below this line
@@ -18,10 +20,10 @@ SSHFSOPTIONS = --cap-add SYS_ADMIN --device /dev/fuse
 USERCONFIG   = --build-arg user=$(USERNAME) --build-arg uid=$(USERID) --build-arg gid=$(GROUPID)
 
 .docker: Dockerfile-$(CONFIG)
-	docker build . $(USERCONFIG) -t $(USERNAME)-$(IMAGENAME) -f Dockerfile-$(CONFIG)
+	docker build $(USERCONFIG) -t $(USERNAME)-$(IMAGENAME) $(NETWORK) -f Dockerfile-$(CONFIG) .
 
 # Using -it for interactive use
-RUNCMD=docker run $(RUNTIME) --rm --user $(USERID):$(GROUPID) $(PORT) $(SSHFSOPTIONS) $(DISKS) -it $(USERNAME)-$(IMAGENAME)
+RUNCMD=docker run $(GPUS) $(RUNTIME) $(NETWORK) --rm --user $(USERID):$(GROUPID) $(PORT) $(SSHFSOPTIONS) $(DISKS) -it $(USERNAME)-$(IMAGENAME)
 
 # Replace 'bash' with the command you want to do
 default: .docker
