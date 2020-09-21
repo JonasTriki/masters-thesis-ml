@@ -9,7 +9,8 @@ GROUPID   = $(shell id -g)
 USERNAME  = $(shell whoami)
 PORT      = -p 8888:8888
 NETWORK   = --network host
-GPUS      = --gpus device=0 # Only use GPU #1.
+# Only use GPU #1.
+GPUS      = --gpus device=0
 RUNTIME   =
 # --runtime=nvidia 
 # No need to change anything below this line

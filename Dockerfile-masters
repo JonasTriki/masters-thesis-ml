@@ -9,7 +9,7 @@ WORKDIR /project
 
 # User configuration - override with --build-arg
 ARG user=jtr008
-ARG group=mas
+ARG group=stud
 ARG uid=1000
 ARG gid=1000
 
@@ -25,7 +25,7 @@ RUN pip3 install --trusted-host pypi.python.org -r requirements.txt --ignore-ins
 # RUN pipenv install --system --deploy
 
 # Configure user
-# RUN groupadd -g $gid $user
+RUN groupadd -g $gid $user
 RUN useradd -u $uid -g $gid $user
 RUN usermod -a -G sudo $user
 RUN passwd -d $user
