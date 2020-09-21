@@ -11,6 +11,7 @@
 \usepackage{geometry}
 \usepackage{wrapfig}
 \usepackage{amssymb}
+\setlength {\marginparwidth}{2cm}
 \usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
 \usepackage{soul}
 \usepackage{textcomp}
@@ -76,3 +77,9 @@
   \plparsep=1pt
   
 \usepackage[acronym,nonumberlist,toc,nogroupskip]{glossaries}
+
+\usepackage{amsthm}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+
+\newcommand{\R}{\mathbb{R}}
