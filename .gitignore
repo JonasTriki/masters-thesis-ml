@@ -2,6 +2,7 @@
 .cache
 .ipython
 .local
+.keras
 .bash_history
 **/*/.idea
 **/*/__pycache__
