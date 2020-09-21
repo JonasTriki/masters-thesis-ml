@@ -109,7 +109,7 @@ def load_and_preprocess_data(
 
     # Extract raw data if not present
     if not isdir(raw_data_bz2_extracted_dir):
-        print("Extracting articles from {wiki_name}-{wiki_dump_time} dump...")
+        print(f"Extracting articles from {wiki_name}-{wiki_dump_time} dump...")
         subprocess.run(
             [
                 "python",
