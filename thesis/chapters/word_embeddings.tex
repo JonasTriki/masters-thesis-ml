@@ -1,2 +1,103 @@
 \chapter{Word embeddings}
-TODO, test.
+In this chapter, we will cover word embeddings.
+
+TODO: Fill in more as we go.
+
+\section{Numerical representation of text}
+Machine learning methods take in vectors (arrays of numbers) as input. When we want to work with text, we have to come up with some procedure for converting text into a vector, (i.e. vectorizing the text). In this section, we will briefly discuss one-hot encoding words and the motivation behind creating word embeddings.
+
+\subsection{Unique representation for each word}
+\label{unique-representation-for-each-word}
+A first strategy for vectorizing text could be to assign a unique number for each word in the text. We use the same order as the words appear in the text to assign a unique number. Furthermore, we define the number of unique words in the text to be the vocabulary size, denoted by $|V|$. We replace each word in the text with its respective number. Let us consider the following sentence
+\begin{align}
+    \text{the cat sat on the mat} \label{txt:num-rep-ex-sent-words}
+\end{align}
+\noindent
+We convert the words into numbers based on the order they appear in the text, e.g., the $\rightarrow$ 0, cat $\rightarrow$ 1, sat $\rightarrow$ 2, etc.
+\begin{align}
+    \text{0 1 2 3 0 4} \label{txt:num-rep-ex-sent}
+\end{align}
+We now have a numerical representation of the original sentence in $\ref{txt:num-rep-ex-sent-words}$ and may use it for machine learning modeling. However, as one might note, if we feed such numbers into a machine learning model, it might be able to learn and abuse the natural ordered relationship between the numbers. Since we only concerned with vectorizing the words into unique numerical representations, this may lead to "unrealistic" and low quality results. In the next subsection, we will define one-hot encodings to avoid this and apply it to the example sentence in \ref{txt:num-rep-ex-sent-words}.
+
+\subsection{One-hot encoded words}
+TODO: Write something here.
+\begin{definition}
+Let $V = \left \{ w_1, w_2, ..., w_{|V|} \right \}$ denote the set of unique words in a text. Then, the one-hot encoding of a word, $e_{w_i}$ is defined as a $|V|$-dimensional vector of all zeros, except for the value at index $i$ which is one. \label{def:one-hot-encoding}
+\end{definition}
+
+\noindent
+If we convert the numerical representation in \ref{txt:num-rep-ex-sent} using definition \ref{def:one-hot-encoding}, we get the following one-hot encoded vectors
+\begin{align}
+    \begin{pmatrix}
+    1\\
+    0\\
+    0\\
+    0\\
+    0
+    \end{pmatrix}
+    \begin{pmatrix}
+    0\\
+    1\\
+    0\\
+    0\\
+    0
+    \end{pmatrix}
+    \begin{pmatrix}
+    0\\
+    0\\
+    1\\
+    0\\
+    0
+    \end{pmatrix}
+    \begin{pmatrix}
+    0\\
+    0\\
+    0\\
+    1\\
+    0
+    \end{pmatrix}
+    \begin{pmatrix}
+    1\\
+    0\\
+    0\\
+    0\\
+    0
+    \end{pmatrix}
+    \begin{pmatrix}
+    0\\
+    0\\
+    0\\
+    0\\
+    1
+    \end{pmatrix}
+\end{align}
+
+\subsection{Word embeddings}
+TODO
+
+\section{Creating word embeddings (Word2vec)}
+TODO
+
+\subsection{Architectures}
+TODO
+
+\subsubsection{Continuous bag-of-words (CBOW)}
+TODO
+
+\subsubsection{Skip-gram}
+TODO
+
+\subsection{Negative Sampling}
+TODO: How it works, unigram distribution for getting negative samples, etc.
+
+\subsection{Subsampling of words}
+TODO
+
+\subsection{Word2vec as a neural network}
+TODO: How to set it up, target vs context embedding, etc.
+
+\subsection{Data preprocessing}
+TODO
+
+\subsection{Evaluating a Word2vec model}
+TODO: Semantic and syntactic relations
