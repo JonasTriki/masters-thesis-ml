@@ -5,7 +5,10 @@ FROM tensorflow/tensorflow:latest-gpu
 WORKDIR /project
 
 # Copy code into working directory
-COPY $PWD/code /project
+# COPY $PWD /project
+
+# Copy requirements.txt
+COPY $PWD/code/requirements.txt /project/requirements.txt
 
 # User configuration - override with --build-arg
 ARG user=jtr008
@@ -19,8 +22,8 @@ ENV HOME=/project
 
 # Install any needed packages from apt
 RUN pip3 install --trusted-host pypi.python.org --upgrade pip
-RUN pip3 install --trusted-host pypi.python.org pipenv
-RUN pipenv lock -r > requirements.txt
+# RUN pip3 install --trusted-host pypi.python.org pipenv
+# RUN pipenv lock -r > requirements.txt
 RUN pip3 install --trusted-host pypi.python.org -r requirements.txt --ignore-installed
 # RUN pipenv install --system --deploy
 
