@@ -7,9 +7,6 @@ WORKDIR /project
 # Copy code into working directory
 COPY $PWD/code /project
 
-# Copy requirements.txt
-# COPY $PWD/code/requirements.txt /project/requirements.txt
-
 # User configuration - override with --build-arg
 ARG user=jtr008
 ARG group=stud
