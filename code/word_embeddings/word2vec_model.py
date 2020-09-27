@@ -84,7 +84,7 @@ class Word2VecSGNSModel(tf.keras.Model):
         config = {
             "word_counts": self._word_counts,
             "embedding_dim": self._embedding_dim,
-            "vocab_size": self.__vocab_size,
+            "vocab_size": self._vocab_size,
             "batch_size": self._batch_size,
             "num_negative_samples": self._num_negative_samples,
             "unigram_exponent_negative_sampling": self._unigram_exponent_negative_sampling,
@@ -126,8 +126,10 @@ class Word2VecSGNSModel(tf.keras.Model):
 
         # Negative samples
         negative_sampler = tf.random.fixed_unigram_candidate_sampler(
-            true_classes=tf.expand_dims(input_contexts, 1),
-            num_true=1,
+            true_classes=tf.expand_dims(
+                tf.range(self._batch_size, dtype=tf.int64), axis=0
+            ),
+            num_true=self._batch_size,
             num_sampled=self._batch_size * self._num_negative_samples,
             unique=True,
             range_max=len(self._word_counts),

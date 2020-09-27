@@ -324,6 +324,8 @@ class Word2vec:
                         ("learning_rate", learning_rate),
                     ],
                 )
+
+                # TODO: Save every N'th% weights to file.
             print()
 
             # Compute average loss
