@@ -1,7 +1,5 @@
 \chapter{Word embeddings}
-In this chapter, we will discuss ways of representing text numerically, how we can create word embeddings and details around the word2vec technique from architectural choices to data preprocessing. At last, we will cover evaluation of word2vec models.
-
-TODO: Change chapter introduction.
+In this chapter, we will discuss ways of representing text numerically, how we can create word embeddings and details around the word2vec technique from architectural choices to data preprocessing. Furthermore, we will explain word2vec as an artificual neural network and at last, cover evaluation of word2vec models.
 
 \section{Numerical representation of text}
 Machine learning methods take in vectors (arrays of numbers) as input. When we want to work with text, we have to come up with some procedure for converting text into a vector, (i.e. vectorizing the text).
@@ -121,7 +119,7 @@ There are some downsides with this approach as well, however.
 \end{itemize}
 
 \subsection{Word embeddings}
-In contrast to the one-hot encoded vectors of words, word embeddings are low-dimensional dense vector representations. Word embeddings are typically learned from the data (e.g. texts) directly, whereas one-hot encoded vectors are statically defined. Due to the lower dimensionality of word embeddings, it packs more information about words into less space, thus being more efficient than one-hot encoded word vectors. Common choices for the dimensionality of word embeddings are ranging from 50 to 600 \cite{mikolov2013a}, depending on the amount of training data. We will take a look at a classic method of creating such word embeddings, called word2vec.
+In contrast to the one-hot encoded vectors of words, word embeddings are low-dimensional dense vector representations. Word embeddings are typically learned from the data (e.g. texts) directly, whereas one-hot encoded vectors are statically defined. Due to the lower dimensionality of word embeddings, it packs more information about words into less space, thus being more efficient than one-hot encoded word vectors. Common choices for the dimensionality of word embeddings are ranging from 50 to 600 \cite{mikolov2013a}, depending on the amount of training data. We will take a look at a classic family of methods of creating such word embeddings, called word2vec.
 
 \section{Creating word embeddings (word2vec)}
 Word2vec was first introduced by Mikolov et al. in 2013 \cite{mikolov2013a}. It is a family of techniques for learning dense and efficient vector representations of words. In the same year, Mikolov et al. introduced another paper which included several extensions that improved both the quality of the word embeddings and the training speed \cite{mikolov2013b}. In this section, we will go over the details of the original word2vec paper and the introduced extensions in the follow-up paper.
@@ -163,6 +161,7 @@ The continuous Skip-gram model is very similar to CBOW. In fact, the Skip-gram m
 As with the CBOW model, we have some target word $w_t$ with $C$ context words around it, $w_{t-C}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+C}$. The objective of the Skip-gram model \cite{mikolov2013b} then becomes
 \begin{align}
     \frac{1}{T} \sumlim{t=1}{T} \sumlim{-C \leq j \leq C, j \neq 0}{} \log  p(w_{t+j} | w_t)
+    \label{eqn:skip-gram-objective-function}
 \end{align}
 
 \noindent
@@ -174,13 +173,13 @@ Mikolov et al. reported that the Skip-gram model performed better than the CBOW 
 \subsection{Negative Sampling}
 
 \noindent
-In the Skip-gram model, we typically define $p(w_{t+j} | w_t)$ using the softmax function \cite{mikolov2013b} TODO: Reference softmax function?
+In the Skip-gram model, we typically define $p(w_{t+j} | w_t)$ using the softmax function \cite{mikolov2013b} \textbf{TODO: Reference softmax function?}
 \begin{align}
     p(w_{t+j} | w_t)
     &= \frac{\exp{ \left( \trans{v'_{t+j}} v_t \right) }} {\exp{  \sumlim{k=1}{|V|} \left( \trans{v'_k} v_t \right) }}
     \label{eqn:skip-gram-p-function}
 \end{align}
-where $v'_t$ and $v_t$ are the "input" and "output" vector representations of the word $w$, and $|V|$ is the number of words in the vocabulary. There are some downsides with this formulation, however. In practice, it becomes hard to compute since the summation in the denominator of equation \ref{eqn:skip-gram-p-function} depends on the number of words in the vocabulary, which is often large ($10^5 - 10^7$ terms) \cite{mikolov2013b}.
+where $v_t$ and $v'_t$ are the "input" and "output" vector representations of the word $w$, and $|V|$ is the number of words in the vocabulary. There are some downsides with this formulation, however. In practice, it becomes hard to compute since the summation in the denominator of equation \ref{eqn:skip-gram-p-function} depends on the number of words in the vocabulary, which is often large ($10^5 - 10^7$ terms) \cite{mikolov2013b}.
 
 \noindent
 To deal with the computational requirements of the original Skip-gram model, Mikolov et al. first showed how one might use hierarchical softmax \cite{mikolov2013b}. Hierarchical softmax is an efficient way of computing the softmax function; instead of evaluating $|V|$ words to compute the probability in equation \ref{eqn:skip-gram-p-function}, we only have to evaluate $\log \left( |V| \right)$ words \cite{mikolov2013b}.
@@ -191,16 +190,20 @@ Following, Mikolov et al. introduce Negative sampling as an alternative to hiera
 \noindent
 Before we can explain Negative sampling, we define the positive- and negative target-context pairs.
 \begin{definition}
-Given a vocabulary $V$, a target word $w_t$ and the target words contextual words $w_{t-C}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+C}$ for some window size $C$, we define a \textbf{positive target-context pair} to be the pair of the target word $w_t$ and a contextual word $w_{t+l}$, $-C \leq l \leq C, l \neq 0$, e.g., the pair $\left( w_t, w_{t+1} \right)$ for $l=1$. Furthermore, we define a \textbf{negative target-context pair} as the pair of the contextual word $w_{t+l}$ and a word $w_r$ randomly sampled from the noise distribution $P_n(w)$, e.g., the pair $\left( w_{t+l}, w_r \right)$.
+Given a vocabulary $V$, a target word $w_t$ and the target words contextual words $w_{t-C}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+C}$ for some window size $C$, we define a \textbf{positive target-context pair} to be the pair of the target word $w_t$ and a contextual word $w_{t+j}$, $-C \leq j \leq C, j \neq 0$, e.g., the pair $\left( w_t, w_{t+1} \right)$ for $j=1$. Furthermore, we define a \textbf{negative target-context pair} as the pair of the target word $w_t$ and a word $w_r$ randomly sampled from the noise distribution $P_n(w)$, e.g., the pair $\left( w_t, w_r \right)$.
 \end{definition}
 
 \noindent
-In Negative sampling, we are only concerned with a subset of all the words in the vocabulary when computing the loss using the softmax function. For each word in the text we are training on, we create a positive target-context pair $\left( w_t, w_{t+l} \right)$, $-C \leq l \leq C, l \neq 0$. Furthermore, we generate $k$ negative target-context pairs for each word, where $k$ is in the range of $5-20$ for small training sets and $2-5$ for big training sets \cite{mikolov2013b}. We let $W_{np} = \left \{ w_j | j \in 1, \ldots, k \right \}$ be the set of $k$ negatively sampled words from the noise distribution $P_n(w)$. With these details in mind, the objective function of Negative sampling is \cite{mikolov2013b, rong2014word2vec}. TODO: Fix this equation, wronly stated at the moment.
+In Negative sampling, we are only concerned with a subset of all the words in the vocabulary when computing the loss using the softmax function. For each word in the text we are training on, we create a positive target-context pair $\left( w_t, w_{t+j} \right)$, $-C \leq j \leq C, j \neq 0$. Furthermore, we generate $k$ negative target-context pairs for each word, where $k$ is in the range of $5-20$ for small training sets and $2-5$ for big training sets \cite{mikolov2013b}. We let $W_{np} = \left \{ w_i | i \in 1, \ldots, k \right \}$ be the set of $k$ negatively sampled words from the noise distribution $P_n(w)$. With these details in mind, the objective of Negative sampling is \cite{mikolov2013b, rong2014word2vec}.
 \begin{align}
-\log \sigma \left( \trans{w_t} w_{t+l} \right) + \sumlim{w_j \in W_{np}}{} \log \sigma \left( -\trans{w_j} w_{t+l} \right)
-\label{eqn:negative-sampling-obj-func}
+    \log \sigma \left( \trans{v'_{w_{t+j}}} v_{w_t} \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -\trans{v'_{w_i}} v_{w_t} \right)
+    \label{eqn:negative-sampling-obj-func}
 \end{align}
-where $\sigma$ is the sigmoid function, e.g., $\sigma(z) = \frac{1}{1 + \exp{(-z)}}$. TODO: Reference sigmoid function?
+where $\sigma$ is the sigmoid function (\textbf{TODO: Reference sigmoid function}), and $v_t$ and $v'_t$ are the "input" and "output" vector representations of the word $w$. Furthermore, we replace every $\log p(w_{t+j} | w_t)$ in the original Skip-gram objective function from equation \ref{eqn:skip-gram-objective-function} by the objective in equation \ref{eqn:negative-sampling-obj-func}, as seen in equation \ref{eqn:skip-gram-negative-sampling-objective}.
+\begin{align}
+    \frac{1}{T} \sumlim{t=1}{T} \sumlim{-C \leq j \leq C, j \neq 0}{} \log \sigma \left( \trans{v'_{w_{t+j}}} v_{w_t} \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -\trans{v'_{w_i}} v_{w_t} \right)
+    \label{eqn:skip-gram-negative-sampling-objective}
+\end{align}
 
 \noindent
 From equation \ref{eqn:negative-sampling-obj-func}, we see that we only have to compute for $(1 + k)$ words, which is a big improvement over computing for $|V|$ words (assuming that $|V|$ is much larger than $k$). Mikolov et al. also reports that by using Negative sampling, we increase the quality of the word embeddings \cite{mikolov2013b}.
@@ -213,7 +216,7 @@ When training a word2vec model, one usually has to train on big text corpora to 
 where $f(w_t)$ is the (relative) frequency of word $w_t$ and $t$ is a chosen threshold, usually around $10^{-5}$ \cite{mikolov2013b}.
 
 \noindent
-It should be noted, however, that in the source code of word2vec\footnote{\href{https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c\#L407}{word2vec.c at line 407 (of the original word2vec repository)}}, they use a slightly modified formula. We will use this formula when implementing word2vec.
+It should be noted, however, that in the original source code of word2vec\footnote{\href{https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c\#L407}{word2vec.c at line 407 (of the original word2vec repository)}}, they use a slightly modified formula. We will use this formula when implementing word2vec.
 \begin{align}
     P_d(w_t) = \frac{f(w_t) - t}{f(w_t)} - \sqrt{\frac{t}{f(w_t)}}
 \end{align}
@@ -223,13 +226,41 @@ Typically in the literature, word2vec is presented using the equations \ref{eqn:
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=12cm]{thesis/figures/word2vec-skip-gram-negative-sampling.png}
+    \includegraphics[width=15cm]{thesis/figures/word2vec-skip-gram-negative-sampling.png}
     \caption{TODO: Replace with TikZ illustration}
     \label{fig:word2vec-skip-gram-negative-sampling}
 \end{figure}
 
+\subsubsection{Input layers}
+We have two input layers in our ANN; one for the target word $w_t$ and one for the context word $w_{t+j}$, $-C \leq j \leq C, j \neq 0$. The values to the input layers are typically one-hot encoded or represented using an integer corresponding to the index of the word in the vocabulary. For explanation purposes, we will use the one-hot encoded representation here, but in our code implementation, we use the latter one. We denote the one-hot encoded input values to the input layers to be $e_{w_t}$ and $e_{w_{t+j}}$ for the target and context input layers respectively.
+
+\subsubsection{Hidden layer}
+We have one hidden layer in our ANN. To calculate the result from the input layers to the hidden layer, we introduce two $|V| \times D$ weight matrices $W$ and $W'$, where $|V|$ is the vocabulary size and $D$ is the hidden embedding dimension. The $W$ matrix consists of weights related to the target word $w_t$ and can be though of as the "input to hidden" matrix. The $W'$ matrix consists of weights related to the context word, and unlike the $W$ matrix, it can be though of as the "hidden to output" matrix from the original introduction to Negative sampling \cite{mikolov2013b}. Note that both $W$ and $W'$ are randomly initialized. Furthermore, we refer to $W$ and $W'$ as the target and context embedding matrix, respectively.
+
 \noindent
-TODO: How to set it up, target vs context embedding, etc.
+To map from the input to the hidden layer, we simply multiply the transposed of an embedding matrix with its respective one-hot encoded input vector, resulting in a "look-up" of the embedding vector. To illustrate with an example, imagine if we had the one-hot encoded vector $e_{w_t} = \left( \begin{smallmatrix}
+    1\\
+    0\\
+\end{smallmatrix} \right)$ and the embedding matrix $W = \left( \begin{smallmatrix}
+    1 & 2 & 3\\
+    4 & 5 & 6\\
+\end{smallmatrix} \right)$. If the multiply the transpose of the embedding matrix with the one-hot encoded vector, e.g. $\trans{W} e_{w_t}$, we would get $\left( \begin{smallmatrix}
+    1\\
+    2\\
+    3\\
+\end{smallmatrix} \right)$, essentially performing a transposed "copy" operation.
+
+\noindent
+We let $v_{w_t} = \trans{W} e_{w_t}$ be the mapping for word $w_t$ and $v'_{w_t+j} = \trans{W'} e_{w_t{+j}}$ be the mapping for word $w_{t+j}$ from the inputs to the hidden layer. We refer the vectors $v_{w_t}$ and $v'_{w_{t+j}}$ to as the target and context embedding vectors, respectively. Note that when computing the embedding vectors, we do not apply any activation function (e.g. performing a linear transformation) nor any bias, leading to more efficient training of bigger datasets \cite{mikolov2013a}.
+
+\subsubsection{Output layer}
+Recall that when we are using Negative sampling, we would like to ensure that words in the same context yield similar word vectors, and that words words that are not in the same context (e.g. a target word versus a word sampled from the noise distribution $P_n(w)$) to be dissimilar \cite{mikolov2013b}. From the objective of Negative sampling from equation \ref{eqn:negative-sampling-obj-func}, we see that we use the sigmoid function on the dot product between the "input" and the "output" vectors $v$ and $v'$. When we take the dot product, we are essentially computing an unnormalized cosine similarity measure between the vectors. The idea is then to use this similarity measure and convert it into the range of $[0, 1]$ by using the sigmoid function. Following, we want similar vectors to have 1 as output from the sigmoid function and dissimilar vectors to have 0 as the output from the sigmoid function. When we compute the loss of the ANN, we generate $k$ samples from the noise distribution $P_n(w)$ such that we can use them for computing the loss of the network.
+
+\noindent
+For each positive target-context pair we have in our data, we create a single sigmoid output plus $k$ sigmoid outputs for each negatively sampled word from the noise distribution $P_n(w)$. Thus, we could argue that we have $(k + 1)$ outputs in our network. As one should note, however, we are only interested in the learned embedding matrix $W$ and its corresponding word vectors; we will not use the ANN for predicting whether a certain word is more or less likely to be within a words contextual neighborhood.
+
+\noindent
+Furthermore, we update the embedding weights $W$ and $W'$ using the stochastic gradient descent (SGD) optimizer, adjusting all the weights of the embedding matrices during the training of the ANN to minimize the loss in equation \ref{eqn:skip-gram-negative-sampling-objective}. Similar to the experiments performed by Mikolov et al. \cite{mikolov2013a}, we use a linearly decreasing learning rate, meaning that we start out with some initial learning rate $lr$ and decrease linearly to $lr_{min}$ until we reach end of training.
 
 \section{Training a word2vec model}
 TODO: Data preprocessing, Tensorflow, hyperparameters, etc.
