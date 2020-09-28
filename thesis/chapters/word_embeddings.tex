@@ -257,13 +257,40 @@ We let $v_{w_t} = \trans{W} e_{w_t}$ be the mapping for word $w_t$ and $v'_{w_t+
 Recall that when we are using Negative sampling, we would like to ensure that words in the same context yield similar word vectors, and that words words that are not in the same context (e.g. a target word versus a word sampled from the noise distribution $P_n(w)$) to be dissimilar \cite{mikolov2013b}. From the objective of Negative sampling from equation \ref{eqn:negative-sampling-obj-func}, we see that we use the sigmoid function on the dot product between the "input" and the "output" vectors $v$ and $v'$. When we take the dot product, we are essentially computing an unnormalized cosine similarity measure between the vectors. The idea is then to use this similarity measure and convert it into the range of $[0, 1]$ by using the sigmoid function. Following, we want similar vectors to have 1 as output from the sigmoid function and dissimilar vectors to have 0 as the output from the sigmoid function. When we compute the loss of the ANN, we generate $k$ samples from the noise distribution $P_n(w)$ such that we can use them for computing the loss of the network.
 
 \noindent
-For each positive target-context pair we have in our data, we create a single sigmoid output plus $k$ sigmoid outputs for each negatively sampled word from the noise distribution $P_n(w)$. Thus, we could argue that we have $(k + 1)$ outputs in our network. As one should note, however, we are only interested in the learned embedding matrix $W$ and its corresponding word vectors; we will not use the ANN for predicting whether a certain word is more or less likely to be within a words contextual neighborhood.
+For each positive target-context pair we have in our data, we create a single sigmoid output plus $k$ sigmoid outputs for each negatively sampled word from the noise distribution $P_n(w)$. Thus, we could argue that we have $(k + 1)$ outputs in our network. As one should note, however, we are only interested in the learned embedding matrix $W$ and its corresponding word vectors; we will not use the ANN for predicting whether a certain word is more or less likely to be within a words contextual neighborhood, thus, discarding the output of the network.
 
 \noindent
 Furthermore, we update the embedding weights $W$ and $W'$ using the stochastic gradient descent (SGD) optimizer, adjusting all the weights of the embedding matrices during the training of the ANN to minimize the loss in equation \ref{eqn:skip-gram-negative-sampling-objective}. Similar to the experiments performed by Mikolov et al. \cite{mikolov2013a}, we use a linearly decreasing learning rate, meaning that we start out with some initial learning rate $lr$ and decrease linearly to $lr_{min}$ until we reach end of training.
 
 \section{Training a word2vec model}
-TODO: Data preprocessing, Tensorflow, hyperparameters, etc.
+As with training any machine learning model, one usually needs to prepare some data. In our case it is not any different, and before training our word2vec model, we will first go over the data preprocessing choices we have made. Furthermore, we discuss the details of our own implementation of word2vec using the Skip-gram model and Negative sampling.
+
+\subsection{Data preprocessing}
+To train a word2vec model, one needs to have a sufficiently large dataset (and thus embedding dimensionality) to yield good quality word embeddings \cite{mikolov2013b}. In the empirical experiments of \cite{mikolov2013b}, they used the internal Google News dataset. Since this dataset is not publicly available, we instead used dumps from Wikipedia\footnote{https://dumps.wikimedia.org/} and performed a number of preprocessing steps on it. The dumps from Wikipedia were first downloaded and parsed using the WikiExtractor\footnote{https://github.com/attardi/wikiextractor} tool. Furthermore, we created a script using Python\footnote{https://www.python.org/} to merge and process output files from the WikiExtractor tool into a single text file, such that we can train on it with ease.
+
+\noindent
+We then proceed by processing each Wikipedia article. In particular, we performed the following steps
+\begin{enumerate}
+    \item We tokenized each article into a list of sentences using the \textit{tokenize.sent\_tokenize} function from the NLTK\footnote{https://www.nltk.org/} library.
+    \item Then, we preprocess each sentence individually.
+    \begin{enumerate}
+        \item We first replace contractions in each sentence (e.g. I'll $\mapsto$ I will, you'd $\mapsto$ you would, etc.). \textbf{TODO: Do we do this?}
+        \item Then we split the sentence into a list of words using the \textit{word\_tokenize} function from NLTK.
+        \begin{enumerate}
+            \item We convert each word in the sentence to its lower-case representation.
+            \item We remove punctuation from words and create new sub-words for each word delimited by punctuation (e.g. out-of-the-box $\mapsto$ out, of, the, box).
+            \item At last, we replace all numbers (including ordinal numbers) with its textual representation. For example, the number 10 becomes "ten" and the word "21st" becomes "twenty-first".
+        \end{enumerate}
+    \end{enumerate}
+    \item With the new processed sentences, we filter out sentences that have less than \textit{min\_word\_count} words in them, where \textit{min\_word\_count} is a hyperparameter.
+    \item Each sentence is then appended to an output text file, separated using the newline character (i.e. \textbackslash n).
+\end{enumerate}
+
+\subsection{Implementation specifics}
+To implement the word2vec model, we used Python\footnote{\url{https://www.python.org/}} and Tensorflow\footnote{\url{https://www.tensorflow.org/}}.
+
+\subsection{Hyperparameters}
+TODO
 
 \section{Evaluating a word2vec model}
 TODO: Semantic and syntactic relations
