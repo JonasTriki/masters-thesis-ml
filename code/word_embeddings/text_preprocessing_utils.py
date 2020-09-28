@@ -263,7 +263,7 @@ def text_to_words(text: str, language: str = "english") -> list:
     words : list
         List of words from the original text.
     """
-    text = remove_urls(text)
+    # text = remove_urls(text)
     try:
         if language == "english":
             text = replace_contractions(text)
