@@ -7,6 +7,8 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+
 
 class Tokenizer:
     """
@@ -406,7 +408,6 @@ class Tokenizer:
 
         # Tokenize words
         tokenized_words = self._static_vocab_table.lookup(words)
-        print(tokenized_words)
 
         return tokenized_words
 
@@ -444,53 +445,6 @@ class Tokenizer:
         # Initialize static vocabulary table if tokenizer is built
         if self._words is not None:
             self._init_static_vocabulary_table()
-
-
-def tokenized_text_generator(
-    text_data_filepath: str, tokenizer: Tokenizer
-) -> Generator[list, None, None]:
-    """
-    Generator that yields tokenized texts from a list of texts.
-
-    Parameters
-    --–-------
-    text_data_filepath : str
-        Path of data text file to tokenize texts from.
-    tokenizer : Tokenizer
-        Tokenizer instance to use for tokenizing texts.
-
-    Yields
-    ------
-    tokenized_text : list
-        Tokenized text in a list.
-    """
-    with tf.io.gfile.GFile(text_data_filepath) as file:
-        for text in file:
-            yield tokenizer.tokenize_text(text)
-
-
-def sample_words_from_noise_distribution(
-    word_indices_sampling_prob: tf.Tensor, num_words: int
-) -> tf.Tensor:
-    """
-    Sampling words from a noise distribution.
-
-    Parameters
-    ----------
-    word_indices_sampling_prob : tf.Tensor
-        Tensor containing probabilities of sampling a word from the noise distribution.
-    num_words : int
-        Number of words to sample from noise distribution.
-
-    Returns
-    -------
-    sample_indices : tf.Tensor
-        Tensor containing sampled word indices.
-    """
-    sampled_indices: tf.Tensor = tf.random.categorical(
-        tf.math.log([word_indices_sampling_prob]), num_words
-    )[0]
-    return sampled_indices
 
 
 def generate_skip_gram_pairs(
@@ -564,57 +518,11 @@ def generate_skip_gram_pairs(
     return instances
 
 
-def subsample_words(
-    word_indices: tf.Tensor, word_keep_probs: tf.Tensor, unknown_word_int: int
-) -> tf.Tensor:
-    """
-    Applies subsampling to a tensor of words with a certain probability for each word.
-
-    Parameters
-    ----------
-    word_indices : tf.Tensor
-        Tokenized words in a Tensor.
-    word_keep_probs : tf.Tensor
-        Tensor containing probabilities of keeping a word during subsampling.
-
-        It is ordered such that the first probability corresponds to the word with the
-        most occurrences, the second probability to the second most occurring word, etc.
-    unknown_word_int : int
-        Word integer representation of the unknown word, e.g. a word outside
-        the vocabulary.
-
-    Returns
-    -------
-    word_indices_subsampled : tf.Tensor
-        Tensor containing subsampled word indices.
-    """
-
-    # Filter out unknown words
-    word_indices_filtered = tf.boolean_mask(
-        word_indices, tf.not_equal(word_indices, unknown_word_int)
-    )
-    word_keep_probs_filtered = tf.gather(word_keep_probs, word_indices_filtered)
-
-    # Generate random values from 0 to 1 to determine
-    # if we keep or discard a word, with probabilities
-    # defined in `word_keep_probs_filtered`
-    rng_values = tf.random.uniform(
-        tf.shape(word_keep_probs_filtered), 0, 1, dtype=tf.float64
-    )
-
-    # Subsample word indices
-    word_indices_subsampled = tf.boolean_mask(
-        word_indices_filtered, tf.less(rng_values, word_keep_probs_filtered)
-    )
-
-    return word_indices_subsampled
-
-
-def subsample_words_tf(
+def tokenize_and_subsample_words(
     text: tf.Tensor, word_keep_probs: tf.Tensor, tokenizer: Tokenizer
 ) -> tf.Tensor:
     """
-    Applies subsampling to a text with a certain probability for each word.
+    Tokenizes and applies subsampling to a text with a certain probability for each word.
 
     Parameters
     ----------
@@ -660,7 +568,7 @@ def subsample_words_tf(
 
 # Create dataset
 def create_dataset(
-    text_data_filepath: str,
+    text_data_filepaths: List[str],
     num_texts: int,
     tokenizer: Tokenizer,
     sampling_window_size: int,
@@ -671,8 +579,8 @@ def create_dataset(
 
     Parameters
     ----------
-    text_data_filepath : list
-        Path of text data to generate skip-gram target/context pairs from.
+    text_data_filepaths : list
+        Paths of text data to generate skip-gram target/context pairs from.
     num_texts : int
         Number of texts (or sentences) in the text data file.
     tokenizer : Tokenizer
@@ -694,42 +602,23 @@ def create_dataset(
     # Initialize tf.data.Dataset
     dataset = tf.data.Dataset.zip(
         (
-            tf.data.Dataset.from_generator(
-                generator=lambda: tokenized_text_generator(text_data_filepath, tokenizer),
-                output_types=tf.int64,
-                output_shapes=[None],
-            ),
+            tf.data.TextLineDataset(text_data_filepaths, num_parallel_reads=AUTOTUNE),
             tf.data.Dataset.from_tensor_slices(tf.range(num_texts) / num_texts),
         )
     )
 
     # Apply subsampling
     dataset = dataset.map(
-        lambda word_indices, sent_percentage: (
-            subsample_words(word_indices, word_keep_probs_tf, tokenizer.unknown_word_int),
+        lambda text, sent_percentage: (
+            tokenize_and_subsample_words(text, word_keep_probs_tf, tokenizer),
             sent_percentage,
         ),
+        num_parallel_calls=AUTOTUNE,
     )
-
-    # Initialize tf.data.Dataset
-    # dataset = tf.data.Dataset.zip(
-    #     (
-    #         tf.data.TextLineDataset(text_data_filepath),
-    #         tf.data.Dataset.from_tensor_slices(tf.range(num_texts) / num_texts),
-    #     )
-    # )
-    #
-    # # Apply subsampling
-    # dataset = dataset.map(
-    #     lambda text, sent_percentage: (
-    #         subsample_words_tf(text, word_keep_probs_tf, tokenizer),
-    #         sent_percentage,
-    #     ),
-    # )
 
     # Filter out texts with less than 2 words in them
     dataset = dataset.filter(
-        lambda word_indices, sent_percentage: tf.greater(tf.size(word_indices), 1)
+        lambda word_indices, sent_percentage: tf.greater(tf.size(word_indices), 1),
     )
 
     # Generate skip-gram target/context pairs
@@ -741,6 +630,7 @@ def create_dataset(
             ),
             sent_percentage,
         ),
+        # num_parallel_calls=AUTOTUNE,
     )
 
     # Reshape `sent_percentage` to have the same size as `word_indices`
@@ -749,13 +639,14 @@ def create_dataset(
             word_indices,
             tf.fill(tf.shape(word_indices)[:1], sent_percentage),
         ),
+        num_parallel_calls=AUTOTUNE,
     )
 
     # Create a dataset by unstacking word_indices
     dataset = dataset.flat_map(
         lambda word_indices, sent_percentages: tf.data.Dataset.from_tensor_slices(
             (word_indices, sent_percentages)
-        )
+        ),
     )
 
     # Perform batching
@@ -802,7 +693,8 @@ def create_dataset(
     dataset = dataset.map(
         lambda skip_gram_pairs_batch, sent_percentages: prepare_input_for_training(
             skip_gram_pairs_batch, sent_percentages
-        )
+        ),
+        num_parallel_calls=AUTOTUNE,
     )
 
     # Enable prefetching to prepare data while training

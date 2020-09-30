@@ -282,7 +282,7 @@ class Word2vec:
 
             # Initialize new dataset per epoch
             train_dataset = create_dataset(
-                text_data_filepath,
+                [text_data_filepath],
                 num_texts,
                 self._tokenizer,
                 self._sampling_window_size,
