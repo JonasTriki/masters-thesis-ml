@@ -692,32 +692,40 @@ def create_dataset(
     word_keep_probs_tf = tf.convert_to_tensor(tokenizer.word_keep_probs)
 
     # Initialize tf.data.Dataset
-    # dataset = tf.data.Dataset.zip(
-    #    (
-    #        tf.data.Dataset.from_generator(
-    #            generator=lambda: tokenized_text_generator(text_data_filepath, tokenizer),
-    #            output_types=tf.int64,
-    #            output_shapes=[None],
-    #        ),
-    #        tf.data.Dataset.from_tensor_slices(tf.range(num_texts) / num_texts),
-    #    )
-    # )
-
-    # Initialize tf.data.Dataset
     dataset = tf.data.Dataset.zip(
         (
-            tf.data.TextLineDataset(text_data_filepath),
+            tf.data.Dataset.from_generator(
+                generator=lambda: tokenized_text_generator(text_data_filepath, tokenizer),
+                output_types=tf.int64,
+                output_shapes=[None],
+            ),
             tf.data.Dataset.from_tensor_slices(tf.range(num_texts) / num_texts),
         )
     )
 
     # Apply subsampling
     dataset = dataset.map(
-        lambda text, sent_percentage: (
-            subsample_words_tf(text, word_keep_probs_tf, tokenizer),
+        lambda word_indices, sent_percentage: (
+            subsample_words(word_indices, word_keep_probs_tf, tokenizer.unknown_word_int),
             sent_percentage,
         ),
     )
+
+    # Initialize tf.data.Dataset
+    # dataset = tf.data.Dataset.zip(
+    #     (
+    #         tf.data.TextLineDataset(text_data_filepath),
+    #         tf.data.Dataset.from_tensor_slices(tf.range(num_texts) / num_texts),
+    #     )
+    # )
+    #
+    # # Apply subsampling
+    # dataset = dataset.map(
+    #     lambda text, sent_percentage: (
+    #         subsample_words_tf(text, word_keep_probs_tf, tokenizer),
+    #         sent_percentage,
+    #     ),
+    # )
 
     # Filter out texts with less than 2 words in them
     dataset = dataset.filter(
