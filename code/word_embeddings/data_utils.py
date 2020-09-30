@@ -55,6 +55,7 @@ class Tokenizer:
         self._words: Optional[np.ndarray] = None
         self._word_counts: Optional[list] = None
         self._word_keep_probs: Optional[list] = None
+        self._static_vocab_table: Optional[tf.lookup.StaticHashTable] = None
 
     @property
     def vocab_size(self) -> int:
@@ -201,6 +202,26 @@ class Tokenizer:
             )
         return self._int_to_word
 
+    def _init_static_vocabulary_table(self):
+        """
+        Initializes the static vocabulary table for tokenizing tensors of text.
+        """
+        if self._words is None:
+            raise TypeError(
+                "List of words is empty. " "Did you forget to build the vocabulary?"
+            )
+
+        # Initialize static vocabulary table
+        self._static_vocab_table = tf.lookup.StaticHashTable(
+            tf.lookup.KeyValueTensorInitializer(
+                key_dtype=tf.string,
+                keys=self._words,
+                value_dtype=tf.int64,
+                values=tf.cast(tf.range(len(self._words)), tf.int64),
+            ),
+            default_value=self._unknown_word_int,
+        )
+
     def _build_word_occurrences(
         self, filepath: str, num_texts: int
     ) -> List[Tuple[str, int]]:
@@ -325,6 +346,9 @@ class Tokenizer:
         # Convert words to numpy array
         self._words = np.asarray(self._words)
 
+        # Initialize static vocabulary table
+        self._init_static_vocabulary_table()
+
     def tokenize_text(self, text: str) -> list:
         """
         Tokenizes a text where each word is separated by a space.
@@ -357,6 +381,35 @@ class Tokenizer:
 
         return tokenized_words
 
+    def tokenize_text_tf(self, text: tf.Tensor) -> tf.Tensor:
+        """
+        Tokenizes a text where each word is separated by a space.
+
+        Parameters
+        ----------
+        text : tf.Tensor
+            Space-separated text tensor to tokenize.
+
+        Returns
+        -------
+        tokenized_words : tf.Tensor
+            Tensor of words tokenized into their integer representations.
+        """
+        if self._static_vocab_table is None:
+            raise TypeError(
+                "Static vocabulary lookup table is None."
+                "Did you forget to build the vocabulary?"
+            )
+
+        # Split text into words
+        words = tf.strings.split(text)
+
+        # Tokenize words
+        tokenized_words = self._static_vocab_table.lookup(words)
+        print(tokenized_words)
+
+        return tokenized_words
+
     def save(self, destination_filepath: str) -> None:
         """
         Saves the tokenizer to file.
@@ -366,8 +419,14 @@ class Tokenizer:
         destination_filepath : str
             Where to save the tokenizer to.
         """
+
+        # Make a copy of this class' internal dictionary
+        # and remove the `_static_vocab_table` (not serializable)
+        self_dict = self.__dict__.copy()
+        self_dict.pop("_static_vocab_table")
+
         with open(destination_filepath, "wb") as file:
-            pickle.dump(self.__dict__, file)
+            pickle.dump(self_dict, file)
 
     def load(self, tokenizer_filepath: str) -> None:
         """
@@ -378,8 +437,13 @@ class Tokenizer:
         tokenizer_filepath : str
             Filepath of the Tokenizer.
         """
+        # Read saved model dictionary from file
         with open(tokenizer_filepath, "rb") as file:
-            self.__dict__ = pickle.loads(file.read())
+            self.__dict__ = pickle.load(file)
+
+        # Initialize static vocabulary table if tokenizer is built
+        if self._words is not None:
+            self._init_static_vocabulary_table()
 
 
 def tokenized_text_generator(
@@ -546,6 +610,54 @@ def subsample_words(
     return word_indices_subsampled
 
 
+def subsample_words_tf(
+    text: tf.Tensor, word_keep_probs: tf.Tensor, tokenizer: Tokenizer
+) -> tf.Tensor:
+    """
+    Applies subsampling to a text with a certain probability for each word.
+
+    Parameters
+    ----------
+    text : tf.Tensor
+        Text containing words separated by space.
+    word_keep_probs : tf.Tensor
+        Tensor containing probabilities of keeping a word during subsampling.
+
+        It is ordered such that the first probability corresponds to the word with the
+        most occurrences, the second probability to the second most occurring word, etc.
+    tokenizer : Tokenizer
+        Tokenizer instance to use for tokenizing texts.
+
+    Returns
+    -------
+    word_indices_subsampled : tf.Tensor
+        Tensor containing subsampled word indices.
+    """
+
+    # Tokenize text
+    tokenized_text = tokenizer.tokenize_text_tf(text)
+
+    # Filter out unknown words
+    word_indices_filtered = tf.boolean_mask(
+        tokenized_text, tf.not_equal(tokenized_text, tokenizer.unknown_word_int)
+    )
+    word_keep_probs_filtered = tf.gather(word_keep_probs, word_indices_filtered)
+
+    # Generate random values from 0 to 1 to determine
+    # if we keep or discard a word, with probabilities
+    # defined in `word_keep_probs_filtered`
+    rng_values = tf.random.uniform(
+        tf.shape(word_keep_probs_filtered), 0, 1, dtype=tf.float64
+    )
+
+    # Subsample word indices
+    word_indices_subsampled = tf.boolean_mask(
+        word_indices_filtered, tf.less(rng_values, word_keep_probs_filtered)
+    )
+
+    return word_indices_subsampled
+
+
 # Create dataset
 def create_dataset(
     text_data_filepath: str,
@@ -580,21 +692,29 @@ def create_dataset(
     word_keep_probs_tf = tf.convert_to_tensor(tokenizer.word_keep_probs)
 
     # Initialize tf.data.Dataset
+    # dataset = tf.data.Dataset.zip(
+    #    (
+    #        tf.data.Dataset.from_generator(
+    #            generator=lambda: tokenized_text_generator(text_data_filepath, tokenizer),
+    #            output_types=tf.int64,
+    #            output_shapes=[None],
+    #        ),
+    #        tf.data.Dataset.from_tensor_slices(tf.range(num_texts) / num_texts),
+    #    )
+    # )
+
+    # Initialize tf.data.Dataset
     dataset = tf.data.Dataset.zip(
         (
-            tf.data.Dataset.from_generator(
-                generator=lambda: tokenized_text_generator(text_data_filepath, tokenizer),
-                output_types=tf.int64,
-                output_shapes=[None],
-            ),
+            tf.data.TextLineDataset(text_data_filepath),
             tf.data.Dataset.from_tensor_slices(tf.range(num_texts) / num_texts),
         )
     )
 
     # Apply subsampling
     dataset = dataset.map(
-        lambda word_indices, sent_percentage: (
-            subsample_words(word_indices, word_keep_probs_tf, tokenizer.unknown_word_int),
+        lambda text, sent_percentage: (
+            subsample_words_tf(text, word_keep_probs_tf, tokenizer),
             sent_percentage,
         ),
     )
