@@ -630,7 +630,6 @@ def create_dataset(
             ),
             sent_percentage,
         ),
-        # num_parallel_calls=AUTOTUNE,
     )
 
     # Reshape `sent_percentage` to have the same size as `word_indices`
