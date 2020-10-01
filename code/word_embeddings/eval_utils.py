@@ -123,7 +123,7 @@ def create_embeddings_of_train_checkpoints(
     transformer: Union[UMAP, TSNE, TransformerMixin],
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Creates embeddings using a transformer over the course of multiple Word2vec training
+    Creates embeddings using a transformer over the course of multiple word2vec training
     checkpoints.
 
     Parameters
@@ -420,7 +420,7 @@ def evaluate_model_questions_words(
     verbose: int = 1,
 ) -> dict:
     """
-    Evaluates a Word2vec mode using top-n accuracy on questions-words from Mikolov et. al.
+    Evaluates a word2vec mode using top-n accuracy on questions-words from Mikolov et. al.
 
     Parameters
     ----------

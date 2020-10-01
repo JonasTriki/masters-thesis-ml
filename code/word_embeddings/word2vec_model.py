@@ -22,7 +22,7 @@ class Word2VecSGNSModel(tf.keras.Model):
         target_embedding_layer_name: str = "target_embedding",
         **kwargs
     ):
-        """Initializes the Word2vec skip-gram negative sampling Keras model
+        """Initializes the word2vec skip-gram negative sampling Keras model
 
         Parameters
         ----------
@@ -79,7 +79,7 @@ class Word2VecSGNSModel(tf.keras.Model):
 
     def get_config(self) -> dict:
         """
-        Gets the config for the Word2vec model.
+        Gets the config for the word2vec model.
         """
         config = {
             "word_counts": self._word_counts,

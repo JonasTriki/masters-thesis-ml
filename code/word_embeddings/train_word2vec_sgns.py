@@ -1,7 +1,7 @@
 import argparse
 
 from data_utils import Tokenizer
-from utils import text_file_line_count
+from utils import get_all_filepaths, text_file_line_count
 from word2vec import Word2vec
 
 
@@ -20,6 +20,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="",
         help="Text filepath containing the text we wish to train on",
+    )
+    parser.add_argument(
+        "--text_data_dir",
+        type=str,
+        default="",
+        help="Directory containing text files we wish to train on",
     )
     parser.add_argument(
         "--tokenizer_filepath",
@@ -117,7 +123,7 @@ def parse_args() -> argparse.Namespace:
         "--pretrained_model_filepath",
         type=str,
         default="",
-        help="Load an already trained Word2vec model from file",
+        help="Load an already trained word2vec model from file",
     )
     parser.add_argument(
         "--starting_epoch_nr",
@@ -130,6 +136,7 @@ def parse_args() -> argparse.Namespace:
 
 def train_word2vec_sgns(
     text_data_filepath: str,
+    text_data_dir: str,
     tokenizer_filepath: str,
     save_to_tokenizer_filepath: str,
     dataset_name: str,
@@ -149,12 +156,14 @@ def train_word2vec_sgns(
     starting_epoch_nr: int,
 ) -> None:
     """
-    Trains a Word2vec model using skip-gram negative sampling.
+    Trains a word2vec model using skip-gram negative sampling.
 
     Parameters
     ----------
     text_data_filepath : str
         Text filepath containing the text we wish to train on.
+    text_data_dir : str
+        Directory containing text files we wish to train on.
     tokenizer_filepath : str
         Filepath of the built Tokenizer.
     save_to_tokenizer_filepath : str
@@ -187,13 +196,27 @@ def train_word2vec_sgns(
     model_checkpoints_dir : str
         Where to save checkpoints of the model after each epoch.
     pretrained_model_filepath : str
-        Load an already trained Word2vec model from file.
+        Load an already trained word2vec model from file.
     starting_epoch_nr : int
         Epoch number to start the training from.
     """
+    if (
+        text_data_filepath == ""
+        and text_data_dir == ""
+        or (text_data_filepath != "" and text_data_dir != "")
+    ):
+        raise ValueError(
+            "Either text_data_filepath or text_data_dir has to be specified."
+        )
+
+    if text_data_filepath != "":
+        text_data_filepaths = [text_data_filepath]
+    else:
+        text_data_filepaths = get_all_filepaths(text_data_dir, ".txt")
+
     # Count number of lines in text data file.
-    print("Counting lines in text data file...")
-    num_texts = text_file_line_count(text_data_filepath)
+    print("Counting lines in text data files...")
+    num_texts = text_file_line_count(text_data_filepaths)
     print("Done!")
 
     # Initialize tokenizer (and build its vocabulary if necessary)
@@ -204,7 +227,7 @@ def train_word2vec_sgns(
             sampling_factor=sampling_factor,
         )
         print("Building vocabulary...")
-        tokenizer.build_vocab(text_data_filepath, num_texts)
+        tokenizer.build_vocab(text_data_filepaths, num_texts)
         if save_to_tokenizer_filepath != "":
             print("Done!\nSaving vocabulary...")
             tokenizer.save(save_to_tokenizer_filepath)
@@ -214,8 +237,8 @@ def train_word2vec_sgns(
         tokenizer.load(tokenizer_filepath)
     print("Done!")
 
-    # Initialize Word2vec instance
-    print("Initializing Word2vec model...")
+    # Initialize word2vec instance
+    print("Initializing word2vec model...")
     word2vec = Word2vec(
         tokenizer=tokenizer,
         embedding_dim=embedding_dim,
@@ -233,7 +256,7 @@ def train_word2vec_sgns(
 
     # Train model
     word2vec.fit(
-        text_data_filepath=text_data_filepath,
+        text_data_filepaths=text_data_filepaths,
         num_texts=num_texts,
         dataset_name=dataset_name,
         n_epochs=n_epochs,
@@ -247,6 +270,7 @@ if __name__ == "__main__":
     # Perform training
     train_word2vec_sgns(
         text_data_filepath=args.text_data_filepath,
+        text_data_dir=args.text_data_dir,
         tokenizer_filepath=args.tokenizer_filepath,
         save_to_tokenizer_filepath=args.save_to_tokenizer_filepath,
         dataset_name=args.dataset_name,

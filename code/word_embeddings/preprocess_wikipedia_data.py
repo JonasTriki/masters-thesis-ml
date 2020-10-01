@@ -40,10 +40,16 @@ def parse_args() -> argparse.Namespace:
         help="Path to the raw data directory (where files will be downloaded to and extracted from)",
     )
     parser.add_argument(
-        "--data_dir",
+        "--output_dir",
         type=str,
-        default="data",
-        help="Path of the processed data directory",
+        default="",
+        help="Output directory to save processed data",
+    )
+    parser.add_argument(
+        "--num_output_files",
+        type=int,
+        default=1,
+        help="Number of files to split the output into",
     )
     parser.add_argument(
         "--min_sent_word_count",
@@ -64,12 +70,13 @@ def load_and_preprocess_data(
     language: str,
     wiki_dump_time: str,
     raw_data_dir: str,
-    data_dir: str,
+    output_dir: str,
+    num_output_files: int,
     min_sent_word_count: int,
     max_wikipedia_files: int,
 ) -> None:
     """
-    Loads and preprocess text8 data for training a Word2vec model.
+    Loads and preprocess text8 data for training a word2vec model.
 
     Parameters
     ----------
@@ -79,8 +86,10 @@ def load_and_preprocess_data(
         Time of the wikipedia dump.
     raw_data_dir : str
         Path to the raw data directory (where files will be downloaded to and extracted from).
-    data_dir : str
-        Path of the processed data directory.
+    output_dir : str
+        Output directory to save processed data.
+    num_output_files : int
+        Number of files to split the output into.
     min_sent_word_count : int
         Minimum sentence word count.
     max_wikipedia_files : int
@@ -88,7 +97,7 @@ def load_and_preprocess_data(
     """
     # Ensure data directories exist
     makedirs(raw_data_dir, exist_ok=True)
-    makedirs(data_dir, exist_ok=True)
+    makedirs(output_dir, exist_ok=True)
 
     # Initialize paths
     wiki_name = f"{language[:2]}wiki"
@@ -99,7 +108,6 @@ def load_and_preprocess_data(
     )
     raw_data_bz2_filepath = join_path(raw_data_dir, f"{dataset_name}.xml.bz2")
     raw_data_bz2_extracted_dir = join_path(raw_data_dir, f"{dataset_name}_extracted")
-    data_filepath = join_path(data_dir, f"{dataset_name}.txt")
 
     # Download raw data if not present
     if not isfile(raw_data_bz2_filepath):
@@ -126,11 +134,13 @@ def load_and_preprocess_data(
         )
         print("Done!")
 
-    print("Combining and processing extracted files into single text file...")
+    print("Combining and processing extracted files into text files...")
     wikiextractor_outputs_to_file(
         extracted_dir=raw_data_bz2_extracted_dir,
         language=language,
-        output_filepath=data_filepath,
+        dataset_name=dataset_name,
+        output_dir=output_dir,
+        num_output_files=num_output_files,
         max_num_files=max_wikipedia_files,
         min_sent_word_count=min_sent_word_count,
     )
@@ -143,7 +153,8 @@ if __name__ == "__main__":
         language=args.language,
         wiki_dump_time=args.wiki_dump_time,
         raw_data_dir=args.raw_data_dir,
-        data_dir=args.data_dir,
+        output_dir=args.output_dir,
+        num_output_files=args.num_output_files,
         min_sent_word_count=args.min_sent_word_count,
         max_wikipedia_files=args.max_wikipedia_files,
     )
