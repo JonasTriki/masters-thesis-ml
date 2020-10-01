@@ -73,3 +73,36 @@ def get_model_checkpoint_filepaths(
     filepaths = [os.path.join(checkpoints_dir, fn) for fn in filenames]
 
     return filepaths
+
+
+def create_model_intermediate_embedding_weights_filepath(
+    checkpoints_dir: str,
+    model_name: str,
+    dataset_name: str,
+    epoch_nr: int,
+    intermediate_embedding_weight_nr: int,
+) -> str:
+    """
+    Gets the filepath of a model checkpoint.
+
+    Parameters
+    ----------
+    checkpoints_dir : str
+        Checkpoints directory.
+    model_name : str
+        Name of the model.
+    dataset_name : str
+        Name of the dataset.
+    epoch_nr : int
+        Epoch number.
+    intermediate_embedding_weight_nr : int
+        Intermediate embedding weight number
+
+    Returns
+    -------
+    filepath : str
+        Filepath of a model checkpoint.
+    """
+    filename = f"{model_name}_{dataset_name}_{epoch_nr:02d}_{intermediate_embedding_weight_nr:02d}_weights.npy"
+    filepath = os.path.join(checkpoints_dir, filename)
+    return filepath

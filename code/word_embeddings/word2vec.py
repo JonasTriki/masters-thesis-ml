@@ -7,7 +7,10 @@ import tensorflow as tf
 from data_utils import Tokenizer, create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
-from train_utils import create_model_checkpoint_filepath
+from train_utils import (
+    create_model_checkpoint_filepath,
+    create_model_intermediate_embedding_weights_filepath,
+)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -78,6 +81,31 @@ class Word2vec:
         labels_spec = tf.TensorSpec(shape=(self._batch_size,), dtype="int64")
         progress_spec = tf.TensorSpec(shape=(1,), dtype="float32")
         self._train_step_signature = [inputs_spec, labels_spec, progress_spec]
+
+    def __getstate__(self):
+        """
+        Gets the internal state of the class.
+        """
+        state = self.__dict__.copy()
+
+        # Remove unpickable static vocabulary table
+        del state["_model"]
+
+        # Extract model weights, if they exist, and create
+        # new modified state
+        model_weights = self._model.get_weights() if self._model is not None else None
+        modified_state = {"state": state, "model_weights": model_weights}
+
+        return modified_state
+
+    def __setstate__(self, modified_state):
+        """
+        Sets the internal state of the class.
+        """
+        self.__dict__.update(modified_state["state"])
+
+        # Initialize model with weights from file
+        self._init_model(modified_state["model_weights"])
 
     def _init_model(self, weights: List[np.ndarray] = None) -> None:
         """
@@ -173,6 +201,7 @@ class Word2vec:
         dataset_name: str,
         n_epochs: int,
         starting_epoch_nr: int = 1,
+        intermediate_embedding_weights_saves: int = 0,
         verbose: int = 1,
     ) -> None:
         """
@@ -190,6 +219,9 @@ class Word2vec:
             Number of epochs to fit/train.
         starting_epoch_nr : int, optional
             Denotes the starting epoch number (defaults to 1).
+        intermediate_embedding_weights_saves : int, optional
+            Number of intermediate saves of embedding weights per epoch during training
+            (defaults to 0).
         verbose : int, optional
             Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose).
             Defaults to 1 (verbose).
@@ -252,6 +284,22 @@ class Word2vec:
 
             return skip_gram_loss, decaying_learning_rate
 
+        intermediate_saving_thresholds: Optional[float] = None
+        if intermediate_embedding_weights_saves > 0:
+
+            # Save words to file for later reference
+            if verbose == 1:
+                print("Saving words to file...")
+            words_filepath = os.path.join(
+                self._model_checkpoints_dir,
+                f"{self._model_name}_{dataset_name}_words.txt",
+            )
+            self.save_words(words_filepath)
+            print("Done!")
+
+            # Set up thresholds for saving intermediate embedding weights
+            intermediate_saving_thresholds = 1 / intermediate_embedding_weights_saves
+
         # Train model
         if verbose == 1:
             print("---")
@@ -292,11 +340,35 @@ class Word2vec:
             # Iterate over batches of data and perform training
             avg_loss = 0.0
             steps = 0
+            intermediate_embedding_progress = 0
             for (
                 input_targets_batch,
                 input_contexts_batch,
                 epoch_progress,
             ) in train_dataset:
+
+                # Perform intermediate saves of embedding weights to file
+                if intermediate_embedding_weights_saves > 0:
+                    if (
+                        epoch_progress - intermediate_embedding_progress
+                        >= intermediate_saving_thresholds
+                    ):
+                        intermediate_embedding_progress += intermediate_saving_thresholds
+
+                        # Save to file
+                        intermediate_embedding_weight_nr = int(
+                            intermediate_embedding_progress
+                            * intermediate_embedding_weights_saves
+                        )
+                        self.save_embedding_weights(
+                            create_model_intermediate_embedding_weights_filepath(
+                                self._model_checkpoints_dir,
+                                self._model_name,
+                                dataset_name,
+                                epoch_nr,
+                                intermediate_embedding_weight_nr,
+                            )
+                        )
 
                 # Compute overall progress (over all epochs)
                 overall_progress = tf.constant(
@@ -329,6 +401,18 @@ class Word2vec:
             # Compute average loss
             avg_loss /= steps
 
+            # Save last intermediate save of embedding weights to file
+            if intermediate_embedding_weights_saves > 0:
+                self.save_embedding_weights(
+                    create_model_intermediate_embedding_weights_filepath(
+                        self._model_checkpoints_dir,
+                        self._model_name,
+                        dataset_name,
+                        epoch_nr,
+                        intermediate_embedding_weights_saves,
+                    )
+                )
+
             # Save intermediate model to file
             if verbose == 1:
                 print("Saving model to file...")
@@ -352,41 +436,34 @@ class Word2vec:
         target_filepath : str
             Where to save the model.
         """
-        if self._model is None:
-            raise TypeError(
-                "Model has not been built yet. Did you forget to call `build_model`?"
-            )
-
-        # Make a copy of this class' internal dictionary
-        # and remove the `_model` key-value pair
-        self_dict = self.__dict__.copy()
-        self_dict.pop("_model")
-
-        # Prepare dictionary for saving
-        saved_model_dict = {
-            "__dict__": self_dict,
-            "_model_weights": self._model.get_weights(),
-        }
-
         # Save model to file
         with open(target_filepath, "wb") as file:
-            pickle.dump(saved_model_dict, file)
+            pickle.dump(self, file)
 
-    def load_model(self, model_filepath: str) -> None:
+    def save_embedding_weights(self, target_filepath: str) -> None:
         """
-        Loads the word2vec instance from file.
+        Saves (target) embedding weights to file using Numpy.
 
         Parameters
         ----------
-        model_filepath : str
-            Where to load the model from.
+        target_filepath : str
+            Where to save the (target) embedding weights to.
         """
-        # Read saved model dictionary from file
-        with open(model_filepath, "rb") as file:
-            saved_model_dict = pickle.load(file)
+        np.save(target_filepath, self.embedding_weights)
 
-        # Set internal variables
-        self.__dict__.update(saved_model_dict["__dict__"])
+    def save_words(self, target_filepath: str) -> None:
+        """
+        Saves words used during training to file, one word in each line.
 
-        # Initialize model with weights from file
-        self._init_model(saved_model_dict["_model_weights"])
+        Parameters
+        ----------
+        target_filepath : str
+            Where to save the words to.
+        """
+        # Create string with one word in each line
+        words = list(self._tokenizer.words)
+        words_lines = "\n".join(words)
+
+        # Save to file
+        with open(target_filepath, "w") as file:
+            file.write(words_lines)

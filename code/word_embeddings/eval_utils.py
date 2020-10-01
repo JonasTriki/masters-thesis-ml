@@ -1,4 +1,3 @@
-from pprint import pprint
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -10,7 +9,7 @@ from sklearn.manifold import TSNE
 from text_preprocessing_utils import preprocess_text
 from tqdm.auto import tqdm
 from umap import UMAP
-from word2vec import Word2vec
+from utils import load_model
 
 
 def similar_words_vec(
@@ -159,8 +158,7 @@ def create_embeddings_of_train_checkpoints(
     for i, checkpoint_path in enumerate(model_checkpoint_filepaths):
 
         # Load model and get weights
-        word2vec = Word2vec()
-        word2vec.load_model(checkpoint_path)
+        word2vec = load_model(checkpoint_path)
         weights = word2vec.embedding_weights
 
         embeddings[i * vocab_size : (i + 1) * vocab_size] = weights
