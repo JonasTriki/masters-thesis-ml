@@ -148,8 +148,7 @@ def wikiextractor_outputs_to_file(
         (file, language, min_sent_word_count) for file in list_of_files
     ]
 
-    # Check if we want to output equal amount of files as there are
-    # files in the extracted directory.
+    # Check if we should default the amount of files the the number of CPUs.
     if num_output_files == -1:
         num_output_files = cpu_count()
     num_output_files_str_len = len(str(num_output_files))
