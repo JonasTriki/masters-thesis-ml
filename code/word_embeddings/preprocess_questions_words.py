@@ -77,5 +77,4 @@ def preprocess_questions_words() -> None:
 
 
 if __name__ == "__main__":
-    # TODO: Add argparse
     preprocess_questions_words()
