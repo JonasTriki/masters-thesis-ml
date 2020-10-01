@@ -264,12 +264,15 @@ def text_to_words(text: str, language: str = "english") -> list:
         List of words from the original text.
     """
     # text = remove_urls(text)
-    try:
-        if language == "english":
+    if language == "english":
+
+        # We remove the period character from the text before replacing
+        # contractions as a hotfix to the current Github issue:
+        # https://github.com/kootenpv/contractions/issues/25
+        if text.endswith("."):
+            text = replace_contractions(text[:-1]) + "."
+        else:
             text = replace_contractions(text)
-    except IndexError:
-        # TODO: Figure out why we have an error here sometimes.
-        print(f"Contractions index error on:\n'{text}'")
 
     # Tokenize text (convert into words)
     words = word_tokenize(text, language)
