@@ -123,23 +123,50 @@ def _make_file_gen(
         b = reader(buffer_size)
 
 
-def text_file_line_count(filepath: str) -> int:
+def text_file_line_count(filepaths: List[str]) -> int:
     """
-    Counts number of lines in a given text file.
+    Counts number of lines in text files.
 
     Parameters
     ----------
-    filepath : str
-        Filepath of the text file to count
+    filepaths : str
+        Filepaths of text files to count
 
     Returns
     -------
     line_count : int
-        Number of lines in text file
+        Number of lines in text files
     """
-    f = open(filepath, "rb")
-    f_gen = _make_file_gen(f.read)  # f.raw.read
-    return sum(buf.count(b"\n") for buf in f_gen)
+    total = 0
+    for filepath in filepaths:
+        f = open(filepath, "rb")
+        f_gen = _make_file_gen(f.read)  # f.raw.read
+        total += sum(buf.count(b"\n") for buf in f_gen)
+    return total
+
+
+def get_all_filepaths(file_dir: str, file_ext: str) -> List[str]:
+    """
+    Gets all paths of files of a specific file extension in a directory.
+
+    Parameters
+    ----------
+    file_dir : str
+        Directory containing files.
+    file_ext : str
+        File extension (including dot).
+
+    Returns
+    -------
+    filepaths : list of str
+        List of filepaths in file directory with given file extension.
+    """
+    filepaths = [
+        join(file_dir, f)
+        for f in listdir(file_dir)
+        if isfile(join(file_dir, f)) and f.endswith(file_ext)
+    ]
+    return filepaths
 
 
 def get_all_filepaths_recursively(root_dir: str, file_ext: str) -> List[str]:
@@ -158,11 +185,7 @@ def get_all_filepaths_recursively(root_dir: str, file_ext: str) -> List[str]:
     filepaths : list of str
         List of filepaths in root directory with given file extension.
     """
-    filepaths = [
-        join(root_dir, f)
-        for f in listdir(root_dir)
-        if isfile(join(root_dir, f)) and f.endswith(file_ext)
-    ]
+    filepaths = get_all_filepaths(root_dir, file_ext)
     dirs = [d for d in listdir(root_dir) if isdir(join(root_dir, d))]
     for d in dirs:
         files_in_d = get_all_filepaths_recursively(join(root_dir, d), file_ext)

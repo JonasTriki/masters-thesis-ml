@@ -168,7 +168,7 @@ class Word2vec:
 
     def fit(
         self,
-        text_data_filepath: str,
+        text_data_filepaths: List[str],
         num_texts: int,
         dataset_name: str,
         n_epochs: int,
@@ -180,10 +180,10 @@ class Word2vec:
 
         Parameters
         ----------
-        text_data_filepath : str
-            Path of text data to fit/train the Word2vec model on.
+        text_data_filepaths : list
+            Paths of text data to generate skip-gram target/context pairs from.
         num_texts : int
-            Number of texts (or sentences) of the content of `text_data_filepath`.
+            Number of texts (or sentences) of the contents of `text_data_filepaths`.
         dataset_name : str
             Name of the dataset we are fitting/training on.
         n_epochs : int
@@ -282,7 +282,7 @@ class Word2vec:
 
             # Initialize new dataset per epoch
             train_dataset = create_dataset(
-                [text_data_filepath],
+                text_data_filepaths,
                 num_texts,
                 self._tokenizer,
                 self._sampling_window_size,

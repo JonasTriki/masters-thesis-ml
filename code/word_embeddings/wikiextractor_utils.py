@@ -1,6 +1,7 @@
 import bz2
-from multiprocessing import Pool
-from typing import List, Tuple
+from multiprocessing import Pool, cpu_count
+from os.path import join
+from typing import Generator, List, Tuple
 
 import nltk
 from bs4 import BeautifulSoup
@@ -87,10 +88,33 @@ def process_wiki_file(args: Tuple[str, str, int]):
         return wiki_dump_content
 
 
+def batch_list_gen(lst: List, batch_size: int) -> Generator[List, None, None]:
+    """
+    Creates a generator for batching list into chunks of `batch_size`.
+
+    Parameters
+    ----------
+    lst : List
+        List of elements.
+    batch_size : int
+        Size of batches.
+
+    Yields
+    ------
+    sub_lst : List
+        Batches sublist of `lst`.
+    """
+    lst_len = len(lst)
+    for i in range(0, lst_len, batch_size):
+        yield lst[i : min(i + batch_size, lst_len)]
+
+
 def wikiextractor_outputs_to_file(
     extracted_dir: str,
     language: str,
-    output_filepath: str,
+    dataset_name: str,
+    output_dir: str,
+    num_output_files: int,
     max_num_files: int,
     min_sent_word_count: int,
 ) -> None:
@@ -99,13 +123,17 @@ def wikiextractor_outputs_to_file(
 
     Parameters
     ----------
-    extracted_dir:
+    extracted_dir : str
         Location of WikiExtractor outputs.
-    language:
+    language : str
         Language of Wikipedia dump.
-    output_filepath:
-        Output filepath.
-    max_num_files:
+    dataset_name : str
+        Name of the Wikipedia dataset.
+    output_dir : str
+        Output directory.
+    num_output_files : int
+        Number of files to split the output into (-1 denotes maximum number of cores).
+    max_num_files : int
         Maximum number of wikipedia files to process (-1 denotes all files).
     min_sent_word_count : int
         Minimum sentence word count.
@@ -120,18 +148,51 @@ def wikiextractor_outputs_to_file(
         (file, language, min_sent_word_count) for file in list_of_files
     ]
 
+    # Check if we want to output equal amount of files as there are
+    # files in the extracted directory.
+    if num_output_files == -1:
+        num_output_files = cpu_count()
+    num_output_files_str_len = len(str(num_output_files))
+
+    # Compute how many extracted files to have for each output file
+    num_extracted_files_per_output_file = int(len(list_of_files) // num_output_files)
+
     # Process files using multiprocessing
     with Pool() as pool:
-        with open(output_filepath, "w", encoding="utf8") as file:
-            for i, result in enumerate(
-                tqdm(
-                    pool.imap_unordered(
-                        process_wiki_file,
-                        process_wiki_files_args,
-                    ),
-                    total=len(list_of_files),
-                )
-            ):
-                if i > 0:
-                    file.write("\n")
-                file.writelines(result)
+        for i, mp_args in zip(
+            range(num_output_files),
+            batch_list_gen(process_wiki_files_args, num_extracted_files_per_output_file),
+        ):
+            output_filepath = join(
+                output_dir,
+                f"{dataset_name}-{str(i + 1).zfill(num_output_files_str_len)}.txt",
+            )
+            with open(output_filepath, "w", encoding="utf8") as file:
+                for j, result in enumerate(
+                    tqdm(
+                        pool.imap_unordered(
+                            process_wiki_file,
+                            mp_args,
+                        ),
+                        total=num_extracted_files_per_output_file,
+                    )
+                ):
+                    if j > 0:
+                        file.write("\n")
+                    file.writelines(result)
+
+    # Process files using multiprocessing
+    # with Pool() as pool:
+    #     with open(output_filepath, "w", encoding="utf8") as file:
+    #         for i, result in enumerate(
+    #             tqdm(
+    #                 pool.imap_unordered(
+    #                     process_wiki_file,
+    #                     process_wiki_files_args,
+    #                 ),
+    #                 total=len(list_of_files),
+    #             )
+    #         ):
+    #             if i > 0:
+    #                 file.write("\n")
+    #             file.writelines(result)

@@ -225,15 +225,15 @@ class Tokenizer:
         )
 
     def _build_word_occurrences(
-        self, filepath: str, num_texts: int
+        self, filepaths: List[str], num_texts: int
     ) -> List[Tuple[str, int]]:
         """
         Builds a list containing word and its word count
 
         Parameters
         ----------
-        filepath : str
-            Filepath of text file to build on.
+        filepaths : str
+            Filepaths of text files to build on.
         num_texts : int
             Number of texts (or sentences) of the content of `filepath`.
 
@@ -244,8 +244,9 @@ class Tokenizer:
         """
         # Read file content and split into words
         lines = []
-        with tf.io.gfile.GFile(filepath) as f:
-            lines.append(f)
+        for filepath in filepaths:
+            with tf.io.gfile.GFile(filepath) as f:
+                lines.append(f)
         lines = itertools.chain(*lines)
 
         word_occurrences = Counter()
@@ -273,7 +274,7 @@ class Tokenizer:
 
         return word_occurrences
 
-    def build_vocab(self, filepath: str, num_texts: int) -> None:
+    def build_vocab(self, filepaths: List[str], num_texts: int) -> None:
         """
         Builds the vocabulary for the tokenizer class.
 
@@ -287,13 +288,13 @@ class Tokenizer:
 
         Parameters
         ----------
-        filepath : str
-            Filepath of the text file to build the vocabulary on.
+        filepaths : str
+            Filepaths of text files to build the vocabulary on.
         num_texts : int
             Number of texts (or sentences) of the content of `filepath`.
         """
         # Get word occurrences from text file
-        word_occurrences = self._build_word_occurrences(filepath, num_texts)
+        word_occurrences = self._build_word_occurrences(filepaths, num_texts)
 
         # Set vocabulary size
         self._vocab_size = len(word_occurrences)
