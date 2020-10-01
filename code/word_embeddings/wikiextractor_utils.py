@@ -119,7 +119,7 @@ def wikiextractor_outputs_to_file(
     min_sent_word_count: int,
 ) -> None:
     """
-    Combines WikiExtractor outputs into a single text file.
+    Combines WikiExtractor outputs into text files.
 
     Parameters
     ----------

@@ -134,7 +134,7 @@ def load_and_preprocess_data(
         )
         print("Done!")
 
-    print("Combining and processing extracted files into single text file...")
+    print("Combining and processing extracted files into text files...")
     wikiextractor_outputs_to_file(
         extracted_dir=raw_data_bz2_extracted_dir,
         language=language,
