@@ -576,7 +576,7 @@ def create_dataset(
     batch_size: int,
 ) -> tf.data.Dataset:
     """
-    Creates a tf.data.Dataset for training a Word2vec model using skip-grams and negative sampling.
+    Creates a tf.data.Dataset for training a word2vec model using skip-grams and negative sampling.
 
     Parameters
     ----------

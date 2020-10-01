@@ -76,7 +76,7 @@ def load_and_preprocess_data(
     max_wikipedia_files: int,
 ) -> None:
     """
-    Loads and preprocess text8 data for training a Word2vec model.
+    Loads and preprocess text8 data for training a word2vec model.
 
     Parameters
     ----------

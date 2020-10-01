@@ -56,7 +56,7 @@ def load_and_preprocess_data(
     dataset_name: str, compressed_dataset_name: str, raw_data_dir: str, data_dir: str
 ) -> None:
     """
-    Loads and preprocess text8 data for training a Word2vec model.
+    Loads and preprocess text8 data for training a word2vec model.
 
     Parameters
     ----------

@@ -55,7 +55,7 @@ def preprocess_questions_words() -> None:
     """
     print("Processing questions-words...")
 
-    # Fetch questions-words.txt from Mikolov's Word2vec Github repository.
+    # Fetch questions-words.txt from Mikolov's word2vec Github repository.
     raw_data_dir = "raw_data"
     filename = "questions-words.txt"
     commit_sha = "45da685079a9a9a29f976d595e4987bd104eb2ae"

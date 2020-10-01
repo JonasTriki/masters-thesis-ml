@@ -13,7 +13,7 @@ from word2vec_model import Word2VecSGNSModel
 
 class Word2vec:
     """
-    Helper class for training a Word2vec model.
+    Helper class for training a word2vec model.
     """
 
     def __init__(
@@ -31,7 +31,7 @@ class Word2vec:
         model_checkpoints_dir: str = "checkpoints",
     ) -> None:
         """
-        Initializes a Word2vec instance.
+        Initializes a word2vec instance.
 
         Parameters
         ----------
@@ -51,7 +51,7 @@ class Word2vec:
             Number of negative samples to use when generating skip-gram couples
             (defaults to 15).
         model_name : str, optional
-            Name of the Word2vec model (defaults to "word2vec_sgns").
+            Name of the word2vec model (defaults to "word2vec_sgns").
         target_embedding_layer_name : str, optional
             Name to use for the target embedding layer (defaults to "target_embedding").
         model_checkpoints_dir : str, optional
@@ -81,7 +81,7 @@ class Word2vec:
 
     def _init_model(self, weights: List[np.ndarray] = None) -> None:
         """
-        Initializes the Word2vec model.
+        Initializes the word2vec model.
 
         Parameters
         ----------
@@ -109,7 +109,7 @@ class Word2vec:
 
     def get_model(self) -> Optional[Model]:
         """
-        Gets the internal Word2vec Keras model.
+        Gets the internal word2vec Keras model.
 
         Returns
         -------
@@ -176,7 +176,7 @@ class Word2vec:
         verbose: int = 1,
     ) -> None:
         """
-        Fits/trains the Word2vec model.
+        Fits/trains the word2vec model.
 
         Parameters
         ----------
@@ -256,7 +256,7 @@ class Word2vec:
         if verbose == 1:
             print("---")
             print(
-                f"Fitting Word2vec on {dataset_name} with arguments:\n"
+                f"Fitting word2vec on {dataset_name} with arguments:\n"
                 f"- batch_size={self._batch_size}\n"
                 f"- n_epochs={n_epochs}\n"
                 f"- vocab_size={self._tokenizer.vocab_size}\n"
@@ -347,7 +347,7 @@ class Word2vec:
 
     def save_model(self, target_filepath: str) -> None:
         """
-        Saves the Word2vec instance to a file.
+        Saves the word2vec instance to a file.
 
         Parameters
         ----------
@@ -376,7 +376,7 @@ class Word2vec:
 
     def load_model(self, model_filepath: str) -> None:
         """
-        Loads the Word2vec instance from file.
+        Loads the word2vec instance from file.
 
         Parameters
         ----------

@@ -180,19 +180,3 @@ def wikiextractor_outputs_to_file(
                     if j > 0:
                         file.write("\n")
                     file.writelines(result)
-
-    # Process files using multiprocessing
-    # with Pool() as pool:
-    #     with open(output_filepath, "w", encoding="utf8") as file:
-    #         for i, result in enumerate(
-    #             tqdm(
-    #                 pool.imap_unordered(
-    #                     process_wiki_file,
-    #                     process_wiki_files_args,
-    #                 ),
-    #                 total=len(list_of_files),
-    #             )
-    #         ):
-    #             if i > 0:
-    #                 file.write("\n")
-    #             file.writelines(result)

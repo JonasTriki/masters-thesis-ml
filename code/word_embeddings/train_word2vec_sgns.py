@@ -123,7 +123,7 @@ def parse_args() -> argparse.Namespace:
         "--pretrained_model_filepath",
         type=str,
         default="",
-        help="Load an already trained Word2vec model from file",
+        help="Load an already trained word2vec model from file",
     )
     parser.add_argument(
         "--starting_epoch_nr",
@@ -156,7 +156,7 @@ def train_word2vec_sgns(
     starting_epoch_nr: int,
 ) -> None:
     """
-    Trains a Word2vec model using skip-gram negative sampling.
+    Trains a word2vec model using skip-gram negative sampling.
 
     Parameters
     ----------
@@ -196,7 +196,7 @@ def train_word2vec_sgns(
     model_checkpoints_dir : str
         Where to save checkpoints of the model after each epoch.
     pretrained_model_filepath : str
-        Load an already trained Word2vec model from file.
+        Load an already trained word2vec model from file.
     starting_epoch_nr : int
         Epoch number to start the training from.
     """
@@ -237,8 +237,8 @@ def train_word2vec_sgns(
         tokenizer.load(tokenizer_filepath)
     print("Done!")
 
-    # Initialize Word2vec instance
-    print("Initializing Word2vec model...")
+    # Initialize word2vec instance
+    print("Initializing word2vec model...")
     word2vec = Word2vec(
         tokenizer=tokenizer,
         embedding_dim=embedding_dim,
