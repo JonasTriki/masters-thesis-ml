@@ -8,11 +8,9 @@ import tensorflow as tf
 from data_utils import Tokenizer, create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
-from train_utils import (
-    create_model_checkpoint_filepath,
-    create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath,
-)
+from train_utils import (create_model_checkpoint_filepath,
+                         create_model_intermediate_embedding_weights_filepath,
+                         create_model_train_logs_filepath)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -332,6 +330,7 @@ class Word2vec:
             )
             train_logs_file = open(train_logs_filepath, "w")
             train_logs_file.write("epoch_nr,train_loss,time_spent")
+            train_logs_file.flush()
 
         for epoch_nr in range(starting_epoch_nr, end_epoch_nr + 1):
             if verbose >= 1:
@@ -421,7 +420,7 @@ class Word2vec:
             # Compute time spent on epoch
             time_spent_epoch = time() - time_epoch_start
             if verbose == 1:
-                print(f"Spent {time_spent_epoch:2f} seconds!")
+                print(f"Spent {time_spent_epoch:.2f} seconds!")
 
             # Compute average loss
             avg_loss /= steps
@@ -441,6 +440,7 @@ class Word2vec:
             # Write to train logs
             if train_logs_to_file:
                 train_logs_file.write(f"\n{epoch_nr},{avg_loss},{time_spent_epoch}")
+                train_logs_file.flush()
 
             # Save intermediate model to file
             if verbose == 1:

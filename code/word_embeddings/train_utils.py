@@ -130,6 +130,6 @@ def create_model_train_logs_filepath(
     filepath : str
         Filepath for the train logs of a model.
     """
-    filename = f"{model_name}_{dataset_name}_logs.txt"
+    filename = f"{model_name}_{dataset_name}_logs.csv"
     filepath = os.path.join(checkpoints_dir, filename)
     return filepath
