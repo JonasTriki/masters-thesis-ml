@@ -1,7 +1,7 @@
 import itertools
 import pickle
 from collections import Counter
-from typing import Generator, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -58,6 +58,27 @@ class Tokenizer:
         self._word_counts: Optional[list] = None
         self._word_keep_probs: Optional[list] = None
         self._static_vocab_table: Optional[tf.lookup.StaticHashTable] = None
+
+    def __getstate__(self):
+        """
+        Gets the internal state of the class.
+        """
+        state = self.__dict__.copy()
+
+        # Remove unpickable static vocabulary table
+        del state["_static_vocab_table"]
+
+        return state
+
+    def __setstate__(self, state):
+        """
+        Sets the internal state of the class.
+        """
+        self.__dict__.update(state)
+
+        # Initialize static vocabulary table if tokenizer is built
+        if self._words is not None:
+            self._init_static_vocabulary_table()
 
     @property
     def vocab_size(self) -> int:
@@ -421,31 +442,8 @@ class Tokenizer:
         destination_filepath : str
             Where to save the tokenizer to.
         """
-
-        # Make a copy of this class' internal dictionary
-        # and remove the `_static_vocab_table` (not serializable)
-        self_dict = self.__dict__.copy()
-        self_dict.pop("_static_vocab_table")
-
         with open(destination_filepath, "wb") as file:
-            pickle.dump(self_dict, file)
-
-    def load(self, tokenizer_filepath: str) -> None:
-        """
-        Loads the tokenizer vocabulary from file.
-
-        Parameters
-        ----------
-        tokenizer_filepath : str
-            Filepath of the Tokenizer.
-        """
-        # Read saved model dictionary from file
-        with open(tokenizer_filepath, "rb") as file:
-            self.__dict__ = pickle.load(file)
-
-        # Initialize static vocabulary table if tokenizer is built
-        if self._words is not None:
-            self._init_static_vocabulary_table()
+            pickle.dump(self, file)
 
 
 def generate_skip_gram_pairs(

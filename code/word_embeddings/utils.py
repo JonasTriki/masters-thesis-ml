@@ -1,10 +1,13 @@
 import os
+import pickle
 from os import listdir
 from os.path import isdir, isfile, join
 from typing import AnyStr, Callable, Generator, List
 
 import requests
+from data_utils import Tokenizer
 from tqdm import tqdm
+from word2vec import Word2vec
 
 
 def download_from_url(
@@ -193,3 +196,41 @@ def get_all_filepaths_recursively(root_dir: str, file_ext: str) -> List[str]:
             for f in files_in_d:
                 filepaths.append(join(f))
     return filepaths
+
+
+def load_model(model_filepath: str) -> Word2vec:
+    """
+    Loads and returns a word2vec instance from file.
+
+    Parameters
+    ----------
+    model_filepath : str
+        Where to load the model from.
+
+    Returns
+    -------
+    word2vec : Word2vec
+        Word2vec instance.
+    """
+    # Read saved model dictionary from file
+    with open(model_filepath, "rb") as file:
+        return pickle.load(file)
+
+
+def load_tokenizer(tokenizer_filepath: str) -> Tokenizer:
+    """
+    Loads the tokenizer vocabulary from file.
+
+    Parameters
+    ----------
+    tokenizer_filepath : str
+        Filepath of the Tokenizer.
+
+    Returns
+    -------
+    tokenizer : Tokenizer
+        Tokenizer instance.
+    """
+    # Read saved model dictionary from file
+    with open(tokenizer_filepath, "rb") as file:
+        return pickle.load(file)
