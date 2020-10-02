@@ -1,7 +1,8 @@
 import argparse
 
 from data_utils import Tokenizer
-from utils import get_all_filepaths, load_model, load_tokenizer, text_file_line_count
+from utils import (get_all_filepaths, load_model, load_tokenizer,
+                   text_file_line_count)
 from word2vec import Word2vec
 
 
