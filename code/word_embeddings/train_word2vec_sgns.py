@@ -1,8 +1,7 @@
 import argparse
 
 from data_utils import Tokenizer
-from utils import (get_all_filepaths, load_model, load_tokenizer,
-                   text_file_line_count)
+from utils import get_all_filepaths, load_model, load_tokenizer, text_file_line_count
 from word2vec import Word2vec
 
 
@@ -56,7 +55,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--n_epochs",
         type=int,
-        default=10,
+        default=5,
         help="Number of epochs to train our model on",
     )
     parser.add_argument(
@@ -68,7 +67,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--min_learning_rate",
         type=float,
-        default=0.0001,
+        default=0.0000025,
         help="Minimum learning rate to use when training",
     )
     parser.add_argument(
@@ -92,13 +91,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--sampling_window_size",
         type=int,
-        default=2,
+        default=5,
         help="Window size to use when generating skip-gram couples",
     )
     parser.add_argument(
         "--num_negative_samples",
         type=int,
-        default=15,
+        default=10,
         help="Number of negative samples to use when generating skip-gram couples",
     )
     parser.add_argument(
@@ -133,6 +132,12 @@ def parse_args() -> argparse.Namespace:
         help="Epoch number to start the training from",
     )
     parser.add_argument(
+        "--train_logs_to_file",
+        default=False,
+        action="store_true",
+        help="Whether or not to save logs from training to file",
+    )
+    parser.add_argument(
         "--intermediate_embedding_weights_saves",
         type=int,
         default=0,
@@ -161,6 +166,7 @@ def train_word2vec_sgns(
     model_checkpoints_dir: str,
     pretrained_model_filepath: str,
     starting_epoch_nr: int,
+    train_logs_to_file: bool,
     intermediate_embedding_weights_saves: int,
 ) -> None:
     """
@@ -207,6 +213,8 @@ def train_word2vec_sgns(
         Load an already trained word2vec model from file.
     starting_epoch_nr : int
         Epoch number to start the training from.
+    train_logs_to_file : bool
+        Whether or not to save logs from training to file.
     intermediate_embedding_weights_saves : int
         Number of intermediate saves of embedding weights per epoch during training.
     """
@@ -271,6 +279,7 @@ def train_word2vec_sgns(
         dataset_name=dataset_name,
         n_epochs=n_epochs,
         starting_epoch_nr=starting_epoch_nr,
+        train_logs_to_file=train_logs_to_file,
         intermediate_embedding_weights_saves=intermediate_embedding_weights_saves,
     )
 
@@ -299,5 +308,6 @@ if __name__ == "__main__":
         model_checkpoints_dir=args.model_checkpoints_dir,
         pretrained_model_filepath=args.pretrained_model_filepath,
         starting_epoch_nr=args.starting_epoch_nr,
+        train_logs_to_file=args.train_logs_to_file,
         intermediate_embedding_weights_saves=args.intermediate_embedding_weights_saves,
     )

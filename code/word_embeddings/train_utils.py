@@ -106,3 +106,30 @@ def create_model_intermediate_embedding_weights_filepath(
     filename = f"{model_name}_{dataset_name}_{epoch_nr:02d}_{intermediate_embedding_weight_nr:02d}_weights.npy"
     filepath = os.path.join(checkpoints_dir, filename)
     return filepath
+
+
+def create_model_train_logs_filepath(
+    checkpoints_dir: str,
+    model_name: str,
+    dataset_name: str,
+) -> str:
+    """
+    Gets the filepath for the train logs of a model.
+
+    Parameters
+    ----------
+    checkpoints_dir : str
+        Checkpoints directory.
+    model_name : str
+        Name of the model.
+    dataset_name : str
+        Name of the dataset.
+
+    Returns
+    -------
+    filepath : str
+        Filepath for the train logs of a model.
+    """
+    filename = f"{model_name}_{dataset_name}_logs.txt"
+    filepath = os.path.join(checkpoints_dir, filename)
+    return filepath

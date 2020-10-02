@@ -1,6 +1,7 @@
 import os
 import pickle
-from typing import List, Optional
+from time import time
+from typing import List, Optional, TextIO
 
 import numpy as np
 import tensorflow as tf
@@ -10,6 +11,7 @@ from tensorflow.keras.utils import Progbar
 from train_utils import (
     create_model_checkpoint_filepath,
     create_model_intermediate_embedding_weights_filepath,
+    create_model_train_logs_filepath,
 )
 from word2vec_model import Word2VecSGNSModel
 
@@ -24,7 +26,7 @@ class Word2vec:
         tokenizer: Optional[Tokenizer] = None,
         embedding_dim: int = 300,
         learning_rate: float = 0.0025,
-        min_learning_rate: float = 0.0001,
+        min_learning_rate: float = 0.0000025,
         batch_size: int = 256,
         sampling_window_size: int = 2,
         num_negative_samples: int = 15,
@@ -202,6 +204,7 @@ class Word2vec:
         n_epochs: int,
         starting_epoch_nr: int = 1,
         intermediate_embedding_weights_saves: int = 0,
+        train_logs_to_file: bool = True,
         verbose: int = 1,
     ) -> None:
         """
@@ -222,6 +225,8 @@ class Word2vec:
         intermediate_embedding_weights_saves : int, optional
             Number of intermediate saves of embedding weights per epoch during training
             (defaults to 0).
+        train_logs_to_file : bool, optional
+            Whether or not to save logs from training to file.
         verbose : int, optional
             Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose).
             Defaults to 1 (verbose).
@@ -316,6 +321,18 @@ class Word2vec:
             )
             print("---")
         end_epoch_nr = n_epochs + starting_epoch_nr - 1
+
+        # Initialize train logs file
+        train_logs_file: Optional[TextIO] = None
+        if train_logs_to_file:
+            train_logs_filepath = create_model_train_logs_filepath(
+                self._model_checkpoints_dir,
+                self._model_name,
+                dataset_name,
+            )
+            train_logs_file = open(train_logs_filepath, "w")
+            train_logs_file.write("epoch_nr,train_loss,time_spent")
+
         for epoch_nr in range(starting_epoch_nr, end_epoch_nr + 1):
             if verbose >= 1:
                 print(f"Epoch {epoch_nr}/{end_epoch_nr}")
@@ -336,6 +353,9 @@ class Word2vec:
                 self._sampling_window_size,
                 self._batch_size,
             )
+
+            # Measure time spent per epoch
+            time_epoch_start = time()
 
             # Iterate over batches of data and perform training
             avg_loss = 0.0
@@ -398,6 +418,11 @@ class Word2vec:
                 )
             print()
 
+            # Compute time spent on epoch
+            time_spent_epoch = time() - time_epoch_start
+            if verbose == 1:
+                print(f"Spent {time_spent_epoch:2f} seconds!")
+
             # Compute average loss
             avg_loss /= steps
 
@@ -413,6 +438,10 @@ class Word2vec:
                     )
                 )
 
+            # Write to train logs
+            if train_logs_to_file:
+                train_logs_file.write(f"\n{epoch_nr},{avg_loss},{time_spent_epoch}")
+
             # Save intermediate model to file
             if verbose == 1:
                 print("Saving model to file...")
@@ -426,6 +455,10 @@ class Word2vec:
             self.save_model(checkpoint_path)
             if verbose == 1:
                 print("Done!")
+
+        # Close train logs file handler
+        if train_logs_to_file:
+            train_logs_file.close()
 
     def save_model(self, target_filepath: str) -> None:
         """
