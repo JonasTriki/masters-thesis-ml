@@ -67,6 +67,9 @@ def get_model_checkpoint_filepaths(
         fn for fn in checkpoints_filenames if fn.startswith(model_id)
     ]
 
+    # Get model training configuration filepath
+    model_training_conf_filepath = join(checkpoints_dir, f"{model_id}.conf")
+
     # Get model filenames and sort them by epoch numbers (from first to last).
     model_filenames = np.array(
         [fn for fn in checkpoints_filenames if fn.endswith(".model")]
@@ -114,6 +117,7 @@ def get_model_checkpoint_filepaths(
         train_logs_filepath = join(checkpoints_dir, train_logs_filename)
 
     return {
+        "model_training_conf_filepath": model_training_conf_filepath,
         "model_filepaths": model_filepaths,
         "intermediate_embedding_weight_filepaths": intermediate_embedding_weight_filepaths,
         "train_words_filepath": train_words_filepath,

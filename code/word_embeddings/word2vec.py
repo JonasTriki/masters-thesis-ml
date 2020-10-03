@@ -1,5 +1,6 @@
 import os
 import pickle
+from configparser import ConfigParser
 from time import time
 from typing import List, Optional, TextIO
 
@@ -306,6 +307,13 @@ class Word2vec:
             # Set up thresholds for saving intermediate embedding weights
             intermediate_saving_thresholds = 1 / intermediate_embedding_weights_saves
 
+        # Save model training configuration to file
+        model_training_conf_filepath = os.path.join(
+            self._model_checkpoints_dir,
+            f"{self._model_name}_{dataset_name}.conf",
+        )
+        self.save_model_training_conf(model_training_conf_filepath, n_epochs)
+
         # Train model
         if verbose == 1:
             print("---")
@@ -502,3 +510,33 @@ class Word2vec:
         # Save to file
         with open(target_filepath, "w") as file:
             file.write(words_lines)
+
+    def save_model_training_conf(self, target_filepath: str, n_epochs: int) -> None:
+        """
+        Saves model training configuration to file.
+
+        Parameters
+        ----------
+        target_filepath : str
+            Target filepath for saving configuration.
+        n_epochs : int
+            Number of epochs used during training.
+        """
+        # Create config parser and add key-value pairs
+        model_train_config = ConfigParser()
+        model_train_config["MODELCONFIG"] = {
+            "vocab_size": str(self._tokenizer.vocab_size),
+            "embedding_dim": str(self._embedding_dim),
+        }
+        model_train_config["TRAINCONFIG"] = {
+            "batch_size": str(self._batch_size),
+            "n_epochs": str(n_epochs),
+            "learning_rate": str(self._learning_rate),
+            "min_learning_rate": str(self._min_learning_rate),
+            "max_window_size": str(self._max_window_size),
+            "num_negative_samples": str(self._num_negative_samples),
+        }
+
+        # Save to file
+        with open(target_filepath, "w") as file:
+            model_train_config.write(file)
