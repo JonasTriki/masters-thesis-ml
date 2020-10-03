@@ -34,6 +34,8 @@ lxml = "*"
 contractions = "*"
 tqdm = "*"
 wikiextractor = "*"
+numba = "*"
+pynndescent = "*"
 
 [requires]
 python_version = "3.6"
