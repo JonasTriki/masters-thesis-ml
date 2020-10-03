@@ -5,7 +5,7 @@ from os.path import isdir, isfile, join
 from typing import AnyStr, Callable, Generator, List
 
 import requests
-from data_utils import Tokenizer
+from tokenizer import Tokenizer
 from tqdm import tqdm
 from word2vec import Word2vec
 
@@ -106,7 +106,7 @@ def _make_file_gen(
     reader: Callable[[int], AnyStr], buffer_size: int = 1024 * 1024
 ) -> Generator[AnyStr, None, None]:
     """
-    Helper function for reading file in batches (used in `text_file_line_count`).
+    Helper function for reading file in batches (used in `text_files_total_line_count`).
 
     Parameters
     ----------
@@ -126,7 +126,7 @@ def _make_file_gen(
         b = reader(buffer_size)
 
 
-def text_file_line_count(filepaths: List[str]) -> int:
+def text_files_total_line_count(filepaths: List[str]) -> int:
     """
     Counts number of lines in text files.
 

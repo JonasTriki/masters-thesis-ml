@@ -5,14 +5,13 @@ from typing import List, Optional, TextIO
 
 import numpy as np
 import tensorflow as tf
-from data_utils import Tokenizer, create_dataset
+from dataset import create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
-from train_utils import (
-    create_model_checkpoint_filepath,
-    create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath,
-)
+from tokenizer import Tokenizer
+from train_utils import (create_model_checkpoint_filepath,
+                         create_model_intermediate_embedding_weights_filepath,
+                         create_model_train_logs_filepath)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -452,7 +451,6 @@ class Word2vec:
                 self._model_name,
                 dataset_name,
                 epoch_nr,
-                avg_loss,
             )
             self.save_model(checkpoint_path)
             if verbose == 1:

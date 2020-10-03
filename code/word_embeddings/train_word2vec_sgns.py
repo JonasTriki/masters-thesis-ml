@@ -1,8 +1,8 @@
 import argparse
 
-from data_utils import Tokenizer
+from tokenizer import Tokenizer
 from utils import (get_all_filepaths, load_model, load_tokenizer,
-                   text_file_line_count)
+                   text_files_total_line_count)
 from word2vec import Word2vec
 
 
@@ -235,7 +235,7 @@ def train_word2vec_sgns(
 
     # Count number of lines in text data file.
     print("Counting lines in text data files...")
-    num_texts = text_file_line_count(text_data_filepaths)
+    num_texts = text_files_total_line_count(text_data_filepaths)
     print("Done!")
 
     # Initialize tokenizer (and build its vocabulary if necessary)

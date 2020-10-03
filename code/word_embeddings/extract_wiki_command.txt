@@ -1,1 +1,0 @@
-python -m wikiextractor.WikiExtractor -cb 250K -o enwiki_extracted enwiki-20200901-pages-articles-multistream.xml.bz2
