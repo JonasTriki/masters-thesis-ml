@@ -1,8 +1,12 @@
 import argparse
 
 from tokenizer import Tokenizer
-from utils import (get_all_filepaths, load_model, load_tokenizer,
-                   text_files_total_line_count)
+from utils import (
+    get_all_filepaths,
+    load_model,
+    load_tokenizer,
+    text_files_total_line_count,
+)
 from word2vec import Word2vec
 
 
@@ -90,10 +94,10 @@ def parse_args() -> argparse.Namespace:
         help="Number of latent dimensions to use in the embedding layers",
     )
     parser.add_argument(
-        "--sampling_window_size",
+        "--max_window_size",
         type=int,
         default=5,
-        help="Window size to use when generating skip-gram couples",
+        help="Maximum window size to use when generating skip-gram couples",
     )
     parser.add_argument(
         "--num_negative_samples",
@@ -160,7 +164,7 @@ def train_word2vec_sgns(
     max_vocab_size: int,
     min_word_count: int,
     embedding_dim: int,
-    sampling_window_size: int,
+    max_window_size: int,
     num_negative_samples: int,
     sampling_factor: float,
     unigram_exponent_negative_sampling: float,
@@ -200,8 +204,8 @@ def train_word2vec_sgns(
         Minimum number of times a word might occur for it to be in the vocabulary.
     embedding_dim : int
         Number of latent dimensions to use in the embedding layers.
-    sampling_window_size : int
-        Window size to use when generating skip-gram couples.
+    max_window_size : int
+        Maximum window size to use when generating skip-gram couples.
     num_negative_samples : int
         Number of negative samples to use when generating skip-gram couples.
     sampling_factor : float
@@ -266,7 +270,7 @@ def train_word2vec_sgns(
             learning_rate=learning_rate,
             min_learning_rate=min_learning_rate,
             batch_size=batch_size,
-            sampling_window_size=sampling_window_size,
+            max_window_size=max_window_size,
             num_negative_samples=num_negative_samples,
             unigram_exponent_negative_sampling=unigram_exponent_negative_sampling,
             model_checkpoints_dir=model_checkpoints_dir,
@@ -302,7 +306,7 @@ if __name__ == "__main__":
         max_vocab_size=args.max_vocab_size,
         min_word_count=args.min_word_count,
         embedding_dim=args.embedding_dim,
-        sampling_window_size=args.sampling_window_size,
+        max_window_size=args.max_window_size,
         num_negative_samples=args.num_negative_samples,
         sampling_factor=args.sampling_factor,
         unigram_exponent_negative_sampling=args.unigram_exponent_negative_sampling,

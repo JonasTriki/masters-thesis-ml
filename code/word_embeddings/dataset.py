@@ -8,7 +8,7 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 def generate_skip_gram_pairs(
     word_indices: tf.Tensor,
-    window_size: int,
+    max_window_size: int,
 ) -> tf.Tensor:
     """
     Generates skip-gram target/context pairs.
@@ -17,8 +17,8 @@ def generate_skip_gram_pairs(
     ----------
     word_indices : tf.Tensor
         Tokenized words in a Tensor.
-    window_size : int
-        Number of words to the left and right of the target word to generate positive samples from.
+    max_window_size : int
+        Maximum number of words to the left and right of the target word to generate positive samples from.
     """
 
     def skip_gram_pairs_from_word(
@@ -45,16 +45,16 @@ def generate_skip_gram_pairs(
         # Get word integer
         word_int = word_indices[word_index]
 
-        # Generate positive samples
-        reduced_size = tf.random.uniform([], maxval=window_size, dtype=tf.int32)
-        left = tf.range(
-            tf.maximum(word_index - window_size + reduced_size, 0), word_index
+        # Randomly sample window size
+        window_size = tf.random.uniform(
+            [], minval=1, maxval=max_window_size + 1, dtype=tf.int32
         )
+
+        # Generate positive samples
+        left = tf.range(tf.maximum(word_index - window_size, 0), word_index)
         right = tf.range(
             word_index + 1,
-            tf.minimum(
-                word_index + 1 + window_size - reduced_size, tf.size(word_indices)
-            ),
+            tf.minimum(word_index + 1 + window_size, tf.size(word_indices)),
         )
         context_indices = tf.concat([left, right], axis=0)
         context_word_indices = tf.gather(word_indices, context_indices)
@@ -130,7 +130,7 @@ def create_dataset(
     text_data_filepaths: List[str],
     num_texts: int,
     tokenizer: Tokenizer,
-    sampling_window_size: int,
+    max_window_size: int,
     batch_size: int,
 ) -> tf.data.Dataset:
     """
@@ -144,8 +144,8 @@ def create_dataset(
         Number of texts (or sentences) in the text data file.
     tokenizer : Tokenizer
         Tokenizer instance for tokenizing individual texts.
-    sampling_window_size : int
-        Number of words to the left and right of a target word during sampling of positive words.
+    max_window_size : int
+        Maximum number of words to the left and right of a target word during sampling of positive words.
     batch_size : int
         Number of skip-gram target/context pairs to yield for each batch of data.
 
@@ -185,7 +185,7 @@ def create_dataset(
         lambda word_indices, sent_percentage: (
             generate_skip_gram_pairs(
                 word_indices,
-                sampling_window_size,
+                max_window_size,
             ),
             sent_percentage,
         ),
