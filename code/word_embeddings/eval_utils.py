@@ -410,16 +410,20 @@ def plot_word_vectors(
     fig.show()
 
 
-def load_questions_words(questions_words_filepath: str, word_to_int: dict) -> dict:
+def load_questions_words(
+    questions_words_filepath: str, word_to_int: dict, vocab_size: int
+) -> dict:
     """
     Loads a questions-words file and filters out out of vocabulary entries.
 
     Parameters
     ----------
     questions_words_filepath : str
-        Filepath of questions-words file
+        Filepath of questions-words file.
     word_to_int : dict
-        Dictionary for mapping a word to its integer representation
+        Dictionary for mapping a word to its integer representation.
+    vocab_size : int
+        Vocabulary size.
 
     Returns
     -------
@@ -439,7 +443,7 @@ def load_questions_words(questions_words_filepath: str, word_to_int: dict) -> di
             # Ensure all words are in vocabulary
             words_in_vocab = True
             for word in word_pairs:
-                if word not in word_to_int:
+                if word not in word_to_int or word_to_int[word] >= vocab_size:
                     words_in_vocab = False
                     break
             if words_in_vocab:
@@ -506,6 +510,7 @@ def evaluate_model_questions_words(
     word_embeddings_filepath: str,
     word_to_int: dict,
     words: np.ndarray,
+    vocab_size: int = -1,
     top_n: int = 5,
     verbose: int = 1,
 ) -> dict:
@@ -522,6 +527,8 @@ def evaluate_model_questions_words(
         Dictionary for mapping a word to its integer representation
     words : np.ndarray
         Numpy array of words from the vocabulary.
+    vocab_size : int, optional
+        Vocabulary size to use (defaults to -1 meaning all words).
     top_n : int, optional
         Number of words to look at for computing accuracy. If the predicted word is in the
         `top_n` most similar words, it is flatted as a correct prediction. Defaults to
@@ -534,9 +541,13 @@ def evaluate_model_questions_words(
     question_words_accuracies : dict mapping from str to float
         Dictionary mapping from questions-word section to its accuracy (percentage).
     """
+    if vocab_size == -1:
+        vocab_size = len(words)
 
     # Load questions-words pairs from file
-    questions_words = load_questions_words(questions_words_filepath, word_to_int)
+    questions_words = load_questions_words(
+        questions_words_filepath, word_to_int, vocab_size
+    )
 
     # Load embeddings
     word_embeddings = np.load(word_embeddings_filepath, mmap_mode="r").astype(np.float64)
@@ -557,6 +568,7 @@ def evaluate_model_questions_words(
                 weights=word_embeddings,
                 words=words,
                 word_to_int=word_to_int,
+                vocab_size=vocab_size,
                 top_n=top_n,
                 return_similarity_score=False,
             )
