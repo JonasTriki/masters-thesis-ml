@@ -1,4 +1,5 @@
 import pickle
+from functools import partial
 from multiprocessing import Pool
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -11,7 +12,6 @@ from sklearn.base import ClusterMixin, TransformerMixin
 from sklearn.manifold import TSNE
 from tqdm.auto import tqdm
 from umap import UMAP
-from functools import partial
 
 
 def get_word_vec(
@@ -541,38 +541,34 @@ def evaluate_model_questions_words(
     # Load embeddings
     word_embeddings = np.load(word_embeddings_filepath, mmap_mode="r").astype(np.float64)
 
-    with Pool() as pool:
-        question_words_accuracies: Dict[str, float] = {}
+    # Perform evaluation
+    question_words_accuracies: Dict[str, float] = {}
+    for (section_name, question_word_pairs) in questions_words.items():
+        if verbose >= 1:
+            print(f"-- Evaluating {section_name}... --")
+        num_correct = 0
+        total = len(question_word_pairs)
+        for qw_pair in tqdm(question_word_pairs):
+            (a_word, b_word, c_word, d_word) = qw_pair
 
-        # Prepare arguments for multiprocessing
-        # mp_args = [
-        #     (
-        #         section_name,
-        #         qw_pairs,
-        #         verbose,
-        #         word_embeddings,
-        #         words,
-        #         word_to_int,
-        #         top_n,
-        #     )
-        #     for section_name, qw_pairs in questions_words.items()
-        # ]
+            d_word_predictions = similar_words(
+                positive_words=[b_word, c_word],
+                negative_words=[a_word],
+                weights=word_embeddings,
+                words=words,
+                word_to_int=word_to_int,
+                top_n=top_n,
+                return_similarity_score=False,
+            )
+            if d_word in d_word_predictions:
+                num_correct += 1
 
-        evaluate_questions_words_pair_call = partial(
-            evaluate_questions_words_pair,
-            verbose=verbose,
-            word_embeddings=word_embeddings,
-            words=words,
-            word_to_int=word_to_int,
-            top_n=top_n,
-        )
-
-        # Evaluate sections in parallel.
-        pool_mp_iter = pool.imap_unordered(
-            evaluate_questions_words_pair_call, questions_words.items()
-        )
-        for section_name, num_correct, total_qw_pairs in pool_mp_iter:
-            question_words_accuracies[section_name] = num_correct / total_qw_pairs
+        if total == 0:
+            question_words_accuracies[section_name] = -1  # Meaning no predictions made
+            print("All questions words missing from vocabulary")
+        else:
+            question_words_accuracies[section_name] = num_correct / total
+            print(f"Accuracy: {(question_words_accuracies[section_name] * 100):.2f}%")
 
     # Compute average accuracy over all sections
     question_words_accuracies["avg"] = sum(question_words_accuracies.values()) / len(
