@@ -36,7 +36,9 @@ def parse_question_words(questions_words_content: str) -> dict:
         for word_line in content_split_lines:
 
             # Split string of words into list of words and append to list
-            questions_words_split_content.append(word_line.split())
+            words = word_line.split()
+            words = [word.lower() for word in words]
+            questions_words_split_content.append(words)
         questions_words_content_splits.append(questions_words_split_content)
 
     # Construct dictionary with question-word entries

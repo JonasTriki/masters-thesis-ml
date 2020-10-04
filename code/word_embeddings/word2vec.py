@@ -1,5 +1,6 @@
 import os
 import pickle
+from configparser import ConfigParser
 from time import time
 from typing import List, Optional, TextIO
 
@@ -9,9 +10,11 @@ from dataset import create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from tokenizer import Tokenizer
-from train_utils import (create_model_checkpoint_filepath,
-                         create_model_intermediate_embedding_weights_filepath,
-                         create_model_train_logs_filepath)
+from train_utils import (
+    create_model_checkpoint_filepath,
+    create_model_intermediate_embedding_weights_filepath,
+    create_model_train_logs_filepath,
+)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -27,7 +30,7 @@ class Word2vec:
         learning_rate: float = 0.0025,
         min_learning_rate: float = 0.0000025,
         batch_size: int = 256,
-        sampling_window_size: int = 2,
+        max_window_size: int = 2,
         num_negative_samples: int = 15,
         unigram_exponent_negative_sampling: float = 3 / 4,
         model_name: str = "word2vec_sgns",
@@ -49,8 +52,8 @@ class Word2vec:
             Minimum training learning rate (defaults to 0.0001).
         batch_size : int
             Size of batches during fitting/training.
-        sampling_window_size : int
-            Window size to use when generating skip-gram couples (defaults to 2).
+        max_window_size : int
+            Maximum window size to use when generating skip-gram couples (defaults to 2).
         num_negative_samples : int
             Number of negative samples to use when generating skip-gram couples
             (defaults to 15).
@@ -67,7 +70,7 @@ class Word2vec:
         self._learning_rate = learning_rate
         self._min_learning_rate = min_learning_rate
         self._batch_size = batch_size
-        self._sampling_window_size = sampling_window_size
+        self._max_window_size = max_window_size
         self._num_negative_samples = num_negative_samples
         self._unigram_exponent_negative_sampling = unigram_exponent_negative_sampling
         self._model_name = model_name
@@ -304,6 +307,13 @@ class Word2vec:
             # Set up thresholds for saving intermediate embedding weights
             intermediate_saving_thresholds = 1 / intermediate_embedding_weights_saves
 
+        # Save model training configuration to file
+        model_training_conf_filepath = os.path.join(
+            self._model_checkpoints_dir,
+            f"{self._model_name}_{dataset_name}.conf",
+        )
+        self.save_model_training_conf(model_training_conf_filepath, n_epochs)
+
         # Train model
         if verbose == 1:
             print("---")
@@ -315,7 +325,7 @@ class Word2vec:
                 f"- embedding_dim={self._embedding_dim}\n"
                 f"- learning_rate={self._learning_rate}\n"
                 f"- min_learning_rate={self._min_learning_rate}\n"
-                f"- window_size={self._sampling_window_size}\n"
+                f"- max_window_size={self._max_window_size}\n"
                 f"- num_negative_samples={self._num_negative_samples}"
             )
             print("---")
@@ -350,7 +360,7 @@ class Word2vec:
                 text_data_filepaths,
                 num_texts,
                 self._tokenizer,
-                self._sampling_window_size,
+                self._max_window_size,
                 self._batch_size,
             )
 
@@ -500,3 +510,33 @@ class Word2vec:
         # Save to file
         with open(target_filepath, "w") as file:
             file.write(words_lines)
+
+    def save_model_training_conf(self, target_filepath: str, n_epochs: int) -> None:
+        """
+        Saves model training configuration to file.
+
+        Parameters
+        ----------
+        target_filepath : str
+            Target filepath for saving configuration.
+        n_epochs : int
+            Number of epochs used during training.
+        """
+        # Create config parser and add key-value pairs
+        model_train_config = ConfigParser()
+        model_train_config["MODELCONFIG"] = {
+            "vocab_size": str(self._tokenizer.vocab_size),
+            "embedding_dim": str(self._embedding_dim),
+        }
+        model_train_config["TRAINCONFIG"] = {
+            "batch_size": str(self._batch_size),
+            "n_epochs": str(n_epochs),
+            "learning_rate": str(self._learning_rate),
+            "min_learning_rate": str(self._min_learning_rate),
+            "max_window_size": str(self._max_window_size),
+            "num_negative_samples": str(self._num_negative_samples),
+        }
+
+        # Save to file
+        with open(target_filepath, "w") as file:
+            model_train_config.write(file)
