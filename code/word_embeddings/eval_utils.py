@@ -1,15 +1,17 @@
 import pickle
+from multiprocessing import Pool
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from fastdist import fastdist
 from sklearn.base import ClusterMixin, TransformerMixin
 from sklearn.manifold import TSNE
 from tqdm.auto import tqdm
 from umap import UMAP
-from utils import load_model
+from functools import partial
 
 
 def get_word_vec(
@@ -43,7 +45,8 @@ def similar_words(
     positive_words: List[str] = None,
     negative_words: List[str] = None,
     vocab_size: int = -1,
-) -> List[Tuple]:
+    return_similarity_score: bool = True,
+) -> List[Union[Tuple, str]]:
     """
     Finds the most similar words of a linear combination of positively and negatively
     contributing words.
@@ -65,12 +68,17 @@ def similar_words(
     vocab_size : int, optional
         Vocabulary size to use, e.g., only most common `vocab_size` words to taken
         into account (defaults to -1 meaning all words).
-
+    return_similarity_score : bool, optional
+        Whether or not to return the cosine similarity score.
 
     Returns
     -------
-    pairs : list of tuples of str and int
-        List of `top_n` similar words and their cosine similarities.
+    If return_similarity_score is True, then
+        pairs : list of tuples of str and int
+            List of `top_n` similar words and their cosine similarities.
+    else:
+        closest_words : list of str
+            List of `top_n` similar words.
     """
     # Default values
     if positive_words is None:
@@ -84,7 +92,7 @@ def similar_words(
         words = words[:vocab_size]
 
     # Create query word vector
-    query_word_vec = np.zeros((weights.shape[1],))
+    query_word_vec = np.zeros((weights.shape[1],), dtype=np.float64)
     query_word_vec += np.array(
         [get_word_vec(pos_word, word_to_int, weights) for pos_word in positive_words]
     ).sum(axis=0)
@@ -92,33 +100,25 @@ def similar_words(
         [get_word_vec(neg_word, word_to_int, weights) for neg_word in negative_words]
     ).sum(axis=0)
 
-    # Remove query words from search
-    new_words_indices = np.array(
-        [
-            word_to_int[word]
-            for word in words
-            if word not in positive_words and word not in negative_words
-        ]
-    )
-    weights_excl = weights[new_words_indices]
-    words_excl = words[new_words_indices]
+    # Create indices list of query words to exclude from search
+    exclude_words_indices = [
+        word_to_int[word] for word in positive_words + negative_words
+    ]
 
-    # Create similarity
-    word_vec_weights_dotted = query_word_vec @ weights_excl.T
-    word_vec_weights_norm = np.linalg.norm(query_word_vec) * np.linalg.norm(
-        weights_excl, axis=1
-    )
-    cos_sims = word_vec_weights_dotted / word_vec_weights_norm
-    cos_sims = np.clip(cos_sims, 0, 1)
+    # Compute cosine similarity
+    cos_sims = fastdist.cosine_vector_to_matrix(query_word_vec, weights)
     sorted_indices = cos_sims.argsort()[::-1]
-    # print(words.shape, weights.shape)
-    top_words = words_excl[sorted_indices][:top_n]
+    sorted_indices = [idx for idx in sorted_indices if idx not in exclude_words_indices]
+    top_words = words[sorted_indices][:top_n]
     top_sims = cos_sims[sorted_indices][:top_n]
 
     # Create word similarity pairs
-    pairs = list(zip(top_words, top_sims))
+    if return_similarity_score:
+        result = list(zip(top_words, top_sims))
+    else:
+        result = top_words
 
-    return pairs
+    return result
 
 
 def create_embeddings_of_train_weight_checkpoints(
@@ -410,9 +410,100 @@ def plot_word_vectors(
     fig.show()
 
 
+def load_questions_words(questions_words_filepath: str, word_to_int: dict) -> dict:
+    """
+    Loads a questions-words file and filters out out of vocabulary entries.
+
+    Parameters
+    ----------
+    questions_words_filepath : str
+        Filepath of questions-words file
+    word_to_int : dict
+        Dictionary for mapping a word to its integer representation
+
+    Returns
+    -------
+    question_words : dict
+    """
+    # Load questions-words pairs from file
+    with open(questions_words_filepath, "rb") as file:
+        questions_words_raw = pickle.load(file)
+
+    # Initialize resulting dictionary
+    questions_words = {key: [] for key in questions_words_raw.keys()}
+
+    # Ensure questions_words only contain entries that are in the vocabulary.
+    for section_name, question_word_pairs in questions_words_raw.items():
+        for word_pairs in question_word_pairs:
+
+            # Ensure all words are in vocabulary
+            words_in_vocab = True
+            for word in word_pairs:
+                if word not in word_to_int:
+                    words_in_vocab = False
+                    break
+            if words_in_vocab:
+                questions_words[section_name].append(word_pairs)
+    return questions_words
+
+
+def evaluate_questions_words_pair(
+    args: Tuple[str, List[Tuple[str, str, str, str]]],
+    verbose: int,
+    word_embeddings: np.ndarray,
+    words: np.ndarray,
+    word_to_int: dict,
+    top_n: int,
+) -> Tuple[str, int, int]:
+    """
+    Evaluates a single questions-words pair
+
+    TODO: Parameters
+    ----------
+    args : tuple
+        Arguments for the multiprocessing call.
+
+    Returns
+    -------
+    result : tuple
+        Tuple containing the result.
+    """
+    # Extract from args
+    (section_name, qw_pairs) = args
+
+    num_correct = 0
+    for qw_pair in tqdm(
+        qw_pairs, desc=f"Evaluating {section_name}..." if verbose >= 1 else None
+    ):
+        (a_word, b_word, c_word, d_word) = qw_pair
+
+        d_word_predictions = similar_words(
+            positive_words=[b_word, c_word],
+            negative_words=[a_word],
+            weights=word_embeddings,
+            words=words,
+            word_to_int=word_to_int,
+            top_n=top_n,
+            return_similarity_score=False,
+        )
+        if d_word in d_word_predictions:
+            num_correct += 1
+
+    # if total == 0:
+    #     question_words_accuracies[
+    #         section_name
+    #     ] = -1  # Meaning no predictions made
+    #     print("All questions words missing from vocabulary")
+    # else:
+    #     question_words_accuracies[section_name] = num_correct / total
+    #     print(f"Accuracy: {(question_words_accuracies[section_name] * 100):.2f}%")
+
+    return section_name, num_correct, len(qw_pairs)
+
+
 def evaluate_model_questions_words(
     questions_words_filepath: str,
-    word_embeddings: np.ndarray,
+    word_embeddings_filepath: str,
     word_to_int: dict,
     words: np.ndarray,
     top_n: int = 5,
@@ -425,8 +516,8 @@ def evaluate_model_questions_words(
     ----------
     questions_words_filepath : str
         Filepath of questions-words file
-    word_embeddings : np.ndarray
-        Word embeddings in a numpy matrix
+    word_embeddings_filepath : str
+        Filepath of the word embeddings.
     word_to_int : dict mapping from str to int
         Dictionary for mapping a word to its integer representation
     words : np.ndarray
@@ -443,60 +534,49 @@ def evaluate_model_questions_words(
     question_words_accuracies : dict mapping from str to float
         Dictionary mapping from questions-word section to its accuracy (percentage).
     """
+
     # Load questions-words pairs from file
-    with open(questions_words_filepath, "rb") as file:
-        questions_words = pickle.load(file)
+    questions_words = load_questions_words(questions_words_filepath, word_to_int)
 
-    # Perform evaluation
-    num_sections = len(questions_words.keys())
-    question_words_accuracies: Dict[str, float] = {}
-    for i, (section_name, question_word_pairs) in zip(
-        range(num_sections), questions_words.items()
-    ):
-        if verbose >= 1:
-            print(f"-- Evaluating {section_name}... --")
-        num_correct = 0
-        total = len(question_word_pairs)
-        for word_pairs in tqdm(question_word_pairs):
+    # Load embeddings
+    word_embeddings = np.load(word_embeddings_filepath, mmap_mode="r").astype(np.float64)
 
-            # Clean words before evaluation
-            word_pairs_clean = [word.lower() for word in word_pairs]
+    with Pool() as pool:
+        question_words_accuracies: Dict[str, float] = {}
 
-            # Ensure all words are in vocabulary
-            words_in_vocab = True
-            for word in word_pairs_clean:
-                if word not in word_to_int:
-                    words_in_vocab = False
-                    break
-            if not words_in_vocab:
-                total = total - 1
-                continue
+        # Prepare arguments for multiprocessing
+        # mp_args = [
+        #     (
+        #         section_name,
+        #         qw_pairs,
+        #         verbose,
+        #         word_embeddings,
+        #         words,
+        #         word_to_int,
+        #         top_n,
+        #     )
+        #     for section_name, qw_pairs in questions_words.items()
+        # ]
 
-            # Evaluate prediction
-            a_word, b_word, c_word, d_word = word_pairs_clean
+        evaluate_questions_words_pair_call = partial(
+            evaluate_questions_words_pair,
+            verbose=verbose,
+            word_embeddings=word_embeddings,
+            words=words,
+            word_to_int=word_to_int,
+            top_n=top_n,
+        )
 
-            d_word_predictions = similar_words(
-                positive_words=[b_word, c_word],
-                negative_words=[a_word],
-                weights=word_embeddings,
-                words=words,
-                word_to_int=word_to_int,
-                top_n=top_n,
-            )
-            d_word_predictions = [word for word, _ in d_word_predictions]
-            if d_word in d_word_predictions:
-                num_correct = num_correct + 1
-            else:
-                if verbose == 1:
-                    print(
-                        f"Incorrect prediction: {a_word} is to {b_word} as {c_word} is to {d_word} (predicted: {d_word_predictions})"
-                    )
+        # Evaluate sections in parallel.
+        pool_mp_iter = pool.imap_unordered(
+            evaluate_questions_words_pair_call, questions_words.items()
+        )
+        for section_name, num_correct, total_qw_pairs in pool_mp_iter:
+            question_words_accuracies[section_name] = num_correct / total_qw_pairs
 
-        if total == 0:
-            question_words_accuracies[section_name] = -1  # Meaning no predictions made
-            print("All questions words missing from vocabulary")
-        else:
-            question_words_accuracies[section_name] = num_correct / total
-            print(f"Accuracy: {(question_words_accuracies[section_name] * 100):.2f}%")
+    # Compute average accuracy over all sections
+    question_words_accuracies["avg"] = sum(question_words_accuracies.values()) / len(
+        question_words_accuracies
+    )
 
     return question_words_accuracies
