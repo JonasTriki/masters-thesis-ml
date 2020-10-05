@@ -11,6 +11,7 @@
 \usepackage{wrapfig}
 \usepackage{amssymb}
 \setlength {\marginparwidth}{2cm}
+\setlength{\parindent}{0em}
 \usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
 \usepackage{soul}
 \usepackage{textcomp}
@@ -23,6 +24,7 @@
 \renewcommand{\labelenumii}{\theenumii}
 \renewcommand{\theenumii}{\theenumi.\arabic{enumii}.}
 \renewcommand{\theequation}{\arabic{equation}}
+\renewcommand{\thefigure}{\arabic{figure}}
 
 \usepackage{hyperref}
 \tolerance=1000
@@ -79,10 +81,12 @@
 \usepackage[acronym,nonumberlist,toc,nogroupskip]{glossaries}
 
 \usepackage{amsthm}
+\usepackage[capitalise, noabbrev]{cleveref}
 \theoremstyle{definition}
 \newcounter{definitions}
 \setcounter{definitions}{0}
 \newtheorem{definition}[definitions]{Definition}
+\crefname{definition}{Definition}{Definitions}
 
 % -- Math commands --
 % Define real number R
@@ -91,6 +95,3 @@
 \newcommand{\sumlim}[2]{\sum\limits_{#1}^{#2}}
 % Transposed
 \newcommand{\trans}[1]{{#1}^\top}
-
-% -- Utility commands --
-\newcommand{\figref}[2][{}]{\hyperref[#2]{\autoref{#2}#1}}
