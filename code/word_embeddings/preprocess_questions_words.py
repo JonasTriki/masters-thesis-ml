@@ -1,8 +1,39 @@
+import argparse
 import os
 import pickle
 import re
 
 from utils import get_cached_download_text_file
+
+
+def parse_args() -> argparse.Namespace:
+    """
+    Parses arguments sent to the python script.
+    Returns
+    -------
+    parsed_args : argparse.Namespace
+        Parsed arguments
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--raw_data_dir",
+        type=str,
+        default="raw_data",
+        help="Path to the raw data directory (where files will be downloaded to)",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="",
+        help="Output directory to save processed data",
+    )
+    parser.add_argument(
+        "--git_commit_sha",
+        type=str,
+        default="45da685079a9a9a29f976d595e4987bd104eb2ae",
+        help="Git commit sha to use when downloading test data",
+    )
+    return parser.parse_args()
 
 
 def parse_question_words(questions_words_content: str) -> dict:
@@ -50,18 +81,29 @@ def parse_question_words(questions_words_content: str) -> dict:
     return questions_words
 
 
-def preprocess_questions_words() -> None:
+def preprocess_questions_words(
+    raw_data_dir: str, output_dir: str, git_commit_sha: str
+) -> None:
     """
-    Preprocesses the "questions-words.txt" file used in the skip-grams paper by
-    Mikolov et al.: https://arxiv.org/pdf/1310.4546.pdf.
+    Downloads and preprocess the questions-words test set from the paper
+    "Efficient Estimation of Word Representations in Vector Space" by Mikolov et al.
+
+    Parameters
+    ----------
+    raw_data_dir : str
+        Path to the raw data directory (where files will be downloaded to).
+    output_dir : str
+        Output directory to save processed data.
+    git_commit_sha : str
+        Git commit sha to use when downloading test data
     """
     print("Processing questions-words...")
 
     # Fetch questions-words.txt from Mikolov's word2vec Github repository.
-    raw_data_dir = "raw_data"
     filename = "questions-words.txt"
-    commit_sha = "45da685079a9a9a29f976d595e4987bd104eb2ae"
-    txt_url = f"https://raw.githubusercontent.com/tmikolov/word2vec/{commit_sha}/questions-words.txt"
+    txt_url = (
+        f"https://raw.githubusercontent.com/tmikolov/word2vec/{git_commit_sha}/{filename}"
+    )
     questions_words_txt = get_cached_download_text_file(txt_url, raw_data_dir, filename)
 
     # Parse the raw content
@@ -69,9 +111,8 @@ def preprocess_questions_words() -> None:
     print("Done!")
 
     # Save questions-words dict to file
-    data_dir = "data"
-    dest_filename = "questions-words.pickle"
-    questions_words_filepath = os.path.join(data_dir, dest_filename)
+    dest_filename = "questions-words.pkl"
+    questions_words_filepath = os.path.join(output_dir, dest_filename)
     print("Saving to file...")
     with open(questions_words_filepath, "wb") as file:
         pickle.dump(questions_words_dict, file)
@@ -79,4 +120,9 @@ def preprocess_questions_words() -> None:
 
 
 if __name__ == "__main__":
-    preprocess_questions_words()
+    args = parse_args()
+    preprocess_questions_words(
+        raw_data_dir=args.raw_data_dir,
+        output_dir=args.output_dir,
+        git_commit_sha=args.git_commit_sha,
+    )
