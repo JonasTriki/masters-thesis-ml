@@ -1,4 +1,6 @@
 import argparse
+from datetime import datetime
+from os.path import join
 
 from tokenizer import Tokenizer
 from utils import (get_all_filepaths, load_model, load_tokenizer,
@@ -106,19 +108,19 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=1e-5,
         help="Sampling factor to use when computing the probability of "
-        "keeping a word during random subsampling of words.",
+        "keeping a word during random subsampling of words",
     )
     parser.add_argument(
         "--unigram_exponent_negative_sampling",
         type=float,
         default=3 / 4,
-        help="Which exponent to raise the unigram distribution to when performing negative sampling.",
+        help="Which exponent to raise the unigram distribution to when performing negative sampling",
     )
     parser.add_argument(
-        "--model_checkpoints_dir",
+        "--output_dir",
         type=str,
-        default="checkpoints",
-        help="Where to save checkpoints of the model after each epoch",
+        default="output",
+        help="Output directory to save metadata files, checkpoints and intermediate model weights",
     )
     parser.add_argument(
         "--pretrained_model_filepath",
@@ -147,7 +149,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def train_word2vec_sgns(
+def train_word2vec(
     text_data_filepath: str,
     text_data_dir: str,
     tokenizer_filepath: str,
@@ -164,7 +166,7 @@ def train_word2vec_sgns(
     num_negative_samples: int,
     sampling_factor: float,
     unigram_exponent_negative_sampling: float,
-    model_checkpoints_dir: str,
+    output_dir: str,
     pretrained_model_filepath: str,
     starting_epoch_nr: int,
     train_logs_to_file: bool,
@@ -208,8 +210,8 @@ def train_word2vec_sgns(
         Sampling factor to use when computing the probability of keeping a word during random subsampling of words.
     unigram_exponent_negative_sampling : float
         Which exponent to raise the unigram distribution to when performing negative sampling.
-    model_checkpoints_dir : str
-        Where to save checkpoints of the model after each epoch.
+    output_dir : str
+        Output directory to save metadata files, checkpoints and intermediate model weights.
     pretrained_model_filepath : str
         Load an already trained word2vec model from file.
     starting_epoch_nr : int
@@ -269,9 +271,11 @@ def train_word2vec_sgns(
             max_window_size=max_window_size,
             num_negative_samples=num_negative_samples,
             unigram_exponent_negative_sampling=unigram_exponent_negative_sampling,
-            model_checkpoints_dir=model_checkpoints_dir,
         )
     print("Done!")
+
+    # Append date/time to output directory.
+    output_dir = join(output_dir, datetime.now().strftime("%d-%b-%Y_%H-%M-%S"))
 
     # Train model
     word2vec.fit(
@@ -279,6 +283,7 @@ def train_word2vec_sgns(
         num_texts=num_texts,
         dataset_name=dataset_name,
         n_epochs=n_epochs,
+        output_dir=output_dir,
         starting_epoch_nr=starting_epoch_nr,
         train_logs_to_file=train_logs_to_file,
         intermediate_embedding_weights_saves=intermediate_embedding_weights_saves,
@@ -289,7 +294,7 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Perform training
-    train_word2vec_sgns(
+    train_word2vec(
         text_data_filepath=args.text_data_filepath,
         text_data_dir=args.text_data_dir,
         tokenizer_filepath=args.tokenizer_filepath,
@@ -306,7 +311,7 @@ if __name__ == "__main__":
         num_negative_samples=args.num_negative_samples,
         sampling_factor=args.sampling_factor,
         unigram_exponent_negative_sampling=args.unigram_exponent_negative_sampling,
-        model_checkpoints_dir=args.model_checkpoints_dir,
+        output_dir=args.output_dir,
         pretrained_model_filepath=args.pretrained_model_filepath,
         starting_epoch_nr=args.starting_epoch_nr,
         train_logs_to_file=args.train_logs_to_file,

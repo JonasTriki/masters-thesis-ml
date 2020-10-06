@@ -18,7 +18,7 @@ class Word2VecSGNSModel(tf.keras.Model):
         learning_rate: float = 0.025,
         min_learning_rate: float = 0.0001,
         add_bias: bool = True,
-        name: str = "word2vec_sgns",
+        name: str = "word2vec",
         target_embedding_layer_name: str = "target_embedding",
         **kwargs
     ):

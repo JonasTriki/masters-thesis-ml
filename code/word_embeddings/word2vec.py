@@ -31,9 +31,8 @@ class Word2vec:
         max_window_size: int = 2,
         num_negative_samples: int = 15,
         unigram_exponent_negative_sampling: float = 3 / 4,
-        model_name: str = "word2vec_sgns",
+        model_name: str = "word2vec",
         target_embedding_layer_name: str = "target_embedding",
-        model_checkpoints_dir: str = "checkpoints",
     ) -> None:
         """
         Initializes a word2vec instance.
@@ -56,12 +55,9 @@ class Word2vec:
             Number of negative samples to use when generating skip-gram couples
             (defaults to 15).
         model_name : str, optional
-            Name of the word2vec model (defaults to "word2vec_sgns").
+            Name of the word2vec model (defaults to "word2vec").
         target_embedding_layer_name : str, optional
             Name to use for the target embedding layer (defaults to "target_embedding").
-        model_checkpoints_dir : str, optional
-            Where to save checkpoints of the model after each epoch
-            (defaults to "checkpoints").
         """
         self._tokenizer = tokenizer
         self._embedding_dim = embedding_dim
@@ -73,7 +69,6 @@ class Word2vec:
         self._unigram_exponent_negative_sampling = unigram_exponent_negative_sampling
         self._model_name = model_name
         self._target_embedding_layer_name = target_embedding_layer_name
-        self._model_checkpoints_dir = model_checkpoints_dir
 
         # Initialize model
         self._init_model()
@@ -202,6 +197,7 @@ class Word2vec:
         num_texts: int,
         dataset_name: str,
         n_epochs: int,
+        output_dir: str = "output",
         starting_epoch_nr: int = 1,
         intermediate_embedding_weights_saves: int = 0,
         train_logs_to_file: bool = True,
@@ -220,6 +216,8 @@ class Word2vec:
             Name of the dataset we are fitting/training on.
         n_epochs : int
             Number of epochs to fit/train.
+        output_dir : str
+            Output directory to save metadata files, checkpoints and intermediate model weights.
         starting_epoch_nr : int, optional
             Denotes the starting epoch number (defaults to 1).
         intermediate_embedding_weights_saves : int, optional
@@ -232,8 +230,8 @@ class Word2vec:
             Defaults to 1 (verbose).
         """
 
-        # Ensure checkpoints directory exists before training
-        os.makedirs(self._model_checkpoints_dir, exist_ok=True)
+        # Ensure output directory exists before training
+        os.makedirs(output_dir, exist_ok=True)
 
         # Set up optimizer (SGD) with maximal learning rate.
         # The idea here is that `perform_train_step` will apply a decaying learning rate.
@@ -296,7 +294,7 @@ class Word2vec:
             if verbose == 1:
                 print("Saving words to file...")
             words_filepath = os.path.join(
-                self._model_checkpoints_dir,
+                output_dir,
                 f"{self._model_name}_{dataset_name}_words.txt",
             )
             self.save_words(words_filepath)
@@ -307,7 +305,7 @@ class Word2vec:
 
         # Save model training configuration to file
         model_training_conf_filepath = os.path.join(
-            self._model_checkpoints_dir,
+            output_dir,
             f"{self._model_name}_{dataset_name}.conf",
         )
         self.save_model_training_conf(model_training_conf_filepath, n_epochs)
@@ -333,7 +331,7 @@ class Word2vec:
         train_logs_file: Optional[TextIO] = None
         if train_logs_to_file:
             train_logs_filepath = create_model_train_logs_filepath(
-                self._model_checkpoints_dir,
+                output_dir,
                 self._model_name,
                 dataset_name,
             )
@@ -390,7 +388,7 @@ class Word2vec:
                         )
                         self.save_embedding_weights(
                             create_model_intermediate_embedding_weights_filepath(
-                                self._model_checkpoints_dir,
+                                output_dir,
                                 self._model_name,
                                 dataset_name,
                                 epoch_nr,
@@ -438,7 +436,7 @@ class Word2vec:
             if intermediate_embedding_weights_saves > 0:
                 self.save_embedding_weights(
                     create_model_intermediate_embedding_weights_filepath(
-                        self._model_checkpoints_dir,
+                        output_dir,
                         self._model_name,
                         dataset_name,
                         epoch_nr,
@@ -455,7 +453,7 @@ class Word2vec:
             if verbose == 1:
                 print("Saving model to file...")
             checkpoint_path = create_model_checkpoint_filepath(
-                self._model_checkpoints_dir,
+                output_dir,
                 self._model_name,
                 dataset_name,
                 epoch_nr,

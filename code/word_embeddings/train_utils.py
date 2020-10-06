@@ -7,7 +7,7 @@ import numpy as np
 
 
 def create_model_checkpoint_filepath(
-    checkpoints_dir: str,
+    output_dir: str,
     model_name: str,
     dataset_name: str,
     epoch_nr: int,
@@ -17,8 +17,8 @@ def create_model_checkpoint_filepath(
 
     Parameters
     ----------
-    checkpoints_dir : str
-        Checkpoints directory.
+    output_dir : str
+        Output directory.
     model_name : str
         Name of the model.
     dataset_name : str
@@ -32,21 +32,21 @@ def create_model_checkpoint_filepath(
         Filepath of a model checkpoint.
     """
     filename = f"{model_name}_{dataset_name}_{epoch_nr:02d}.model"
-    filepath = join(checkpoints_dir, filename)
+    filepath = join(output_dir, filename)
     return filepath
 
 
 def get_model_checkpoint_filepaths(
-    checkpoints_dir: str, model_name: str, dataset_name: str
+    output_dir: str, model_name: str, dataset_name: str
 ) -> Dict[str, Union[str, List[str]]]:
     """
     Gets model checkpoint filepaths of a specific model (trained on a specific dataset)
-    from a checkpoints directory.
+    in an output directory.
 
     Parameters
     ----------
-    checkpoints_dir : str
-        Model checkpoints directory containing the trained models.
+    output_dir : str
+        Output directory.
     model_name : str
         Name of the model.
     dataset_name : str
@@ -58,33 +58,29 @@ def get_model_checkpoint_filepaths(
         Dictionary containing filepaths to trained models, intermediate weight embeddings,
         words used during training and training log.
     """
-    # List files in checkpoints directory
-    checkpoints_filenames = listdir(checkpoints_dir)
+    # List files in output directory
+    output_filenames = listdir(output_dir)
 
     # Filter by model_name and dataset_name entries only
     model_id = f"{model_name}_{dataset_name}"
-    checkpoints_filenames = [
-        fn for fn in checkpoints_filenames if fn.startswith(model_id)
-    ]
+    output_filenames = [fn for fn in output_filenames if fn.startswith(model_id)]
 
     # Get model training configuration filepath
-    model_training_conf_filepath = join(checkpoints_dir, f"{model_id}.conf")
+    model_training_conf_filepath = join(output_dir, f"{model_id}.conf")
 
     # Get model filenames and sort them by epoch numbers (from first to last).
-    model_filenames = np.array(
-        [fn for fn in checkpoints_filenames if fn.endswith(".model")]
-    )
+    model_filenames = np.array([fn for fn in output_filenames if fn.endswith(".model")])
     model_epoch_nrs = np.array(
         [int(re.findall(r"_(\d{2}).model", fn)[0]) for fn in model_filenames]
     )
     model_filenames = model_filenames[np.argsort(model_epoch_nrs)]
 
-    # Append checkpoint directory to filenames
-    model_filepaths = [join(checkpoints_dir, fn) for fn in model_filenames]
+    # Append output directory to filenames
+    model_filepaths = [join(output_dir, fn) for fn in model_filenames]
 
     # Get intermediate embedding weights sorted by first to last
     intermediate_embedding_weight_filenames = np.array(
-        [fn for fn in checkpoints_filenames if fn.endswith("weights.npy")]
+        [fn for fn in output_filenames if fn.endswith("weights.npy")]
     )
     intermediate_embedding_weight_filepaths = None
     train_words_filepath = None
@@ -101,20 +97,20 @@ def get_model_checkpoint_filepaths(
             np.argsort(epoch_embedding_nrs)
         ]
 
-        # Append checkpoint directory to filenames
+        # Append output directory to filenames
         intermediate_embedding_weight_filepaths = [
-            join(checkpoints_dir, fn) for fn in intermediate_embedding_weight_filenames
+            join(output_dir, fn) for fn in intermediate_embedding_weight_filenames
         ]
 
         train_words_filename = f"{model_id}_words.txt"
-        if train_words_filename in checkpoints_filenames:
-            train_words_filepath = join(checkpoints_dir, train_words_filename)
+        if train_words_filename in output_filenames:
+            train_words_filepath = join(output_dir, train_words_filename)
 
     # Add path to train logs
     train_logs_filename = f"{model_id}_logs.csv"
     train_logs_filepath = None
-    if train_logs_filename in checkpoints_filenames:
-        train_logs_filepath = join(checkpoints_dir, train_logs_filename)
+    if train_logs_filename in output_filenames:
+        train_logs_filepath = join(output_dir, train_logs_filename)
 
     return {
         "model_training_conf_filepath": model_training_conf_filepath,
@@ -126,7 +122,7 @@ def get_model_checkpoint_filepaths(
 
 
 def create_model_intermediate_embedding_weights_filepath(
-    checkpoints_dir: str,
+    output_dir: str,
     model_name: str,
     dataset_name: str,
     epoch_nr: int,
@@ -137,8 +133,8 @@ def create_model_intermediate_embedding_weights_filepath(
 
     Parameters
     ----------
-    checkpoints_dir : str
-        Checkpoints directory.
+    output_dir : str
+        Output directory.
     model_name : str
         Name of the model.
     dataset_name : str
@@ -154,12 +150,12 @@ def create_model_intermediate_embedding_weights_filepath(
         Filepath of a model checkpoint.
     """
     filename = f"{model_name}_{dataset_name}_{epoch_nr:02d}_{intermediate_embedding_weight_nr:02d}_weights.npy"
-    filepath = join(checkpoints_dir, filename)
+    filepath = join(output_dir, filename)
     return filepath
 
 
 def create_model_train_logs_filepath(
-    checkpoints_dir: str,
+    output_dir: str,
     model_name: str,
     dataset_name: str,
 ) -> str:
@@ -168,8 +164,8 @@ def create_model_train_logs_filepath(
 
     Parameters
     ----------
-    checkpoints_dir : str
-        Checkpoints directory.
+    output_dir : str
+        Output directory.
     model_name : str
         Name of the model.
     dataset_name : str
@@ -181,5 +177,5 @@ def create_model_train_logs_filepath(
         Filepath for the train logs of a model.
     """
     filename = f"{model_name}_{dataset_name}_logs.csv"
-    filepath = join(checkpoints_dir, filename)
+    filepath = join(output_dir, filename)
     return filepath
