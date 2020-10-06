@@ -451,60 +451,6 @@ def load_questions_words(
     return questions_words
 
 
-def evaluate_questions_words_pair(
-    args: Tuple[str, List[Tuple[str, str, str, str]]],
-    verbose: int,
-    word_embeddings: np.ndarray,
-    words: np.ndarray,
-    word_to_int: dict,
-    top_n: int,
-) -> Tuple[str, int, int]:
-    """
-    Evaluates a single questions-words pair
-
-    TODO: Parameters
-    ----------
-    args : tuple
-        Arguments for the multiprocessing call.
-
-    Returns
-    -------
-    result : tuple
-        Tuple containing the result.
-    """
-    # Extract from args
-    (section_name, qw_pairs) = args
-
-    num_correct = 0
-    for qw_pair in tqdm(
-        qw_pairs, desc=f"Evaluating {section_name}..." if verbose >= 1 else None
-    ):
-        (a_word, b_word, c_word, d_word) = qw_pair
-
-        d_word_predictions = similar_words(
-            positive_words=[b_word, c_word],
-            negative_words=[a_word],
-            weights=word_embeddings,
-            words=words,
-            word_to_int=word_to_int,
-            top_n=top_n,
-            return_similarity_score=False,
-        )
-        if d_word in d_word_predictions:
-            num_correct += 1
-
-    # if total == 0:
-    #     question_words_accuracies[
-    #         section_name
-    #     ] = -1  # Meaning no predictions made
-    #     print("All questions words missing from vocabulary")
-    # else:
-    #     question_words_accuracies[section_name] = num_correct / total
-    #     print(f"Accuracy: {(question_words_accuracies[section_name] * 100):.2f}%")
-
-    return section_name, num_correct, len(qw_pairs)
-
-
 def evaluate_model_questions_words(
     questions_words_filepath: str,
     word_embeddings_filepath: str,
