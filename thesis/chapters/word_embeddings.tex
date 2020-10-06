@@ -111,7 +111,7 @@ We now have discarded the ordinal relationship of the numerical representation.
 There are some downsides with this approach as well, however.
 \begin{itemize}
     \item As with the numerical representation in \cref{unique-representation-for-each-word}, one-hot encoded vectors does not capture relationship between words.
-    \item One-hot encoded vectors are sparse (meaning, most values are zero). Imagine if we had 1000 words in the vocabulary, then one would create a vector consisting of 99.9\% zeros. In practice, the vocabulary size is in the terms of $10^5$ to $10^7$ \cite{mikolov2013b}, e.g., by using one-hot encoded vector representations we are extremely inefficient in terms of space.
+    \item One-hot encoded vectors are sparse (meaning, most values are zero). Imagine if we had 1000 words in the vocabulary, then one would create a vector consisting of 99.9\% zeros. In practice, the vocabulary size is in the terms of $10^5$ to $10^7$ \cite{mikolov2013b}, i.e., by using one-hot encoded vector representations we are extremely inefficient in terms of space.
     \item One-hot encoded vectors are very high-dimensional (same as the number of words in the vocabulary, $|V|$).
 \end{itemize}
 
@@ -185,7 +185,7 @@ As an alternative to hierarchical softmax, Mikolov et al. introduced Negative sa
 
 Before we can explain Negative sampling, we define the positive- and negative target-context pairs.
 \begin{definition}
-Given a vocabulary $V$, a target word $w_t$ and the target words contextual words $w_{t-R}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+R}$ for some dynamic window size $R$, we define a \textbf{positive target-context pair} to be the pair of the target word $w_t$ and a contextual word $w_{t+j}$, $-R \leq j \leq R, j \neq 0$, e.g., the pair $\left( w_t, w_{t+1} \right)$ for $j=1$. Furthermore, we define a \textbf{negative target-context pair} as the pair of the target word $w_t$ and a word $w_r$ randomly sampled from the noise distribution $P_n(w)$, e.g., the pair $\left( w_t, w_r \right)$.
+Given a vocabulary $V$, a target word $w_t$ and the target words contextual words $w_{t-R}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+R}$ for some dynamic window size $R$, we define a \textbf{positive target-context pair} to be the pair of the target word $w_t$ and a contextual word $w_{t+j}$, $-R \leq j \leq R, j \neq 0$, i.e.., the pair $\left( w_t, w_{t+1} \right)$ for $j=1$. Furthermore, we define a \textbf{negative target-context pair} as the pair of the target word $w_t$ and a word $w_r$ randomly sampled from the noise distribution $P_n(w)$, i.e., the pair $\left( w_t, w_r \right)$.
 \end{definition}
 
 
@@ -239,17 +239,17 @@ To map from the input to the hidden layer, we simply multiply the transposed of 
 \end{smallmatrix} \right)$ and the embedding matrix $W = \left( \begin{smallmatrix}
     1 & 2 & 3\\
     4 & 5 & 6\\
-\end{smallmatrix} \right)$. If the multiply the transpose of the embedding matrix with the one-hot encoded vector, e.g. $\trans{W} e_{w_t}$, we would get $\left( \begin{smallmatrix}
+\end{smallmatrix} \right)$. If the multiply the transpose of the embedding matrix with the one-hot encoded vector, i.e. $\trans{W} e_{w_t}$, we would get $\left( \begin{smallmatrix}
     1\\
     2\\
     3\\
 \end{smallmatrix} \right)$, essentially performing a transposed "copy" operation.
 
 
-We let $v_{w_t} = \trans{W} e_{w_t}$ be the mapping for word $w_t$ and $v'_{w_t+j} = \trans{W'} e_{w_t{+j}}$ be the mapping for word $w_{t+j}$ from the inputs to the hidden layer. We refer the vectors $v_{w_t}$ and $v'_{w_{t+j}}$ to as the target and context embedding vectors, respectively. Note that when computing the embedding vectors, we do not apply any activation function (e.g. performing a linear transformation) nor any bias, leading to more efficient training of bigger datasets \cite{mikolov2013a}.
+We let $v_{w_t} = \trans{W} e_{w_t}$ be the mapping for word $w_t$ and $v'_{w_t+j} = \trans{W'} e_{w_t{+j}}$ be the mapping for word $w_{t+j}$ from the inputs to the hidden layer. We refer the vectors $v_{w_t}$ and $v'_{w_{t+j}}$ to as the target and context embedding vectors, respectively. Note that when computing the embedding vectors, we do not apply any activation function (i.e. performing a linear transformation) nor any bias, leading to more efficient training of bigger datasets \cite{mikolov2013a}.
 
 \subsubsection{Output layer}
-Recall that when we are using Negative sampling, we would like to ensure that words in the same context yield similar word vectors, and that words words that are not in the same context (e.g. a target word versus a word sampled from the noise distribution $P_n(w)$) to be dissimilar \cite{mikolov2013b}. From the objective of Negative sampling from \cref{eqn:negative-sampling-obj-func}, we see that we use the sigmoid function on the dot product between the "input" and the "output" vectors $v$ and $v'$. When we take the dot product, we are essentially computing an unnormalized cosine similarity measure between the vectors. The idea is then to use this similarity measure and convert it into the range of $[0, 1]$ by using the sigmoid function. Following, we want similar vectors to have 1 as output from the sigmoid function and dissimilar vectors to have 0 as the output from the sigmoid function. When we compute the loss of the ANN, we generate $k$ samples from the noise distribution $P_n(w)$ such that we can use them for computing the loss of the network.
+Recall that when we are using Negative sampling, we would like to ensure that words in the same context yield similar word vectors, and that words words that are not in the same context (i.e. a target word versus a word sampled from the noise distribution $P_n(w)$) to be dissimilar \cite{mikolov2013b}. From the objective of Negative sampling from \cref{eqn:negative-sampling-obj-func}, we see that we use the sigmoid function on the dot product between the "input" and the "output" vectors $v$ and $v'$. When we take the dot product, we are essentially computing an unnormalized cosine similarity measure between the vectors. The idea is then to use this similarity measure and convert it into the range of $[0, 1]$ by using the sigmoid function. Following, we want similar vectors to have 1 as output from the sigmoid function and dissimilar vectors to have 0 as the output from the sigmoid function. When we compute the loss of the ANN, we generate $k$ samples from the noise distribution $P_n(w)$ such that we can use them for computing the loss of the network.
 
 
 For each positive target-context pair we have in our data, we create a single sigmoid output plus $k$ sigmoid outputs for each negatively sampled word from the noise distribution $P_n(w)$. Thus, we could argue that we have $(k + 1)$ outputs in our network. As one should note, however, we are only interested in the learned embedding matrix $W$ and its corresponding word vectors; we will not use the ANN for predicting whether a certain word is more or less likely to be within a words contextual neighborhood, thus, discarding the output of the network.
@@ -261,6 +261,7 @@ Furthermore, we update the embedding weights $W$ and $W'$ using the stochastic g
 As with training any machine learning model, one usually needs to prepare some data. In our case it is not any different, and before training our word2vec model, we will first go over the data preprocessing choices we have made. Following, we discuss the details of our own implementation of word2vec using the Skip-gram model and Negative sampling.
 
 \subsection{Data preprocessing}
+\label{sec:data-preprocessing}
 To train a word2vec model, one needs to have a sufficiently large dataset (and thus embedding dimensionality) to yield good quality word embeddings \cite{mikolov2013b}. In the empirical experiments of \cite{mikolov2013b}, they used the internal Google News dataset. Since this dataset is not publicly available, we instead used dumps from \cite{WikimediaDumps} and performed a number of preprocessing steps on it. The dumps from Wikipedia were first downloaded and parsed using the WikiExtractor tool \cite{Wikiextractor2015}. Furthermore, we created a script using Python \cite{python3-2009} to merge and process output files from the WikiExtractor tool into a certain number of text files (in our case the number of cores, to benefit from parallel reading), such that we can train on it with ease.
 
 
@@ -285,33 +286,68 @@ We then proceed by processing each Wikipedia article. In particular, we performe
 When training a word2vec model, there are a lot of hyperparameters. In this subsection, we will go over all choices of hyperparameters and explain them.
 
 \begin{itemize}
-    \item \textbf{\textit{batch\_size}} \\
-        Batch size is the number of positive target-context pairs $(w_t, w_{t+j})$ we train on in each training step, e.g., the number of forward passes we perform in our ANN before we do a backwards pass.
-    \item \textbf{\textit{num\_epochs}} \\
+    \item \textbf{batch-size} \\
+        Batch size is the number of positive target-context pairs $(w_t, w_{t+j})$ we train on in each training step, i.e., the number of forward passes we perform in our ANN before we do a backwards pass.
+    \item \textbf{num-epochs} \\
         Number of epochs denotes the number of times we train on the training data. With word2vec, one usually sets this number rather low (e.g. $1-5$), since it has been reported that by training on more data, we need less epochs to get comparable or better quality word vectors \cite{mikolov2013a}.
-    \item \textbf{\textit{learning\_rate}} \\
+    \item \textbf{learning-rate} \\
         The learning rate denotes how fast we want our weights to change in our ANN. The original authors of word2vec used 0.025 (e.g. $2.5\%$) as the initial learning rate for their experiments.
-    \item \textbf{\textit{min\_learning\_rate}} \\
+    \item \textbf{min-learning-rate} \\
         The minimal learning rate denotes how small the learning rate should be when approaching the end of the training. Mikolov et al. stated that they decreased it linearly, such that it approaches zero at the end of the last training epoch. It should be noted, however, that in the original code of word2vec, they linearly decrease the learning rate to the initial learning rate $lr$ times $0.0001$ (e.g. $0.025 \times 0.0001 = 0.0000025$)\footnote{\href{https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c\#L398}{word2vec.c at line 398 (of the original word2vec repository)}}.
-    \item \textbf{\textit{max\_vocab\_size}} \\
+    \item \textbf{max-vocab-size} \\
         The maximum vocabulary size denotes the maximal number of words to have in our vocabulary, sorted from most to least occurring word. We may set the maximum vocabulary size to reduce the computational complexity and to remove some less occurring words.
-    \item \textbf{\textit{embedding\_dim}} \\
-        The embedding dimension denotes the dimension we want to use for the internal matrices $W$ and $W'$ in our ANN, e.g., the dimensionality of the word vectors.
-    \item \textbf{\textit{min\_word\_count}} \\
+    \item \textbf{embedding-dim} \\
+        The embedding dimension denotes the dimension we want to use for the internal matrices $W$ and $W'$ in our ANN, i.e., the dimensionality of the word vectors.
+    \item \textbf{min-word-count} \\
         The minimum word count denotes a threshold of how many times a word at least has to occur in a text for it to be in the vocabulary. In the empirical experiments of Mikolov et al, they used 5 as the threshold \cite{mikolov2013b}.
-    \item \textbf{\textit{max\_window\_size}} \\
+    \item \textbf{max-window-size} \\
         Maximum window size denotes the maximal number of words to look for to the left and to the right of a target word $w_t$. Mikolov et al. reported that they used $5$ as the window size \cite{mikolov2013b}.
-    \item \textbf{\textit{num\_negative\_samples}} \\
+    \item \textbf{num-negative-samples} \\
         Number of negative samples denote how many negative samples should be generated for each positive target-context pair we train on.
-    \item \textbf{\textit{sampling\_factor}} \\
+    \item \textbf{sampling-factor} \\
         The sampling factor is used as a threshold to randomly discard frequently occurring words in the text corpora. A common value for this is $10^{-5}$ \cite{mikolov2013b}.
-    \item \textbf{\textit{unigram\_exponent}} \\
+    \item \textbf{unigram-exponent} \\
         The unigram exponent is which power we raise the noise distribution $P_n(w)$ to (where the noise distribution equals the unigram distribution, in our case). Although there were no theoretical justification for this, Mikolov et al. reported that the value $\frac{3}{4}$ worked the best \cite{mikolov2013b}.
 \end{itemize}
 
-\subsection{Implementation specifics and hyperparameter choices}
-To implement the word2vec model, we used Python and Tensorflow \cite{python3-2009, tensorflow2015-whitepaper}. \textbf{TODO: What to write here? Hyperparameter choices only?}
+\subsection{Implementation specifics}
+To implement the word2vec model, we used Python and Tensorflow \cite{python3-2009, tensorflow2015-whitepaper}. In particular, we implemented the Skip-gram model using Negative sampling. To do so, we split our implementation into three main Python classes. The first class is the \path{Tokenizer}. It is responsible for converting text into word indices in vocabulary (e.g. the word "hello" $\mapsto$ 42). The second class is the \path{Word2vecSGNSModel}, which inherits the \path{tf.keras.Model} class from Tensorflow\footnote{We created the model using subclassing, as specified in \href{https://www.tensorflow.org/guide/keras/custom_layers_and_models}{this guide from Tensorflow}.}, and is the model we use to train our ANN. The third and final main class is \path{Word2vec}. It performs training using the \path{Word2vecSGNSModel} and uses \path{Tokenizer} internally to convert words into integers.
+
+To load the data into the model, we use the \path{tf.data} API, as introduced in Tensorflow 2. The \path{tf.data} API allows us to create flexible and scalable data generators. As mentioned in \cref{sec:data-preprocessing}, we want to train our model on dumps from Wikipedia, i.e., several gigabytes of raw text data, and the \path{tf.data} API allows us to exactly this in a quick and efficient manner. In particular, we used the \path{tf.data.TextLineDataset} class to load multiple text files in parallel and set \path{num_parallel_calls} to \path{tf.data.experimental.AUTOTUNE} wherever we could, such that we parallelize the data generation process as much as possible. We also used \path{prefetch} to prepare the data on the CPU while training.
+
+\textbf{TODO:} \\
+- What did you learn from actually implementing this yourself that you didn't know after reading the paper. \\
+
+\subsection{Hyperparameter choices}
+To train the word2vec model, we used the following hyperparameters, as illustrated in \cref{table:word2vec-hyperparameter-choices}. The choices of hyperparameters were inspired by the choices of Mikolov et al. \cite{mikolov2013a, mikolov2013b}.
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule
+Hyperparameter & Value\tabularnewline
+\midrule
+\endhead
+\textbf{batch-size} & 256\tabularnewline
+\textbf{num-epochs} & 5\tabularnewline
+\textbf{learning-rate} & 0.0025\tabularnewline
+\textbf{min-learning-rate} & 0.0000025\tabularnewline
+\textbf{max-vocab-size} & 1000000\tabularnewline
+\textbf{embedding-dim} & 300\tabularnewline
+\textbf{min-word-count} & 5\tabularnewline
+\textbf{max-window-size} & 5\tabularnewline
+\textbf{num-negative-samples} & 5\tabularnewline
+\textbf{sampling-factor} & 0.00001\tabularnewline
+\textbf{unigram-exponent} & 0.75\tabularnewline
+\bottomrule
+\caption{Hyperparameters used to train our word2vec model}
+\label{table:word2vec-hyperparameter-choices}
+\end{longtable}
+
+Later in \cref{sec:word2vec-eval-empirical-results}, we will evaluate our word2vec model trained by using hyperparameters from \cref{table:word2vec-hyperparameter-choices} on processed text dumps from Wikipedia.
 
 \section{Evaluating a word2vec model}
 \label{sec:eval-word2vec-model}
 TODO: Semantic and syntactic relations
+
+\subsection{Empirical results}
+\label{sec:word2vec-eval-empirical-results}
+TODO: Evaluate our word2vec model.
