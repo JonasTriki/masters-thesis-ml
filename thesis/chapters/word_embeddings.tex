@@ -315,10 +315,14 @@ To implement the word2vec model, we used Python and Tensorflow \cite{python3-200
 
 To load the data into the model, we use the \path{tf.data} API, as introduced in Tensorflow 2. The \path{tf.data} API allows us to create flexible and scalable data generators. As mentioned in \cref{sec:data-preprocessing}, we want to train our model on dumps from Wikipedia, i.e., several gigabytes of raw text data, and the \path{tf.data} API allows us to exactly this in a quick and efficient manner. In particular, we used the \path{tf.data.TextLineDataset} class to load multiple text files in parallel and set \path{num_parallel_calls} to \path{tf.data.experimental.AUTOTUNE} wherever we could, such that we parallelize the data generation process as much as possible. We also used \path{prefetch} to prepare the data on the CPU while training.
 
-\textbf{TODO:} \\
-- What did you learn from actually implementing this yourself that you didn't know after reading the paper. \\
+By implementing word2vec ourselves, we learned a few things we did not realize after reading the two original papers from Mikolov et al. \cite{mikolov2013a, mikolov2013b}
+\begin{itemize}
+    \item Training on big datasets (e.g. dumps from Wikipedia) requires an efficient implementation of the data generator.
+    \item Preprocessing of data may drastically change the quality of the word embeddings.
+\end{itemize}
 
 \subsection{Hyperparameter choices}
+\label{sec:hyperparameter-choices}
 To train the word2vec model, we used the following hyperparameters, as illustrated in \cref{table:word2vec-hyperparameter-choices}. The choices of hyperparameters were inspired by the choices of Mikolov et al. \cite{mikolov2013a, mikolov2013b}.
 
 \begin{longtable}[]{@{}lll@{}}
@@ -346,8 +350,31 @@ Later in \cref{sec:word2vec-eval-empirical-results}, we will evaluate our word2v
 
 \section{Evaluating a word2vec model}
 \label{sec:eval-word2vec-model}
-TODO: Semantic and syntactic relations
+In typical machine learning projects, it is common to set aside some of the train data to be evaluated when we have finalized the model, e.g., the test data set. In the word2vec model, however, it is not common to evaluate the models performance on some independent subset of the train data. Instead, test data sets which checks for word relatedness are more common (i.e., man is to woman as king is to queen).
+
+In the first paper introducing word2vec, they used two test data sets; the Semantic-Syntactic Word Relationship test set (SSWR) and the Microsoft Research Syntactic Analogies Dataset (MSR). SSWR was first introduced in \cite{mikolov2013a}, consists of 8869 semantic and 10675 syntactic questions and is widely used as a test dataset. The MSR dataset was first introduced in \cite{mikolov-etal-2013-linguistic} and consists of 8000 analogy questions. For the sake of simplicity, we will only evaluate our word2vec models on these two test data sets, though we note that there are other common test data sets as well, such as the Bigger analogy test set (BATS) from \cite{gladkova-etal-2016-analogy}.
 
 \subsection{Empirical results}
 \label{sec:word2vec-eval-empirical-results}
-TODO: Evaluate our word2vec model.
+We evaluated a word2vec model trained on the hyperparameters from \cref{sec:hyperparameter-choices} on a machine with a single GPU (GeForce RTX 2080 Ti), one CPU (Intel i9-7900X @ 3.30GHz) and 64 GB of RAM. We evaluated the trained model using the SSWR and MSR test datasets, as shown in \cref{table:word2vec-eval-empirical-results}.
+
+\textbf{TODO}: Fill in \cref{table:word2vec-eval-empirical-results}.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{@{}p{4cm}p{2.25cm}p{2.25cm}p{2.25cm}p{4cm}@{}}
+        \toprule
+        \multirow{2}{4cm}{\centering Model} &
+        \multicolumn{3}{c}{SSWR \cite{mikolov2013a}} &
+        \multirow{2}{4cm}{\centering MSR \cite{mikolov-etal-2013-linguistic}} \\
+        \cline{2-4} & Semantic Accuracy [$\%$] & Syntactic Accuracy [$\%$] & Total \newline Accuracy [$\%$] \\
+        \midrule
+        NEG-15 from \cite{mikolov2013b} & 61 & 61 & 61 & Not evaluated on MSR. \\
+        Our model & XX & XX & XX & XX \\
+        \bottomrule
+    \end{tabular}
+    \caption{Caption}
+    \label{table:word2vec-eval-empirical-results}
+\end{table}
+
+\textbf{TODO}: Comment on the result.
