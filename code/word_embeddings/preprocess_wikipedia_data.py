@@ -1,12 +1,9 @@
 import argparse
 import subprocess
-import zipfile
-from os import makedirs, rename
+from os import makedirs
 from os.path import isdir, isfile
 from os.path import join as join_path
-from typing import List, Optional
 
-from tqdm import tqdm
 from utils import download_from_url
 from wikiextractor_utils import wikiextractor_outputs_to_file
 
