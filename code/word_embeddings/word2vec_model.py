@@ -17,7 +17,6 @@ class Word2VecSGNSModel(tf.keras.Model):
         unigram_exponent_negative_sampling: float = 0.75,
         learning_rate: float = 0.025,
         min_learning_rate: float = 0.0001,
-        add_bias: bool = True,
         name: str = "word2vec",
         target_embedding_layer_name: str = "target_embedding",
         **kwargs
@@ -40,8 +39,6 @@ class Word2VecSGNSModel(tf.keras.Model):
             Initial learning rate.
         min_learning_rate : float scalar
             Final learning rate.
-        add_bias : bool scalar
-            Whether to add bias term to dot product between target and context embedding vectors.
         name : str
             Name of the model
         target_embedding_layer_name : str
@@ -56,7 +53,6 @@ class Word2VecSGNSModel(tf.keras.Model):
         self._unigram_exponent_negative_sampling = unigram_exponent_negative_sampling
         self._learning_rate = learning_rate
         self._min_learning_rate = min_learning_rate
-        self._add_bias = add_bias
         self._target_embedding_layer_name = target_embedding_layer_name
 
         self.add_weight(
@@ -73,10 +69,6 @@ class Word2VecSGNSModel(tf.keras.Model):
             initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1),
         )
 
-        self.add_weight(
-            "biases", shape=[self._vocab_size], initializer=tf.keras.initializers.Zeros()
-        )
-
     def get_config(self) -> dict:
         """
         Gets the config for the word2vec model.
@@ -90,7 +82,6 @@ class Word2VecSGNSModel(tf.keras.Model):
             "unigram_exponent_negative_sampling": self._unigram_exponent_negative_sampling,
             "learning_rate": self._learning_rate,
             "min_learning_rate": self._min_learning_rate,
-            "add_bias": self._add_bias,
         }
         return config
 
@@ -110,7 +101,7 @@ class Word2VecSGNSModel(tf.keras.Model):
         loss: float tensor
             Cross entropy loss, of shape [batch_size, negatives + 1].
         """
-        target_embedding, context_embedding, biases = self.weights
+        target_embedding, context_embedding = self.weights
 
         # Positive samples
         # [batch_size, hidden_size]
@@ -151,13 +142,6 @@ class Word2VecSGNSModel(tf.keras.Model):
             tf.expand_dims(inputs_target_embedding, 1),
             tf.transpose(negative_samples_embedding, (0, 2, 1)),
         )
-
-        # Add bias
-        if self._add_bias:
-            # [batch_size]
-            positive_logits += tf.gather(biases, input_contexts)
-            # [batch_size, negatives]
-            negative_logits += tf.gather(biases, negative_samples_mat)
 
         # Use cross-entropy to compute losses for both positive and negative logits
         # [batch_size]

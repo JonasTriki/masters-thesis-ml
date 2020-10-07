@@ -46,7 +46,7 @@ class Word2vec:
         learning_rate : float, optional
             Training learning rate (defaults to 0.0025).
         min_learning_rate : float, optional
-            Minimum training learning rate (defaults to 0.0001).
+            Minimum training learning rate (defaults to 0.0000025).
         batch_size : int
             Size of batches during fitting/training.
         max_window_size : int
@@ -124,7 +124,6 @@ class Word2vec:
                 unigram_exponent_negative_sampling=self._unigram_exponent_negative_sampling,
                 learning_rate=self._learning_rate,
                 min_learning_rate=self._min_learning_rate,
-                add_bias=True,
                 name=self._model_name,
                 target_embedding_layer_name=self._target_embedding_layer_name,
             )

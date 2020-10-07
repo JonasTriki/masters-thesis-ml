@@ -63,29 +63,6 @@ def replace_contractions(text: str, slang: bool = False) -> str:
     return contractions.fix(text, slang=slang)
 
 
-def remove_non_ascii(words: list) -> list:
-    """
-    Remove non-ASCII characters from a list of tokenized words.
-
-    Parameters
-    ----------
-    words : list
-        List of tokenized words.
-
-    Returns
-    -------
-    new_words : list
-        List of new words without non-ASCII characters.
-    """
-    new_words = []
-    for word in words:
-        new_word = (
-            unicodedata.normalize("NFKD", word).encode("ascii", "ignore").decode("utf-8")
-        )
-        new_words.append(new_word)
-    return new_words
-
-
 def to_lowercase(words: list) -> list:
     """
     Convert all characters to lowercase from list of tokenized words.
@@ -197,55 +174,6 @@ def replace_all_numbers(words: list, language: str) -> list:
     return words
 
 
-def remove_stopwords(words: list, language: str = "english") -> list:
-    """
-    Remove stop words from list of tokenized words.
-
-    Parameters
-    ----------
-    words : list
-        List of tokenized words.
-    language : str, optional
-        Words' language (defaults to "english").
-
-    Returns
-    -------
-    new_words : list
-        List of new words with stop words removed.
-    """
-    new_words = []
-    for word in words:
-        if word not in stopwords.words(language):
-            new_words.append(word)
-    return new_words
-
-
-def lemmatize_words(words: list) -> list:
-    """
-    Lemmatize words in list of tokenized words.
-
-    Parameters
-    ----------
-    words : list
-        List of tokenized words.
-
-    Returns
-    -------
-    new_words : list
-        List of new, lemmatized words.
-    """
-    lemmatizer = WordNetLemmatizer()
-    lemmas = []
-    for word, word_pos_tag in pos_tag(words):
-        word_category = word_pos_tag[0].lower()
-        if word_category in ["a", "n", "n"]:
-            lemma = lemmatizer.lemmatize(word, word_category)
-        else:
-            lemma = lemmatizer.lemmatize(word)
-        lemmas.append(lemma)
-    return lemmas
-
-
 def text_to_words(text: str, language: str = "english") -> list:
     """
     Converts text into a list of words. Removes URLs and replaces contractions
@@ -283,14 +211,9 @@ def text_to_words(text: str, language: str = "english") -> list:
 def preprocess_words(words: list, language: str = "english") -> list:
     """
     Preprocesses list of words using a series of techniques:
-    - Removes URLs
-    - Replaces contractions
-    - Tokenizes text
-    - Removes non-ASCII
     - Converts to lower-case
     - Removes punctuation
     - Replaces numbers with textual representation
-    - Removes stop words
 
     Parameters
     ----------
@@ -305,12 +228,9 @@ def preprocess_words(words: list, language: str = "english") -> list:
         Preprocessed list of words.
     """
     # Apply a series of techniques to the words
-    # words = remove_non_ascii(words)
     words = to_lowercase(words)
     words = remove_punctuation(words)
     words = replace_all_numbers(words, language)
-    # words = remove_stopwords(words)
-    # words = lemmatize_words(words)
 
     return words
 
