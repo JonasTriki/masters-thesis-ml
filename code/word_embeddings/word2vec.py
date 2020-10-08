@@ -10,9 +10,11 @@ from dataset import create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from tokenizer import Tokenizer
-from train_utils import (create_model_checkpoint_filepath,
-                         create_model_intermediate_embedding_weights_filepath,
-                         create_model_train_logs_filepath)
+from train_utils import (
+    create_model_checkpoint_filepath,
+    create_model_intermediate_embedding_weights_filepath,
+    create_model_train_logs_filepath,
+)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -535,3 +537,22 @@ class Word2vec:
         # Save to file
         with open(target_filepath, "w") as file:
             model_train_config.write(file)
+
+
+def load_model(model_filepath: str) -> Word2vec:
+    """
+    Loads and returns a word2vec instance from file.
+
+    Parameters
+    ----------
+    model_filepath : str
+        Where to load the model from.
+
+    Returns
+    -------
+    word2vec : Word2vec
+        Word2vec instance.
+    """
+    # Read saved model dictionary from file
+    with open(model_filepath, "rb") as file:
+        return pickle.load(file)

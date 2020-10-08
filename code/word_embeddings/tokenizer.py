@@ -442,3 +442,22 @@ class Tokenizer:
         """
         with open(destination_filepath, "wb") as file:
             pickle.dump(self, file)
+
+
+def load_tokenizer(tokenizer_filepath: str) -> Tokenizer:
+    """
+    Loads the tokenizer vocabulary from file.
+
+    Parameters
+    ----------
+    tokenizer_filepath : str
+        Filepath of the Tokenizer.
+
+    Returns
+    -------
+    tokenizer : Tokenizer
+        Tokenizer instance.
+    """
+    # Read saved model dictionary from file
+    with open(tokenizer_filepath, "rb") as file:
+        return pickle.load(file)
