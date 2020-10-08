@@ -408,16 +408,16 @@ def plot_word_vectors(
     fig.show()
 
 
-def load_questions_words(
-    questions_words_filepath: str, word_to_int: dict, vocab_size: int
-) -> dict:
+def filter_word_analogy_dataset(
+    analogy_dataset: List[Tuple[str, ...]], word_to_int: dict, vocab_size: int
+) -> list:
     """
-    Loads a questions-words file and filters out out of vocabulary entries.
+    Filters a word analogy dataset such that it only contains words from the vocabulary.
 
     Parameters
     ----------
-    questions_words_filepath : str
-        Filepath of questions-words file.
+    analogy_dataset : list
+        List of word analogies (list of tuple of words)
     word_to_int : dict
         Dictionary for mapping a word to its integer representation.
     vocab_size : int
@@ -425,46 +425,76 @@ def load_questions_words(
 
     Returns
     -------
-    question_words : dict
+    analogies_filtered : list
+        Filtered word analogies.
     """
-    # Load questions-words pairs from file
-    with open(questions_words_filepath, "rb") as file:
-        questions_words_raw = pickle.load(file)
+    analogies_filtered = []
+    for word_analogies in analogy_dataset:
+
+        # Ensure all words are in vocabulary
+        words_in_vocab = True
+        for word in word_analogies:
+            if word not in word_to_int or word_to_int[word] >= vocab_size:
+                words_in_vocab = False
+                break
+        if words_in_vocab:
+            analogies_filtered.append(word_analogies)
+    return analogies_filtered
+
+
+def load_analogies_test_dataset(
+    analogies_filepath: str, word_to_int: dict, vocab_size: int
+) -> dict:
+    """
+    Loads an analogies test dataset file and filters out out of vocabulary entries.
+
+    Parameters
+    ----------
+    analogies_filepath : str
+        Filepath of the analogies test dataset file.
+    word_to_int : dict
+        Dictionary for mapping a word to its integer representation.
+    vocab_size : int
+        Vocabulary size.
+
+    Returns
+    -------
+    analogies_dict : dict
+        Dictionary mapping from section name to list of tuples of word analogies
+        from the word vocabulary.
+    """
+    # Load analogies dict from file
+    with open(analogies_filepath, "rb") as file:
+        analogies_dict_raw = pickle.load(file)
 
     # Initialize resulting dictionary
-    questions_words = {key: [] for key in questions_words_raw.keys()}
+    analogies_dict = {key: [] for key in analogies_dict_raw.keys()}
 
-    # Ensure questions_words only contain entries that are in the vocabulary.
-    for section_name, question_word_pairs in questions_words_raw.items():
-        for word_pairs in question_word_pairs:
+    # Ensure analogies_dict only contain entries that are in the vocabulary.
+    for section_name, analogies_pairs in analogies_dict_raw.items():
+        analogies_dict[section_name] = filter_word_analogy_dataset(
+            analogies_pairs, word_to_int, vocab_size
+        )
 
-            # Ensure all words are in vocabulary
-            words_in_vocab = True
-            for word in word_pairs:
-                if word not in word_to_int or word_to_int[word] >= vocab_size:
-                    words_in_vocab = False
-                    break
-            if words_in_vocab:
-                questions_words[section_name].append(word_pairs)
-    return questions_words
+    return analogies_dict
 
 
-def evaluate_model_questions_words(
-    questions_words_filepath: str,
+def evaluate_model_word_analogies(
+    analogies_filepath: str,
     word_embeddings_filepath: str,
     word_to_int: dict,
     words: np.ndarray,
     vocab_size: int = -1,
-    top_n: int = 5,
+    top_n: int = 1,
     verbose: int = 1,
 ) -> dict:
     """
-    Evaluates a word2vec mode using top-n accuracy on questions-words from Mikolov et. al.
+    Evaluates a word2vec model on a word analogies test dataset.
 
     Parameters
     ----------
-    questions_words_filepath : str
-        Filepath of questions-words file
+    analogies_filepath : str
+        Filepath of the analogies test dataset file.
     word_embeddings_filepath : str
         Filepath of the word embeddings.
     word_to_int : dict mapping from str to int
@@ -475,35 +505,33 @@ def evaluate_model_questions_words(
         Vocabulary size to use (defaults to -1 meaning all words).
     top_n : int, optional
         Number of words to look at for computing accuracy. If the predicted word is in the
-        `top_n` most similar words, it is flatted as a correct prediction. Defaults to
-        5.
+        `top_n` most similar words, it is flagged as a correct prediction. Defaults to
+        1.
     verbose : int, optional
         Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose). Defaults to 1 (verbose).
 
     Returns
     -------
-    question_words_accuracies : dict mapping from str to float
-        Dictionary mapping from questions-word section to its accuracy (percentage).
+    analogies_accuracies : dict mapping from str to float
+        Dictionary mapping from analogy section to its accuracy (percentage).
     """
     if vocab_size == -1:
         vocab_size = len(words)
 
-    # Load questions-words pairs from file
-    questions_words = load_questions_words(
-        questions_words_filepath, word_to_int, vocab_size
-    )
+    # Load analogies word pairs from file
+    analogies = load_analogies_test_dataset(analogies_filepath, word_to_int, vocab_size)
 
     # Load embeddings
     word_embeddings = np.load(word_embeddings_filepath, mmap_mode="r").astype(np.float64)
 
     # Perform evaluation
-    question_words_accuracies: Dict[str, float] = {}
-    for (section_name, question_word_pairs) in questions_words.items():
+    analogies_accuracies = {}
+    for (section_name, analogies_word_pairs) in analogies.items():
         if verbose >= 1:
             print(f"-- Evaluating {section_name}... --")
         num_correct = 0
-        total = len(question_word_pairs)
-        for qw_pair in tqdm(question_word_pairs):
+        total = len(analogies_word_pairs)
+        for qw_pair in tqdm(analogies_word_pairs):
             (a_word, b_word, c_word, d_word) = qw_pair
 
             d_word_predictions = similar_words(
@@ -520,15 +548,13 @@ def evaluate_model_questions_words(
                 num_correct += 1
 
         if total == 0:
-            question_words_accuracies[section_name] = -1  # Meaning no predictions made
-            print("All questions words missing from vocabulary")
+            analogies_accuracies[section_name] = np.nan  # => no predictions made
+            print(f"All word analogies in {section_name} missing from vocabulary")
         else:
-            question_words_accuracies[section_name] = num_correct / total
-            print(f"Accuracy: {(question_words_accuracies[section_name] * 100):.2f}%")
+            analogies_accuracies[section_name] = num_correct / total
+            print(f"Accuracy: {(analogies_accuracies[section_name] * 100):.2f}%")
 
-    # Compute average accuracy over all sections
-    question_words_accuracies["avg"] = sum(question_words_accuracies.values()) / len(
-        question_words_accuracies
-    )
+    # Compute average accuracy over all sections (ignore NaN's)
+    analogies_accuracies["avg"] = np.nanmean(list(analogies_accuracies.values()))
 
-    return question_words_accuracies
+    return analogies_accuracies

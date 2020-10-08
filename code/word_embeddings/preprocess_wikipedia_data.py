@@ -1,8 +1,7 @@
 import argparse
 import subprocess
 from os import makedirs
-from os.path import isdir, isfile
-from os.path import join as join_path
+from os.path import isdir, isfile, join
 
 from utils import download_from_url
 from wikiextractor_utils import wikiextractor_outputs_to_file
@@ -103,8 +102,8 @@ def load_and_preprocess_data(
         f"https://dumps.wikimedia.org/{wiki_name}/{wiki_dump_time}/"
         f"{dataset_name}-pages-articles-multistream.xml.bz2"
     )
-    raw_data_bz2_filepath = join_path(raw_data_dir, f"{dataset_name}.xml.bz2")
-    raw_data_bz2_extracted_dir = join_path(raw_data_dir, f"{dataset_name}_extracted")
+    raw_data_bz2_filepath = join(raw_data_dir, f"{dataset_name}.xml.bz2")
+    raw_data_bz2_extracted_dir = join(raw_data_dir, f"{dataset_name}_extracted")
 
     # Download raw data if not present
     if not isfile(raw_data_bz2_filepath):
