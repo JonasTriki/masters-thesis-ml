@@ -1,4 +1,5 @@
 import bz2
+import sys
 from multiprocessing import Pool, cpu_count
 from os.path import join
 from typing import Generator, List, Tuple
@@ -9,7 +10,8 @@ from nltk.tokenize import sent_tokenize
 from text_preprocessing_utils import preprocess_text
 from tqdm import tqdm
 
-from ..utils import get_all_filepaths_recursively
+sys.path.append("..")
+from utils import get_all_filepaths_recursively
 
 nltk.download("punkt")
 

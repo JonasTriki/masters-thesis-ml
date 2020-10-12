@@ -4,10 +4,12 @@ import re
 import tarfile
 from os import makedirs
 from os.path import isdir, isfile, join
+import sys
 
 from tqdm import tqdm
 
-from ..utils import download_from_url, get_cached_download_text_file
+sys.path.append("..")
+from utils import download_from_url, get_cached_download_text_file
 
 
 def parse_args() -> argparse.Namespace:
