@@ -66,7 +66,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--learning_rate",
         type=float,
-        default=0.0025,
+        default=0.025,
         help="Learning rate to use when training",
     )
     parser.add_argument(
@@ -84,7 +84,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--min_word_count",
         type=int,
-        default=10,
+        default=5,
         help="Minimum number of times a word might occur for it to be in the vocabulary",
     )
     parser.add_argument(
@@ -244,19 +244,23 @@ def train_word2vec(
 
     # Initialize tokenizer (and build its vocabulary if necessary)
     if tokenizer_filepath == "":
-        tokenizer = Tokenizer(
-            max_vocab_size=max_vocab_size,
-            min_word_count=min_word_count,
-            sampling_factor=sampling_factor,
+        tokenizer = Tokenizer()
+        tokenizer.build_word_occurrences(
+            filepaths=text_data_filepaths,
+            num_texts=num_texts,
         )
-        print("Building vocabulary...")
-        tokenizer.build_vocab(text_data_filepaths, num_texts)
-        if save_to_tokenizer_filepath != "":
-            print("Done!\nSaving vocabulary...")
-            tokenizer.save(save_to_tokenizer_filepath)
     else:
         print("Loading tokenizer...")
         tokenizer = load_tokenizer(tokenizer_filepath)
+    print("Building vocabulary...")
+    tokenizer.build_vocab(
+        max_vocab_size=max_vocab_size,
+        min_word_count=min_word_count,
+        sampling_factor=sampling_factor,
+    )
+    if save_to_tokenizer_filepath != "":
+        print("Done!\nSaving vocabulary...")
+        tokenizer.save(save_to_tokenizer_filepath)
     print("Done!")
 
     # Initialize word2vec instance

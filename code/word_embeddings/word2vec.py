@@ -10,9 +10,11 @@ from dataset import create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from tokenizer import Tokenizer
-from train_utils import (create_model_checkpoint_filepath,
-                         create_model_intermediate_embedding_weights_filepath,
-                         create_model_train_logs_filepath)
+from train_utils import (
+    create_model_checkpoint_filepath,
+    create_model_intermediate_embedding_weights_filepath,
+    create_model_train_logs_filepath,
+)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -25,7 +27,7 @@ class Word2vec:
         self,
         tokenizer: Optional[Tokenizer] = None,
         embedding_dim: int = 300,
-        learning_rate: float = 0.0025,
+        learning_rate: float = 0.025,
         min_learning_rate: float = 0.0000025,
         batch_size: int = 256,
         max_window_size: int = 2,
@@ -44,7 +46,7 @@ class Word2vec:
         embedding_dim : int, optional
             Word2vec embedding dimensions (defaults to 300).
         learning_rate : float, optional
-            Training learning rate (defaults to 0.0025).
+            Training learning rate (defaults to 0.025).
         min_learning_rate : float, optional
             Minimum training learning rate (defaults to 0.0000025).
         batch_size : int

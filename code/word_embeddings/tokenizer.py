@@ -13,41 +13,19 @@ class Tokenizer:
     Text tokenization class.
     """
 
-    def __init__(
-        self,
-        max_vocab_size: Optional[int] = None,
-        min_word_count: int = 10,
-        sampling_factor: float = 1e-5,
-        unknown_word_int: int = -1,
-    ) -> None:
+    def __init__(self, unknown_word_int: int = -1) -> None:
         """
         Initializes the Tokenizer class.
 
         Parameters
-        ------–---
-        max_vocab_size : int, optional
-            Maximum vocabulary size to use (defaults to None,
-            i.e. all words in vocabulary).
-
-            If specified, the top `max_vocab_size` words will be taken into account
-            when tokenizing texts.
-        min_word_count : int, optional
-            Minimum word count (defaults to 10).
-
-            Words that have fewer occurrences than `min_word_count`
-            will be ignored during tokenization of texts.
-        sampling_factor : float, optional
-            Sampling factor to use when computing the probability
-            of keeping a word during random subsampling of words (defaults to 1e-5).
+        ----------
         unknown_word_int : int, optional
             Integer value to use for characterizing unknown words, i.e words that are
             out of the vocabulary (defaults to -1).
         """
-        self._max_vocab_size = max_vocab_size
-        self._min_word_count = min_word_count
-        self._sampling_factor = sampling_factor
         self._unknown_word_int = unknown_word_int
 
+        self._word_occurrences_counter: Optional[Counter] = None
         self._corpus_size: Optional[int] = None
         self._vocab_size: Optional[int] = None
         self._word_to_int: Optional[dict] = None
@@ -243,11 +221,13 @@ class Tokenizer:
             default_value=self._unknown_word_int,
         )
 
-    def _build_word_occurrences(
-        self, filepaths: List[str], num_texts: int
-    ) -> List[Tuple[str, int]]:
+    def build_word_occurrences(
+        self,
+        filepaths: List[str],
+        num_texts: int,
+    ) -> None:
         """
-        Builds a list containing word and its word count
+        Builds the internal word occurrences counter.
 
         Parameters
         ----------
@@ -255,11 +235,6 @@ class Tokenizer:
             Filepaths of text files to build on.
         num_texts : int
             Number of texts (or sentences) of the content of `filepath`.
-
-        Returns
-        -------
-        word_occurrences : list of tuples of str and int
-            A list containing a tuple with word and its word count in the text corpus.
         """
         # Read file content and split into words
         lines = []
@@ -268,32 +243,21 @@ class Tokenizer:
                 lines.append(f)
         lines = itertools.chain(*lines)
 
-        word_occurrences = Counter()
+        self._word_occurrences_counter = Counter()
         for line in tqdm(
             lines,
-            desc="- Building word occurences",
+            desc="- Building word occurrences",
             total=num_texts,
         ):
-            word_occurrences.update(line.strip().split())
-        print(f"Initial vocabulary size: {len(word_occurrences)}")
-        word_occurrences = word_occurrences.most_common(self._max_vocab_size)
-        print(f"New vocabulary size after maximization: {len(word_occurrences)}")
+            self._word_occurrences_counter.update(line.strip().split())
+        print(f"Initial vocabulary size: {len(self._word_occurrences_counter)}")
 
-        # Exclude words with less than `self._min_word_count` occurrences
-        word_occurrences = [
-            (word, word_count)
-            for word, word_count in tqdm(
-                word_occurrences, desc="- Filtering word occurences"
-            )
-            if word_count >= self._min_word_count
-        ]
-        print(
-            f"Final vocabulary size after filtering on minimum word count: {len(word_occurrences)}"
-        )
-
-        return word_occurrences
-
-    def build_vocab(self, filepaths: List[str], num_texts: int) -> None:
+    def build_vocab(
+        self,
+        max_vocab_size: Optional[int] = None,
+        min_word_count: int = 5,
+        sampling_factor: float = 1e-5,
+    ) -> None:
         """
         Builds the vocabulary for the tokenizer class.
 
@@ -307,13 +271,41 @@ class Tokenizer:
 
         Parameters
         ----------
-        filepaths : str
-            Filepaths of text files to build the vocabulary on.
-        num_texts : int
-            Number of texts (or sentences) of the content of `filepath`.
+        max_vocab_size : int, optional
+            Maximum vocabulary size to use (defaults to None,
+            i.e. all words in vocabulary).
+
+            If specified, the top `max_vocab_size` words will be taken into account
+            when tokenizing texts.
+        min_word_count : int, optional
+            Minimum word count (defaults to 5).
+
+            Words that have fewer occurrences than `min_word_count`
+            will be ignored during tokenization of texts.
+        sampling_factor : float, optional
+            Sampling factor to use when computing the probability
+            of keeping a word during random subsampling of words (defaults to 1e-5).
         """
-        # Get word occurrences from text file
-        word_occurrences = self._build_word_occurrences(filepaths, num_texts)
+        if self._word_occurrences_counter is None:
+            raise TypeError(
+                "Word occurrences counter is None. Did you forget to build it?"
+            )
+
+        # Only use most common words
+        word_occurrences = self._word_occurrences_counter.most_common(max_vocab_size)
+        print(f"New vocabulary size after maximization: {len(word_occurrences)}")
+
+        # Exclude words with less than `self._min_word_count` occurrences
+        word_occurrences = [
+            (word, word_count)
+            for word, word_count in tqdm(
+                word_occurrences, desc="- Filtering word occurences"
+            )
+            if word_count >= min_word_count
+        ]
+        print(
+            f"Final vocabulary size after filtering on minimum word count: {len(word_occurrences)}"
+        )
 
         # Set vocabulary size
         self._vocab_size = len(word_occurrences)
@@ -357,8 +349,8 @@ class Tokenizer:
                 # - https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c#L407 # noqa: E501
                 # - https://www.quora.com/How-does-sub-sampling-of-frequent-words-work-in-the-context-of-Word2Vec # noqa: E501
                 keep_prob = (
-                    np.sqrt(self._sampling_factor / word_frequency_frac)
-                    + self._sampling_factor / word_frequency_frac
+                    np.sqrt(sampling_factor / word_frequency_frac)
+                    + sampling_factor / word_frequency_frac
                 )
                 keep_prob = np.minimum(keep_prob, 1.0)
             else:
