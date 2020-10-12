@@ -3,8 +3,9 @@ from datetime import datetime
 from os.path import join
 
 from tokenizer import Tokenizer, load_tokenizer
-from utils import get_all_filepaths, text_files_total_line_count
 from word2vec import Word2vec, load_model
+
+from ..utils import get_all_filepaths, text_files_total_line_count
 
 
 def parse_args() -> argparse.Namespace:

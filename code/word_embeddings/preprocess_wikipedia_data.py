@@ -3,8 +3,9 @@ import subprocess
 from os import makedirs
 from os.path import isdir, isfile, join
 
-from utils import download_from_url
 from wikiextractor_utils import wikiextractor_outputs_to_file
+
+from ..utils import download_from_url
 
 
 def parse_args() -> argparse.Namespace:

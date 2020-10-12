@@ -6,7 +6,8 @@ from os import makedirs
 from os.path import isdir, isfile, join
 
 from tqdm import tqdm
-from utils import download_from_url, get_cached_download_text_file
+
+from ..utils import download_from_url, get_cached_download_text_file
 
 
 def parse_args() -> argparse.Namespace:
