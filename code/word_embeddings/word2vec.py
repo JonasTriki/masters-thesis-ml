@@ -10,11 +10,9 @@ from dataset import create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from tokenizer import Tokenizer
-from train_utils import (
-    create_model_checkpoint_filepath,
-    create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath,
-)
+from train_utils import (create_model_checkpoint_filepath,
+                         create_model_intermediate_embedding_weights_filepath,
+                         create_model_train_logs_filepath)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -268,7 +266,7 @@ class Word2vec:
                 self._min_learning_rate,
             )
 
-            # Apply learning rate
+            # Apply learning rate to gradients of embedding matrix
             if hasattr(gradients[0], "_values"):
                 gradients[0]._values *= decaying_learning_rate
             else:
@@ -278,11 +276,6 @@ class Word2vec:
                 gradients[1]._values *= decaying_learning_rate
             else:
                 gradients[1] *= decaying_learning_rate
-
-            if hasattr(gradients[2], "_values"):
-                gradients[2]._values *= decaying_learning_rate
-            else:
-                gradients[2] *= decaying_learning_rate
 
             optimizer.apply_gradients(zip(gradients, self._model.trainable_variables))
 
