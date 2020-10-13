@@ -10,11 +10,9 @@ from dataset import create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from tokenizer import Tokenizer
-from train_utils import (
-    create_model_checkpoint_filepath,
-    create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath,
-)
+from train_utils import (create_model_checkpoint_filepath,
+                         create_model_intermediate_embedding_weights_filepath,
+                         create_model_train_logs_filepath)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -313,6 +311,7 @@ class Word2vec:
                 f"Fitting word2vec on {dataset_name} with arguments:\n"
                 f"- batch_size={self._batch_size}\n"
                 f"- n_epochs={n_epochs}\n"
+                f"- corpus_size={self._tokenizer.corpus_size}\n"
                 f"- vocab_size={self._tokenizer.vocab_size}\n"
                 f"- embedding_dim={self._embedding_dim}\n"
                 f"- learning_rate={self._learning_rate}\n"

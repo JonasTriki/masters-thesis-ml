@@ -57,6 +57,28 @@ class Tokenizer:
             self._init_static_vocabulary_table()
 
     @property
+    def corpus_size(self) -> int:
+        """
+        Gets the text corpus size.
+
+        Returns
+        -------
+        vocab_size : int
+            Size of the tokenizers text corpus.
+
+        Raises
+        ------
+        TypeError
+            If the vocabulary has not been built yet.
+        """
+        if self._corpus_size is None:
+            raise TypeError(
+                "Corpus size is not determined yet. "
+                "Did you forget to build the vocabulary?"
+            )
+        return self._corpus_size
+
+    @property
     def vocab_size(self) -> int:
         """
         Gets the vocabulary size.
@@ -311,7 +333,7 @@ class Tokenizer:
             f"Final vocabulary size after filtering on minimum word count: {len(word_occurrences)}"
         )
 
-        # Set vocabulary size
+        # Set vocabulary size and total number of words
         self._vocab_size = len(word_occurrences)
 
         # Calculate how many words we have in the text corpus
