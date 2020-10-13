@@ -370,26 +370,28 @@ class Word2vec:
 
                 # Perform intermediate saves of embedding weights to file
                 if intermediate_embedding_weights_saves > 0:
-                    if (
-                        epoch_progress - intermediate_embedding_progress
-                        >= intermediate_saving_thresholds
-                    ):
-                        intermediate_embedding_progress += intermediate_saving_thresholds
+                    should_save = (
+                        epoch_progress / intermediate_saving_thresholds
+                        - intermediate_embedding_progress
+                        >= 1
+                    )
+                    is_not_last = (
+                        intermediate_embedding_progress
+                        < intermediate_embedding_weights_saves - 1
+                    )
+                    if should_save and is_not_last:
 
                         # Save to file
-                        intermediate_embedding_weight_nr = int(
-                            intermediate_embedding_progress
-                            * intermediate_embedding_weights_saves
-                        )
                         self.save_embedding_weights(
                             create_model_intermediate_embedding_weights_filepath(
                                 output_dir,
                                 self._model_name,
                                 dataset_name,
                                 epoch_nr,
-                                intermediate_embedding_weight_nr,
+                                intermediate_embedding_progress + 1,
                             )
                         )
+                        intermediate_embedding_progress += 1
 
                 # Compute overall progress (over all epochs)
                 overall_progress = tf.constant(
