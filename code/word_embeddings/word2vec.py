@@ -10,9 +10,11 @@ from dataset import create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from tokenizer import Tokenizer
-from train_utils import (create_model_checkpoint_filepath,
-                         create_model_intermediate_embedding_weights_filepath,
-                         create_model_train_logs_filepath)
+from train_utils import (
+    create_model_checkpoint_filepath,
+    create_model_intermediate_embedding_weights_filepath,
+    create_model_train_logs_filepath,
+)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -518,6 +520,7 @@ class Word2vec:
         # Create config parser and add key-value pairs
         model_train_config = ConfigParser()
         model_train_config["MODELCONFIG"] = {
+            "corpus_size": str(self._tokenizer.corpus_size),
             "vocab_size": str(self._tokenizer.vocab_size),
             "embedding_dim": str(self._embedding_dim),
         }
