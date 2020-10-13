@@ -78,7 +78,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max_vocab_size",
         type=int,
-        default=None,
+        default=-1,
         help="Maximum vocabulary size to use when training. Defaults to use all words",
     )
     parser.add_argument(

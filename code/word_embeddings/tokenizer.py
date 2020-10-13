@@ -280,7 +280,7 @@ class Tokenizer:
 
     def build_vocab(
         self,
-        max_vocab_size: Optional[int] = None,
+        max_vocab_size: int = -1,
         min_word_count: int = 5,
         sampling_factor: float = 1e-5,
     ) -> None:
@@ -298,7 +298,7 @@ class Tokenizer:
         Parameters
         ----------
         max_vocab_size : int, optional
-            Maximum vocabulary size to use (defaults to None,
+            Maximum vocabulary size to use (defaults to -1,
             i.e. all words in vocabulary).
 
             If specified, the top `max_vocab_size` words will be taken into account
@@ -318,6 +318,8 @@ class Tokenizer:
             )
 
         # Only use most common words
+        if max_vocab_size == -1:
+            max_vocab_size = None
         word_occurrences = self._word_occurrences_counter.most_common(max_vocab_size)
         print(f"New vocabulary size after maximization: {len(word_occurrences)}")
 
