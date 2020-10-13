@@ -4,8 +4,9 @@ FROM tensorflow/tensorflow:latest-gpu
 # Set the working directory
 WORKDIR /project
 
-# Copy code into working directory
-COPY $PWD/code /project
+# Copy pipenv files into working directory
+COPY $PWD/code/Pipfile /project
+COPY $PWD/code/Pipfile.lock /project
 
 # User configuration - override with --build-arg
 ARG user=jtr008
