@@ -1,5 +1,32 @@
 from os.path import join
 
+import tensorflow as tf
+
+
+def enable_dynamic_gpu_memory() -> bool:
+    """
+    Enables dynamic GPU memory growth on all GPUs.
+    https://www.tensorflow.org/guide/gpu
+
+    Returns
+    -------
+    dynamic_memory_enabled : bool
+        Whether or not we successfully enabled dynamic memory.
+    """
+    gpus = tf.config.experimental.list_physical_devices("GPU")
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices("GPU")
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+            return True
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
+    return False
+
 
 def create_model_checkpoint_filepath(
     output_dir: str,

@@ -4,6 +4,7 @@ from datetime import datetime
 from os.path import join
 
 from tokenizer import Tokenizer, load_tokenizer
+from train_utils import enable_dynamic_gpu_memory
 from word2vec import Word2vec, load_model
 
 sys.path.append("..")
@@ -148,6 +149,12 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Number of intermediate saves of embedding weights per epoch during training",
     )
+    parser.add_argument(
+        "--dynamic_gpu_memory",
+        default=False,
+        action="store_true",
+        help="Whether or not to enable dynamic GPU memory",
+    )
     return parser.parse_args()
 
 
@@ -173,6 +180,7 @@ def train_word2vec(
     starting_epoch_nr: int,
     train_logs_to_file: bool,
     intermediate_embedding_weights_saves: int,
+    dynamic_gpu_memory: bool,
 ) -> None:
     """
     Trains a word2vec model using skip-gram negative sampling.
@@ -222,7 +230,13 @@ def train_word2vec(
         Whether or not to save logs from training to file.
     intermediate_embedding_weights_saves : int
         Number of intermediate saves of embedding weights per epoch during training.
+    dynamic_gpu_memory : bool
+        Whether or not to enable dynamic GPU memory
     """
+    if dynamic_gpu_memory:
+        if enable_dynamic_gpu_memory():
+            print("Enabled dynamic GPU memory!")
+
     if (
         text_data_filepath == ""
         and text_data_dir == ""
@@ -322,4 +336,5 @@ if __name__ == "__main__":
         starting_epoch_nr=args.starting_epoch_nr,
         train_logs_to_file=args.train_logs_to_file,
         intermediate_embedding_weights_saves=args.intermediate_embedding_weights_saves,
+        dynamic_gpu_memory=args.dynamic_gpu_memory,
     )
