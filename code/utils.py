@@ -1,5 +1,6 @@
 import os
 import re
+from multiprocessing import Pool
 from os import listdir
 from os.path import isdir, isfile, join
 from typing import AnyStr, Callable, Dict, Generator, List, Union
@@ -125,6 +126,25 @@ def _make_file_gen(
         b = reader(buffer_size)
 
 
+def text_file_total_line_count(filepath: str) -> int:
+    """
+    Counts number of lines in text file.
+
+    Parameters
+    ----------
+    filepath : str
+        Filepath of text file to count.
+
+    Returns
+    -------
+    line_count : int
+        Number of lines in text file
+    """
+    f = open(filepath, "rb")
+    f_gen = _make_file_gen(f.read)
+    return sum(buf.count(b"\n") for buf in f_gen)
+
+
 def text_files_total_line_count(filepaths: List[str]) -> int:
     """
     Counts number of lines in text files.
@@ -140,10 +160,10 @@ def text_files_total_line_count(filepaths: List[str]) -> int:
         Number of lines in text files
     """
     total = 0
-    for filepath in filepaths:
-        f = open(filepath, "rb")
-        f_gen = _make_file_gen(f.read)  # f.raw.read
-        total += sum(buf.count(b"\n") for buf in f_gen)
+    with Pool() as pool:
+        results = pool.imap_unordered(text_file_total_line_count, filepaths)
+        for result in results:
+            total += result
     return total
 
 
