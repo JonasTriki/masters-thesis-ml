@@ -229,6 +229,10 @@ class Tokenizer:
         """
         Builds the internal word occurrences counter.
 
+        Sets the following class variables:
+        - word_occurrences_counter = Word occurrences counter;
+        for looking up how often a word occurs in the vocabulary.
+
         Parameters
         ----------
         filepaths : str
