@@ -142,7 +142,9 @@ def text_file_total_line_count(filepath: str) -> int:
     """
     f = open(filepath, "rb")
     f_gen = _make_file_gen(f.read)
-    return sum(buf.count(b"\n") for buf in f_gen)
+    line_count = sum(buf.count(b"\n") for buf in f_gen)
+    f.close()
+    return line_count
 
 
 def text_files_total_line_count(filepaths: List[str]) -> int:

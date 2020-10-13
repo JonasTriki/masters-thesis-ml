@@ -233,10 +233,6 @@ def train_word2vec(
     dynamic_gpu_memory : bool
         Whether or not to enable dynamic GPU memory
     """
-    if dynamic_gpu_memory:
-        if enable_dynamic_gpu_memory():
-            print("Enabled dynamic GPU memory!")
-
     if (
         text_data_filepath == ""
         and text_data_dir == ""
@@ -255,6 +251,10 @@ def train_word2vec(
     print("Counting lines in text data files...")
     num_texts = text_files_total_line_count(text_data_filepaths)
     print("Done!")
+
+    if dynamic_gpu_memory:
+        if enable_dynamic_gpu_memory():
+            print("Enabled dynamic GPU memory!")
 
     # Initialize tokenizer (and build its vocabulary if necessary)
     if tokenizer_filepath == "":
