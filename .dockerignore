@@ -2,9 +2,10 @@
 .cache
 .ipython
 .local
+.keras
 .bash_history
 **/*/.idea
 **/*/__pycache__
 **/*/.ipynb_checkpoints
 code/**/*data/*
-code/word_embeddings*/checkpoints*
+code/output
