@@ -1,9 +1,9 @@
 #!/bin/bash
-python ../train_word2vec.py \
---text_data_dir ../data/enwiki-20200901 \
+python train_word2vec.py \
+--text_data_dir data/enwiki-20200901 \
 --dataset_name enwiki \
---output_dir ../../output/word2vec_training \
---tokenizer_filepath ../data/enwiki-20200901.tokenizer \
+--output_dir ../output/word2vec_training \
+--tokenizer_filepath data/enwiki-20200901.tokenizer \
 --intermediate_embedding_weights_saves 10 \
 --train_logs_to_file \
 --dynamic_gpu_memory \
