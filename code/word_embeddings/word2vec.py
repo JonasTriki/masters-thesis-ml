@@ -1,6 +1,7 @@
 import os
 import pickle
 from configparser import ConfigParser
+from os.path import isfile
 from time import time
 from typing import List, Optional, TextIO
 
@@ -326,15 +327,18 @@ class Word2vec:
 
         # Initialize train logs file
         train_logs_file: Optional[TextIO] = None
+        train_logs_filepath = create_model_train_logs_filepath(
+            output_dir,
+            self._model_name,
+            dataset_name,
+        )
         if train_logs_to_file:
-            train_logs_filepath = create_model_train_logs_filepath(
-                output_dir,
-                self._model_name,
-                dataset_name,
-            )
-            train_logs_file = open(train_logs_filepath, "w")
-            train_logs_file.write("epoch_nr,train_loss,time_spent")
-            train_logs_file.flush()
+            if isfile(train_logs_filepath) and starting_epoch_nr > 1:
+                train_logs_file = open(train_logs_filepath, "a")
+            else:
+                train_logs_file = open(train_logs_filepath, "w")
+                train_logs_file.write("epoch_nr,train_loss,time_spent")
+                train_logs_file.flush()
 
         for epoch_nr in range(starting_epoch_nr, end_epoch_nr + 1):
             if verbose >= 1:

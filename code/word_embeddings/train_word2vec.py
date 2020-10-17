@@ -256,32 +256,32 @@ def train_word2vec(
         if enable_dynamic_gpu_memory():
             print("Enabled dynamic GPU memory!")
 
-    # Initialize tokenizer (and build its vocabulary if necessary)
-    if tokenizer_filepath == "":
-        tokenizer = Tokenizer()
-        tokenizer.build_word_occurrences(
-            filepaths=text_data_filepaths,
-            num_texts=num_texts,
-        )
-    else:
-        print("Loading tokenizer...")
-        tokenizer = load_tokenizer(tokenizer_filepath)
-    print("Building vocabulary...")
-    tokenizer.build_vocab(
-        max_vocab_size=max_vocab_size,
-        min_word_count=min_word_count,
-        sampling_factor=sampling_factor,
-    )
-    if save_to_tokenizer_filepath != "":
-        print("Done!\nSaving vocabulary...")
-        tokenizer.save(save_to_tokenizer_filepath)
-    print("Done!")
-
     # Initialize word2vec instance
     print("Initializing word2vec model...")
     if pretrained_model_filepath != "":
         word2vec = load_model(pretrained_model_filepath)
     else:
+        # Initialize tokenizer (and build its vocabulary if necessary)
+        if tokenizer_filepath == "":
+            tokenizer = Tokenizer()
+            tokenizer.build_word_occurrences(
+                filepaths=text_data_filepaths,
+                num_texts=num_texts,
+            )
+        else:
+            print("Loading tokenizer...")
+            tokenizer = load_tokenizer(tokenizer_filepath)
+        print("Building vocabulary...")
+        tokenizer.build_vocab(
+            max_vocab_size=max_vocab_size,
+            min_word_count=min_word_count,
+            sampling_factor=sampling_factor,
+        )
+        if save_to_tokenizer_filepath != "":
+            print("Done!\nSaving vocabulary...")
+            tokenizer.save(save_to_tokenizer_filepath)
+        print("Done!")
+
         word2vec = Word2vec(
             tokenizer=tokenizer,
             embedding_dim=embedding_dim,
