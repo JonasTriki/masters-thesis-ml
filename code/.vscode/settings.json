@@ -10,5 +10,6 @@
       "source.organizeImports": true
     }
   },
-  "python.linting.mypyEnabled": true
+  "python.linting.mypyEnabled": true,
+  "python.dataScience.jupyterServerURI": "local"
 }
