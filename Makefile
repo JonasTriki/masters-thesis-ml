@@ -12,7 +12,7 @@ NETWORK   = --network host
 # Only use GPU #1.
 GPUS      = --gpus device=0
 RUNTIME   =
-# --runtime=nvidia 
+# --runtime=nvidia
 # No need to change anything below this line
 
 # Allows you to use sshfs to mount disks
@@ -20,11 +20,18 @@ SSHFSOPTIONS = --cap-add SYS_ADMIN --device /dev/fuse
 
 USERCONFIG   = --build-arg user=$(USERNAME) --build-arg uid=$(USERID) --build-arg gid=$(GROUPID)
 
+# Check for detached mode
+ifeq ($(DETACHED), 1)
+	DETACH = -d
+else
+	DETACH =
+endif
+
 .docker: Dockerfile-$(CONFIG)
 	docker build $(USERCONFIG) -t $(USERNAME)-$(IMAGENAME) $(NETWORK) -f Dockerfile-$(CONFIG) .
 
 # Using -it for interactive use
-RUNCMD=docker run $(GPUS) $(RUNTIME) $(NETWORK) --rm --user $(USERID):$(GROUPID) $(PORT) $(SSHFSOPTIONS) $(DISKS) -it $(USERNAME)-$(IMAGENAME)
+RUNCMD=docker run $(GPUS) $(RUNTIME) $(NETWORK) --rm --user $(USERID):$(GROUPID) $(DETACH) $(PORT) $(SSHFSOPTIONS) $(DISKS) -it $(USERNAME)-$(IMAGENAME)
 
 # Replace 'bash' with the command you want to do
 default: .docker
