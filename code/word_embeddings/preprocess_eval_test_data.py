@@ -1,10 +1,10 @@
 import argparse
 import pickle
 import re
+import sys
 import tarfile
 from os import makedirs
 from os.path import isdir, isfile, join
-import sys
 
 from tqdm import tqdm
 
@@ -106,7 +106,7 @@ def preprocess_questions_words(raw_data_dir: str, output_dir: str) -> None:
     print("Done!")
 
     # Save questions-words dict to file
-    dest_filename = "questions-words.pkl"
+    dest_filename = "sswr.pkl"
     questions_words_filepath = join(output_dir, dest_filename)
     print("Saving to file...")
     with open(questions_words_filepath, "wb") as file:
