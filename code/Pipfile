@@ -37,6 +37,7 @@ wikiextractor = "*"
 numba = "*"
 pynndescent = "*"
 fastdist = "*"
+seaborn = "*"
 
 [requires]
 python_version = "3.6"
