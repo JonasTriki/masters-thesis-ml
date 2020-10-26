@@ -25,6 +25,9 @@ RUN pipenv lock -r > requirements.txt
 RUN pip3 install --trusted-host pypi.python.org -r requirements.txt --ignore-installed
 # RUN pipenv install --system --deploy
 
+# Install screen
+RUN apt-get update && apt-get install -y sudo screen
+
 # Configure user
 RUN groupadd -g $gid $user
 RUN useradd -u $uid -g $gid $user
