@@ -352,12 +352,14 @@ def plot_word_vectors(
     words_to_plot: list,
     transformed_word_embeddings: np.ndarray,
     word_to_int: dict,
+    word_colors: np.ndarray = None,
     title: str = "Plot of word vectors",
     x_label: str = "x1",
     y_label: str = "x2",
     z_label: str = "x3",
 ):
     """
+    TODO: Docs
     Plot word vectors.
     """
     is_3d = transformed_word_embeddings.shape[1] == 3
@@ -381,6 +383,7 @@ def plot_word_vectors(
                 hovertext=words_to_plot,
                 text=words_to_plot,
                 textposition="bottom center",
+                marker=dict(color=word_colors),
             )
         )
     else:
@@ -392,6 +395,7 @@ def plot_word_vectors(
                 hovertext=words_to_plot,
                 text=words_to_plot,
                 textposition="bottom center",
+                marker=dict(color=word_colors),
             )
         )
 
