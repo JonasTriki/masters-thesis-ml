@@ -1,24 +1,12 @@
 import numpy as np
-from fastdist import fastdist
-from sklearn.cluster import AgglomerativeClustering
 from matplotlib import pyplot as plt
+from sklearn.cluster import AgglomerativeClustering
 
-def pairwise_cosine_distances(X: np.ndarray) -> np.ndarray:
-    """
-    TODO: Docs
-    """
-    # Compute pairwise cosine distances (1 - similarity) in X
-    X_cosine_dists = 1 - fastdist.cosine_matrix_to_matrix(X, X)
-    
-    # Ensure diagonal is filled with zeros
-    np.fill_diagonal(X_cosine_dists, 0)
-    
-    return X_cosine_dists
 
 def create_linkage_matrix(clustering: AgglomerativeClustering) -> list:
     """
     TODO: Docs
-    
+
     Code from https://scikit-learn.org/stable/auto_examples/cluster/plot_agglomerative_dendrogram.html,
     downloaded 26th of October, 2020.
     """
@@ -34,13 +22,12 @@ def create_linkage_matrix(clustering: AgglomerativeClustering) -> list:
                 current_count += counts[child_idx - n_samples]
         counts[i] = current_count
 
-    linkage_matrix = np.column_stack([
-        clustering.children_,
-        clustering.distances_,
-        counts
-    ]).astype(np.float)
-    
+    linkage_matrix = np.column_stack(
+        [clustering.children_, clustering.distances_, counts]
+    ).astype(np.float)
+
     return linkage_matrix
+
 
 def plot_silhouette_scores(cluster_numbers: list, silhouette_scores: list) -> None:
     """
@@ -52,7 +39,8 @@ def plot_silhouette_scores(cluster_numbers: list, silhouette_scores: list) -> No
     plt.xticks(xs, cluster_numbers, rotation=90)
     plt.xlabel("Number of clusters")
     plt.ylabel("Average silhouette score")
-    plt.show() 
+    plt.show()
+
 
 def words_in_clusters(cluster_labels: np.ndarray, words: np.ndarray) -> tuple:
     """

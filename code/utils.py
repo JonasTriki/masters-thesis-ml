@@ -7,6 +7,7 @@ from typing import AnyStr, Callable, Dict, Generator, List, Union
 
 import numpy as np
 import requests
+from fastdist import fastdist
 from tqdm import tqdm
 
 
@@ -302,3 +303,16 @@ def get_model_checkpoint_filepaths(
         "train_words_filepath": train_words_filepath,
         "train_logs_filepath": train_logs_filepath,
     }
+
+
+def pairwise_cosine_distances(X: np.ndarray) -> np.ndarray:
+    """
+    TODO: Docs
+    """
+    # Compute pairwise cosine distances (1 - similarity) in X
+    X_cosine_dists = 1 - fastdist.cosine_matrix_to_matrix(X, X)
+
+    # Ensure diagonal is filled with zeros
+    np.fill_diagonal(X_cosine_dists, 0)
+
+    return X_cosine_dists
