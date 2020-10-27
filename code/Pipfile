@@ -39,6 +39,7 @@ pynndescent = "*"
 fastdist = "*"
 seaborn = "*"
 scikit-learn-extra = "*"
+gudhi = "*"
 
 [requires]
 python_version = "3.6"
