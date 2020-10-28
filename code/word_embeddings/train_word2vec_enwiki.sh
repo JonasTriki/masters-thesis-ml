@@ -1,6 +1,6 @@
 #!/bin/bash
 python train_word2vec.py \
---text_data_dir data/enwiki-20200901 \
+--text_data_dir data/enwiki-20200901_phrases/epoch_4 \
 --dataset_name enwiki \
 --output_dir ../output/word2vec_training \
 --tokenizer_filepath data/enwiki-20200901.tokenizer \

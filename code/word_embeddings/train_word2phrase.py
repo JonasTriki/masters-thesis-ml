@@ -57,14 +57,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--threshold",
         type=float,
-        default=100.0,
-        help="Threshold for determining whether a given phrase should be included. Defaults to 100.",
+        default=200.0,
+        help="Threshold for determining whether a given phrase should be included. Defaults to 200.",
     )
     parser.add_argument(
         "--threshold_decay",
         type=float,
-        default=0.05,
-        help="Value to use for decaying the threshold over time. Defaults to 0.05.",
+        default=0.75,
+        help="Value to use for decaying the threshold over time. Defaults to 0.75.",
     )
     parser.add_argument(
         "--phrase_sep",
