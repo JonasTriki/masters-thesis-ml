@@ -357,10 +357,28 @@ def plot_word_vectors(
     x_label: str = "x1",
     y_label: str = "x2",
     z_label: str = "x3",
-):
+) -> None:
     """
-    TODO: Docs
-    Plot word vectors.
+    Plots word vectors in transformed (e.g. 2D or 3D) space.
+
+    Parameters
+    ----------
+    words_to_plot : list
+        List of words to plot
+    transformed_word_embeddings : np.ndarray
+        Word embeddings transformed into 2D or 3D space.
+    word_to_int : dict of str and int
+        Dictionary mapping from word to its integer representation.
+    word_colors : np.ndarray, optional
+        Numpy array consisting of unique labels for each word (i.e. cluster labels)
+    title : str, optional
+        Title to use for the plot (defaults to "Plot of word vectors").
+    x_label : str, optional
+        Label to use for the x-axis (defaults to "x1").
+    y_label : str, optional
+        Label to use for the y-axis (defaults to "x2").
+    z_label : str, optional
+        Label to use for the z-axis (defaults to "x3").
     """
     is_3d = transformed_word_embeddings.shape[1] == 3
 

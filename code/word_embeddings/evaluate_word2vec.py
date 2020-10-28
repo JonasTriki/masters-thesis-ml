@@ -74,7 +74,16 @@ def save_analogies_accuracies_to_file(
     analogies_dataset_name: str, output_dir: str, analogies_accuracies: dict
 ) -> None:
     """
-    TODO: Docs
+    Saves analogy accuracies to file.
+
+    Parameters
+    ----------
+    analogies_dataset_name : str
+        Name of the analogies dataset
+    output_dir : str
+        Output directory
+    analogies_accuracies : dict
+        Dictionary containing accuracies
     """
     analogies_output_filepath = join(output_dir, f"{analogies_dataset_name}.pkl")
     with open(analogies_output_filepath, "wb") as file:
@@ -92,7 +101,26 @@ def evaluate_word2vec(
     output_dir: str,
 ) -> None:
     """
-    TODO: Docs
+    Evaluates a word2vec model on the SSWR and MSR test analogy datasets.
+
+    Parameters
+    ----------
+    model_dir : str
+        Directory of the model to evaluate.
+    model_name : str
+        Name of the trained model.
+    dataset_name : str
+        Name of the dataset the model is trained on.
+    sswr_dataset_filepath : str
+        Filepath of the SSWR test dataset.
+    msr_dataset_filepath : str
+        Filepath of the MSR test dataset.
+    vocab_size : int
+        Vocabulary size to use when evaluating on the test datasets.
+    top_n_prediction : int
+        Which top-N prediction we would like to do.
+    output_dir : str
+        Output directory to save evaluation results.
     """
     # Get filepaths of the model output
     checkpoint_filepaths_dict = get_model_checkpoint_filepaths(

@@ -5,10 +5,20 @@ from sklearn.cluster import AgglomerativeClustering
 
 def create_linkage_matrix(clustering: AgglomerativeClustering) -> list:
     """
-    TODO: Docs
+    Creates a linkage matrix for agglomerative clustering.
 
     Code from https://scikit-learn.org/stable/auto_examples/cluster/plot_agglomerative_dendrogram.html,
     downloaded 26th of October, 2020.
+
+    Parameters
+    ----------
+    clustering : AgglomerativeClustering
+        Agglomerative clustering instance
+
+    Returns
+    -------
+    linkage_matrix : list
+        Linkage matrix as a list
     """
     # Create the counts of samples under each node
     counts = np.zeros(clustering.children_.shape[0])
@@ -31,7 +41,14 @@ def create_linkage_matrix(clustering: AgglomerativeClustering) -> list:
 
 def plot_silhouette_scores(cluster_numbers: list, silhouette_scores: list) -> None:
     """
-    TODO: Docs
+    Plots silhouette scores.
+
+    Parameters
+    ----------
+    cluster_numbers : list
+        List containing cluster numbers for each silhouette score
+    silhouette_scores : list
+        List of silhouette scores
     """
     xs = range(len(cluster_numbers))
     plt.plot(xs, silhouette_scores)
@@ -44,7 +61,19 @@ def plot_silhouette_scores(cluster_numbers: list, silhouette_scores: list) -> No
 
 def words_in_clusters(cluster_labels: np.ndarray, words: np.ndarray) -> tuple:
     """
-    TODO: Docs
+    Gets words in clusters from a list of cluster labels.
+
+    Parameters
+    ----------
+    cluster_labels : np.ndarray
+        Numpy array containing cluster labels
+    words : np.ndarray
+        Numpy array containing all words from vocabulary.
+
+    Returns
+    -------
+    result : tuple
+        Tuple containing list of cluster words and sizes, respectively.
     """
     labels_unique, labels_counts = np.unique(cluster_labels, return_counts=True)
     cluster_words = []

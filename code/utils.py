@@ -307,7 +307,17 @@ def get_model_checkpoint_filepaths(
 
 def pairwise_cosine_distances(X: np.ndarray) -> np.ndarray:
     """
-    TODO: Docs
+    Computes pairwise cosine distances.
+
+    Parameters
+    ----------
+    X : np.ndarray
+        Numpy (n-m)-matrix to compute pairwise cosine distances of.
+
+    Returns
+    -------
+    X_cosine_dists : np.ndarray
+        Square (n-n) Numpy matrix containing pairwise cosine distance.
     """
     # Compute pairwise cosine distances (1 - similarity) in X
     X_cosine_dists = 1 - fastdist.cosine_matrix_to_matrix(X, X)
