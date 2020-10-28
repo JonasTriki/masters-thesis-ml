@@ -260,7 +260,7 @@ class Tokenizer:
         filepaths : str
             Filepaths of text files to build on.
         num_texts : int
-            Number of texts (or sentences) of the content of `filepath`.
+            Number of texts (or sentences) of the content of `filepaths`.
         """
         # Read file content and split into words
         lines = []
