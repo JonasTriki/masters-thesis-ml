@@ -237,4 +237,4 @@ class Word2phrase:
                             progressbar.update(1)
 
             # Change text data filepaths to the newly saved text filepaths
-            text_data_filepaths = new_filepaths
+            text_data_filepaths = new_filepaths.copy()
