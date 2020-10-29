@@ -7,10 +7,10 @@ from typing import Generator, List, Tuple
 import nltk
 from bs4 import BeautifulSoup
 from nltk.tokenize import sent_tokenize
-from text_preprocessing_utils import preprocess_text
 from tqdm import tqdm
 
 sys.path.append("..")
+from text_preprocessing_utils import preprocess_text
 from utils import get_all_filepaths_recursively
 
 nltk.download("punkt")
