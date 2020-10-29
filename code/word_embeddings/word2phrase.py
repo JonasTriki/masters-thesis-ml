@@ -193,53 +193,48 @@ class Word2phrase:
             for filepath in text_data_filepaths:
                 filename = basename(filepath)
                 with open(filepath, "r") as input_file:
-                    new_lines = []
-                    for line in input_file.readlines():
-                        new_line = []
-                        words = line.strip().split()
-                        pairwise_words = self._pairwise_grouping_iter(words)
-                        for pair in pairwise_words:
-                            left_word, right_word = pair
-                            bigram_word = f"{left_word}{self._phrase_sep}{right_word}"
-                            pa = self._word_occurrences_counter.get(left_word)
-                            pb = self._word_occurrences_counter.get(right_word)
-                            pab = self._word_occurrences_counter.get(bigram_word)
-                            all_words_in_vocab = pa and pb and pab
-
-                            # Compute score
-                            if all_words_in_vocab:
-                                score = (
-                                    (pab - self._min_word_count)
-                                    / pa
-                                    / pb
-                                    * self._total_unigram_words
-                                )
-                            else:
-                                score = 0.0
-
-                            if score > threshold:
-                                try:
-                                    # Skip next pair of words, since we combined current pair into
-                                    # a single word.
-                                    next(pairwise_words)
-                                except StopIteration:
-                                    pass
-                                new_line.append(bigram_word)
-                            else:
-                                new_line.append(left_word)
-
-                        # Add new line as a single string (space separated).
-                        new_lines.append(" ".join(new_line))
-                        progressbar.update(1)
-
-                    # Combine lines into a single string (newline separated).
-                    new_lines = "\n".join(new_lines)
-
-                    # Save new lines to file
                     new_filepath = join(current_output_dir, filename)
                     new_filepaths.append(new_filepath)
                     with open(new_filepath, "w") as output_file:
-                        output_file.write(new_lines)
+                        for i, line in enumerate(input_file.readlines()):
+                            new_line = []
+                            words = line.strip().split()
+                            pairwise_words = self._pairwise_grouping_iter(words)
+                            for pair in pairwise_words:
+                                left_word, right_word = pair
+                                bigram_word = f"{left_word}{self._phrase_sep}{right_word}"
+                                pa = self._word_occurrences_counter.get(left_word)
+                                pb = self._word_occurrences_counter.get(right_word)
+                                pab = self._word_occurrences_counter.get(bigram_word)
+                                all_words_in_vocab = pa and pb and pab
+
+                                # Compute score
+                                if all_words_in_vocab:
+                                    score = (
+                                        (pab - self._min_word_count)
+                                        / pa
+                                        / pb
+                                        * self._total_unigram_words
+                                    )
+                                else:
+                                    score = 0.0
+
+                                if score > threshold:
+                                    try:
+                                        # Skip next pair of words, since we combined current pair into
+                                        # a single word.
+                                        next(pairwise_words)
+                                    except StopIteration:
+                                        pass
+                                    new_line.append(bigram_word)
+                                else:
+                                    new_line.append(left_word)
+
+                            # Write line to output file
+                            if i > 0:
+                                output_file.write("\n")
+                            output_file.write(" ".join(new_line))
+                            progressbar.update(1)
 
             # Change text data filepaths to the newly saved text filepaths
             text_data_filepaths = new_filepaths
