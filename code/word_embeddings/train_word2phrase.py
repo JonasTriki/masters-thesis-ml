@@ -37,6 +37,12 @@ def parse_args() -> argparse.Namespace:
         help="Name of the dataset we are training on",
     )
     parser.add_argument(
+        "--starting_epoch_nr",
+        type=int,
+        default=1,
+        help="Epoch number to start the training from",
+    )
+    parser.add_argument(
         "--n_epochs",
         type=int,
         default=4,
@@ -85,6 +91,7 @@ def train_word2phrase(
     text_data_filepath: str,
     text_data_dir: str,
     dataset_name: str,
+    starting_epoch_nr: int,
     n_epochs: int,
     max_vocab_size: int,
     min_word_count: int,
@@ -106,6 +113,8 @@ def train_word2phrase(
         Directory containing text files we wish to train on.
     dataset_name : str
         Name of the dataset we are training on.
+    starting_epoch_nr : int
+        Epoch number to start the training from.
     n_epochs : int
         Number of epochs to train our model on (Mikolov et al. recommends 2-4).
     max_vocab_size : int
@@ -152,6 +161,7 @@ def train_word2phrase(
     word2phrase.fit(
         text_data_filepaths=text_data_filepaths,
         dataset_name=dataset_name,
+        starting_epoch_nr=starting_epoch_nr,
         n_epochs=n_epochs,
         num_texts=num_texts,
         max_vocab_size=max_vocab_size,
@@ -165,6 +175,7 @@ if __name__ == "__main__":
         text_data_filepath=args.text_data_filepath,
         text_data_dir=args.text_data_dir,
         dataset_name=args.dataset_name,
+        starting_epoch_nr=args.starting_epoch_nr,
         n_epochs=args.n_epochs,
         max_vocab_size=args.max_vocab_size,
         min_word_count=args.min_word_count,

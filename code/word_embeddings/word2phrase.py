@@ -138,6 +138,7 @@ class Word2phrase:
         self,
         text_data_filepaths: List[str],
         dataset_name: str,
+        starting_epoch_nr: int,
         n_epochs: int,
         num_texts: int,
         max_vocab_size: int,
@@ -153,6 +154,8 @@ class Word2phrase:
             Filepaths of text data files to train on.
         dataset_name : str
             Name of the dataset we are fitting/training on.
+        starting_epoch_nr : int
+            Epoch number to start the training from.
         n_epochs : int
             Number of passes through the text data files; more runs
             yields longer phrases.
@@ -166,8 +169,9 @@ class Word2phrase:
         output_dir : str
             Output directory to save the new text data files.
         """
-        for epoch in range(1, n_epochs + 1):
-            print(f"Epoch {epoch}/{n_epochs}")
+        end_epoch_nr = n_epochs + starting_epoch_nr - 1
+        for epoch in range(starting_epoch_nr, end_epoch_nr + 1):
+            print(f"Epoch {epoch}/{end_epoch_nr}")
 
             # Compute threshold
             threshold = self._threshold * (1 - self._threshold_decay) ** (epoch - 1)
@@ -196,7 +200,8 @@ class Word2phrase:
                     new_filepath = join(current_output_dir, filename)
                     new_filepaths.append(new_filepath)
                     with open(new_filepath, "w") as output_file:
-                        for i, line in enumerate(input_file.readlines()):
+                        i = 0
+                        for line in input_file:
                             new_line = []
                             words = line.strip().split()
                             pairwise_words = self._pairwise_grouping_iter(words)
@@ -235,6 +240,7 @@ class Word2phrase:
                                 output_file.write("\n")
                             output_file.write(" ".join(new_line))
                             progressbar.update(1)
+                            i += 1
 
             # Change text data filepaths to the newly saved text filepaths
             text_data_filepaths = new_filepaths.copy()
