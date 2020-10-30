@@ -123,13 +123,13 @@ class Word2phrase:
         print(f"New vocabulary size after maximization: {len(word_occurrences_counter)}")
 
         # Exclude words with less than `self._min_word_count` occurrences
-        word_occurrences_counter = [
-            (word, word_count)
+        word_occurrences_counter = {
+            word: word_count
             for word, word_count in tqdm(
                 word_occurrences_counter, desc="- Filtering word occurrences"
             )
             if word_count >= self._min_word_count
-        ]
+        }
         print(
             f"Final vocabulary size after filtering on minimum word count: {len(word_occurrences_counter)}"
         )
