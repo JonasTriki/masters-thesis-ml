@@ -190,13 +190,16 @@ class Word2phrase:
             )
 
             # Iterate over all texts/sentences for each text data file.
-            progressbar = tqdm(
-                total=num_texts, desc="- Computing scores for each text data file"
-            )
             new_filepaths = [
                 join(current_output_dir, basename(filepath))
                 for filepath in text_data_filepaths
             ]
+            print(
+                f"Example input/output: {text_data_filepaths[0]} --> {new_filepaths[0]}"
+            )
+            progressbar = tqdm(
+                total=num_texts, desc="- Computing scores for each text data file"
+            )
             for input_filepath, output_filepath in zip(
                 text_data_filepaths, new_filepaths
             ):
