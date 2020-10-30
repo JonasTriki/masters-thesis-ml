@@ -173,6 +173,12 @@ class Word2phrase:
         for epoch in range(starting_epoch_nr, end_epoch_nr + 1):
             print(f"Epoch {epoch}/{end_epoch_nr}")
 
+            # Create output directory for current epoch
+            current_output_dir = join(
+                output_dir, f"{dataset_name}_phrases", f"epoch_{epoch}"
+            )
+            makedirs(current_output_dir, exist_ok=True)
+
             # Compute threshold
             threshold = self._threshold * (1 - self._threshold_decay) ** (epoch - 1)
 
@@ -183,23 +189,19 @@ class Word2phrase:
                 max_vocab_size=max_vocab_size,
             )
 
-            # Create output directory for current epoch
-            current_output_dir = join(
-                output_dir, f"{dataset_name}_phrases", f"epoch_{epoch}"
-            )
-            makedirs(current_output_dir, exist_ok=True)
-
             # Iterate over all texts/sentences for each text data file.
             progressbar = tqdm(
                 total=num_texts, desc="- Computing scores for each text data file"
             )
-            new_filepaths = []
-            for filepath in text_data_filepaths:
-                filename = basename(filepath)
-                with open(filepath, "r") as input_file:
-                    new_filepath = join(current_output_dir, filename)
-                    new_filepaths.append(new_filepath)
-                    with open(new_filepath, "w") as output_file:
+            new_filepaths = [
+                join(current_output_dir, basename(filepath))
+                for filepath in text_data_filepaths
+            ]
+            for input_filepath, output_filepath in zip(
+                text_data_filepaths, new_filepaths
+            ):
+                with open(input_filepath, "r") as input_file:
+                    with open(output_filepath, "w") as output_file:
                         i = 0
                         for line in input_file:
                             new_line = []
@@ -241,6 +243,7 @@ class Word2phrase:
                             output_file.write(" ".join(new_line))
                             progressbar.update(1)
                             i += 1
+            print()
 
             # Change text data filepaths to the newly saved text filepaths
             text_data_filepaths = new_filepaths.copy()

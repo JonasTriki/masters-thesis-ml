@@ -1,6 +1,6 @@
 python train_word2phrase.py \
---text_data_dir data/enwiki-20200901 \
---dataset_name enwiki-20200901 \
+--text_data_filepath data/enwiki-20200901/enwiki-20200901-01.txt \
+--dataset_name enwiki-20200901_testing \
 --starting_epoch_nr 1 \
 --n_epochs 4 \
 --max_vocab_size -1 \
