@@ -11,9 +11,11 @@ from dataset import create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from tokenizer import Tokenizer
-from train_utils import (create_model_checkpoint_filepath,
-                         create_model_intermediate_embedding_weights_filepath,
-                         create_model_train_logs_filepath)
+from train_utils import (
+    create_model_checkpoint_filepath,
+    create_model_intermediate_embedding_weights_filepath,
+    create_model_train_logs_filepath,
+)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -117,6 +119,7 @@ class Word2vec:
         if self._tokenizer is None:
             self._model: Optional[Model] = None
         else:
+            policy = tf.keras.mixed_precision.experimental.Policy("mixed_float16")
             self._model = Word2VecSGNSModel(
                 word_counts=self._tokenizer.word_counts,
                 embedding_dim=self._embedding_dim,
@@ -127,6 +130,7 @@ class Word2vec:
                 min_learning_rate=self._min_learning_rate,
                 name=self._model_name,
                 target_embedding_layer_name=self._target_embedding_layer_name,
+                dtype=policy,
             )
 
             if weights is not None:

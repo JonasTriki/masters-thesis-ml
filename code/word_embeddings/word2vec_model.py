@@ -55,21 +55,18 @@ class Word2VecSGNSModel(tf.keras.Model):
         self._min_learning_rate = min_learning_rate
         self._target_embedding_layer_name = target_embedding_layer_name
 
-        policy = tf.keras.mixed_precision.experimental.Policy("mixed_float16")
         self.add_weight(
             self._target_embedding_layer_name,
             shape=[self._vocab_size, self._embedding_dim],
             initializer=tf.keras.initializers.RandomUniform(
                 minval=-0.5 / self._embedding_dim, maxval=0.5 / self._embedding_dim
             ),
-            dtype=policy,
         )
 
         self.add_weight(
             "context_embedding",
             shape=[self._vocab_size, self._embedding_dim],
             initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1),
-            dtype=policy,
         )
 
     def get_config(self) -> dict:
