@@ -4,6 +4,7 @@
 .local
 .keras
 .bash_history
+.logs
 **/*/.idea
 **/*/__pycache__
 **/*/.ipynb_checkpoints
