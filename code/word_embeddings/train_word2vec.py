@@ -3,6 +3,7 @@ import sys
 from datetime import datetime
 from os.path import join
 
+from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tokenizer import Tokenizer, load_tokenizer
 from train_utils import enable_dynamic_gpu_memory
 from word2vec import Word2vec, load_model
@@ -255,6 +256,10 @@ def train_word2vec(
     if dynamic_gpu_memory:
         if enable_dynamic_gpu_memory():
             print("Enabled dynamic GPU memory!")
+
+        # Enable mixed precision
+        policy = mixed_precision.Policy("mixed_float16")
+        mixed_precision.set_policy(policy)
 
     # Initialize word2vec instance
     print("Initializing word2vec model...")
