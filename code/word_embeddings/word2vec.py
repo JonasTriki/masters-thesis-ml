@@ -236,6 +236,9 @@ class Word2vec:
         # Set up optimizer (SGD) with maximal learning rate.
         # The idea here is that `perform_train_step` will apply a decaying learning rate.
         optimizer = tf.keras.optimizers.SGD(1.0)
+        optimizer = tf.keras.mixed_precision.experimental.LossScaleOptimizer(
+            optimizer, loss_scale="dynamic"
+        )
 
         @tf.function(input_signature=self._train_step_signature)
         def perform_train_step(
@@ -260,7 +263,14 @@ class Word2vec:
                 Tuple consisting of computed loss and learning rate
             """
             skip_gram_loss = self._model(input_targets, input_contexts)
-            gradients = tf.gradients(skip_gram_loss, self._model.trainable_variables)
+            skip_gram_loss_scaled = optimizer.get_scaled_loss(skip_gram_loss)
+
+            scaled_gradients = tf.gradients(
+                skip_gram_loss_scaled, self._model.trainable_variables
+            )
+            gradients = optimizer.get_unscaled_gradients(scaled_gradients)
+
+            # gradients = tf.gradients(skip_gram_loss, self._model.trainable_variables)
 
             decaying_learning_rate = tf.maximum(
                 self._learning_rate * (1 - progress) + self._min_learning_rate * progress,
