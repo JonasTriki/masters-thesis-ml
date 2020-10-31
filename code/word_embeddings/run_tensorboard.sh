@@ -1,2 +1,2 @@
 #/bin/bash
-screen -dmS tensorboard tensorboard --logdir $1
+screen -dmS tensorboard tensorboard --port 1338 --logdir $1
