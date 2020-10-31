@@ -11,11 +11,9 @@ from dataset import create_dataset
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from tokenizer import Tokenizer
-from train_utils import (
-    create_model_checkpoint_filepath,
-    create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath,
-)
+from train_utils import (create_model_checkpoint_filepath,
+                         create_model_intermediate_embedding_weights_filepath,
+                         create_model_train_logs_filepath)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -36,6 +34,7 @@ class Word2vec:
         unigram_exponent_negative_sampling: float = 3 / 4,
         model_name: str = "word2vec",
         target_embedding_layer_name: str = "target_embedding",
+        mixed_precision: bool = False,
     ) -> None:
         """
         Initializes a word2vec instance.
@@ -61,6 +60,9 @@ class Word2vec:
             Name of the word2vec model (defaults to "word2vec").
         target_embedding_layer_name : str, optional
             Name to use for the target embedding layer (defaults to "target_embedding").
+        mixed_precision : bool
+            Whether or not to use mixed float16 precision while training
+            (requires NVIDIA GPU, e.g., RTX, Titan V, V100).
         """
         self._tokenizer = tokenizer
         self._embedding_dim = embedding_dim
@@ -72,6 +74,7 @@ class Word2vec:
         self._unigram_exponent_negative_sampling = unigram_exponent_negative_sampling
         self._model_name = model_name
         self._target_embedding_layer_name = target_embedding_layer_name
+        self._mixed_precision = mixed_precision
 
         # Initialize model
         self._init_model()
@@ -119,7 +122,6 @@ class Word2vec:
         if self._tokenizer is None:
             self._model: Optional[Model] = None
         else:
-            policy = tf.keras.mixed_precision.experimental.Policy("mixed_float16")
             self._model = Word2VecSGNSModel(
                 word_counts=self._tokenizer.word_counts,
                 embedding_dim=self._embedding_dim,
@@ -130,7 +132,6 @@ class Word2vec:
                 min_learning_rate=self._min_learning_rate,
                 name=self._model_name,
                 target_embedding_layer_name=self._target_embedding_layer_name,
-                dtype=policy,
             )
 
             if weights is not None:
@@ -240,9 +241,10 @@ class Word2vec:
         # Set up optimizer (SGD) with maximal learning rate.
         # The idea here is that `perform_train_step` will apply a decaying learning rate.
         optimizer = tf.keras.optimizers.SGD(1.0)
-        optimizer = tf.keras.mixed_precision.experimental.LossScaleOptimizer(
-            optimizer, loss_scale="dynamic"
-        )
+        if self._mixed_precision:
+            optimizer = tf.keras.mixed_precision.experimental.LossScaleOptimizer(
+                optimizer, loss_scale="dynamic"
+            )
 
         @tf.function(input_signature=self._train_step_signature)
         def perform_train_step(
@@ -267,14 +269,17 @@ class Word2vec:
                 Tuple consisting of computed loss and learning rate
             """
             skip_gram_loss = self._model(input_targets, input_contexts)
-            skip_gram_loss_scaled = optimizer.get_scaled_loss(skip_gram_loss)
 
-            scaled_gradients = tf.gradients(
-                skip_gram_loss_scaled, self._model.trainable_variables
-            )
-            gradients = optimizer.get_unscaled_gradients(scaled_gradients)
-
-            # gradients = tf.gradients(skip_gram_loss, self._model.trainable_variables)
+            # Scale loss and unscale gradients if mixed precision, as specified here:
+            # https://www.tensorflow.org/guide/mixed_precision#training_the_model_with_a_custom_training_loop
+            if self._mixed_precision:
+                skip_gram_loss_scaled = optimizer.get_scaled_loss(skip_gram_loss)
+                scaled_gradients = tf.gradients(
+                    skip_gram_loss_scaled, self._model.trainable_variables
+                )
+                gradients = optimizer.get_unscaled_gradients(scaled_gradients)
+            else:
+                gradients = tf.gradients(skip_gram_loss, self._model.trainable_variables)
 
             decaying_learning_rate = tf.maximum(
                 self._learning_rate * (1 - progress) + self._min_learning_rate * progress,

@@ -7,7 +7,8 @@ python train_word2vec.py \
 --intermediate_embedding_weights_saves 10 \
 --train_logs_to_file \
 --dynamic_gpu_memory \
---max_vocab_size -1 \
+--mixed_precision \
+--max_vocab_size 2000000 \
 --min_word_count 5 \
 --batch_size 256 \
 --n_epochs 5 \

@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 from os.path import join
 
-from tensorflow.keras.mixed_precision import experimental as mixed_precision
+from tensorflow.keras.mixed_precision import experimental as tf_mixed_precision
 from tokenizer import Tokenizer, load_tokenizer
 from train_utils import enable_dynamic_gpu_memory
 from word2vec import Word2vec, load_model
@@ -156,6 +156,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Whether or not to enable dynamic GPU memory",
     )
+    parser.add_argument(
+        "--mixed_precision",
+        default=False,
+        action="store_true",
+        help="Whether or not to use mixed float16 precision while training (requires NVIDIA GPU, e.g., RTX, Titan V, V100)",
+    )
     return parser.parse_args()
 
 
@@ -182,6 +188,7 @@ def train_word2vec(
     train_logs_to_file: bool,
     intermediate_embedding_weights_saves: int,
     dynamic_gpu_memory: bool,
+    mixed_precision: bool,
 ) -> None:
     """
     Trains a word2vec model using skip-gram negative sampling.
@@ -233,6 +240,9 @@ def train_word2vec(
         Number of intermediate saves of embedding weights per epoch during training.
     dynamic_gpu_memory : bool
         Whether or not to enable dynamic GPU memory
+    mixed_precision : bool
+        Whether or not to use mixed float16 precision while training
+        (requires NVIDIA GPU, e.g., RTX, Titan V, V100).
     """
     if (
         text_data_filepath == ""
@@ -257,9 +267,9 @@ def train_word2vec(
         if enable_dynamic_gpu_memory():
             print("Enabled dynamic GPU memory!")
 
-        # Enable mixed precision
-        policy = mixed_precision.Policy("mixed_float16")
-        mixed_precision.set_policy(policy)
+    if mixed_precision:
+        tf_mixed_precision.set_policy("mixed_float16")
+        print("Enabled mixed precision!")
 
     # Initialize word2vec instance
     print("Initializing word2vec model...")
@@ -296,6 +306,7 @@ def train_word2vec(
             max_window_size=max_window_size,
             num_negative_samples=num_negative_samples,
             unigram_exponent_negative_sampling=unigram_exponent_negative_sampling,
+            mixed_precision=mixed_precision,
         )
     print("Done!")
 
@@ -342,4 +353,5 @@ if __name__ == "__main__":
         train_logs_to_file=args.train_logs_to_file,
         intermediate_embedding_weights_saves=args.intermediate_embedding_weights_saves,
         dynamic_gpu_memory=args.dynamic_gpu_memory,
+        mixed_precision=args.mixed_precision,
     )
