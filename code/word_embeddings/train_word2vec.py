@@ -162,6 +162,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Whether or not to use mixed float16 precision while training (requires NVIDIA GPU, e.g., RTX, Titan V, V100)",
     )
+    parser.add_argument(
+        "--tensorboard_logs_dir",
+        type=str,
+        default="tensorboard_logs",
+        help="TensorBoard logs directory",
+    )
     return parser.parse_args()
 
 
@@ -189,6 +195,7 @@ def train_word2vec(
     intermediate_embedding_weights_saves: int,
     dynamic_gpu_memory: bool,
     mixed_precision: bool,
+    tensorboard_logs_dir: str,
 ) -> None:
     """
     Trains a word2vec model using skip-gram negative sampling.
@@ -243,6 +250,8 @@ def train_word2vec(
     mixed_precision : bool
         Whether or not to use mixed float16 precision while training
         (requires NVIDIA GPU, e.g., RTX, Titan V, V100).
+    tensorboard_logs_dir : str
+        TensorBoard logs directory
     """
     if (
         text_data_filepath == ""
@@ -310,8 +319,9 @@ def train_word2vec(
         )
     print("Done!")
 
-    # Append date/time to output directory.
+    # Append date/time to output directories.
     output_dir = join(output_dir, datetime.now().strftime("%d-%b-%Y_%H-%M-%S"))
+    tensorboard_logs_dir = join(output_dir, tensorboard_logs_dir)
 
     # Train model
     word2vec.fit(
@@ -320,6 +330,7 @@ def train_word2vec(
         dataset_name=dataset_name,
         n_epochs=n_epochs,
         output_dir=output_dir,
+        tensorboard_logs_dir=tensorboard_logs_dir,
         starting_epoch_nr=starting_epoch_nr,
         train_logs_to_file=train_logs_to_file,
         intermediate_embedding_weights_saves=intermediate_embedding_weights_saves,
@@ -354,4 +365,5 @@ if __name__ == "__main__":
         intermediate_embedding_weights_saves=args.intermediate_embedding_weights_saves,
         dynamic_gpu_memory=args.dynamic_gpu_memory,
         mixed_precision=args.mixed_precision,
+        tensorboard_logs_dir=args.tensorboard_logs_dir,
     )

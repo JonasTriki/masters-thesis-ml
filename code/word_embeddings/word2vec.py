@@ -8,6 +8,7 @@ from typing import List, Optional, TextIO
 import numpy as np
 import tensorflow as tf
 from dataset import create_dataset
+from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from tokenizer import Tokenizer
@@ -203,6 +204,7 @@ class Word2vec:
         dataset_name: str,
         n_epochs: int,
         output_dir: str = "output",
+        tensorboard_logs_dir: str = "tensorboard_logs",
         starting_epoch_nr: int = 1,
         intermediate_embedding_weights_saves: int = 0,
         train_logs_to_file: bool = True,
@@ -223,6 +225,8 @@ class Word2vec:
             Number of epochs to fit/train.
         output_dir : str
             Output directory to save metadata files, checkpoints and intermediate model weights.
+        tensorboard_logs_dir : str
+            TensorBoard logs directory.
         starting_epoch_nr : int, optional
             Denotes the starting epoch number (defaults to 1).
         intermediate_embedding_weights_saves : int, optional
@@ -237,6 +241,11 @@ class Word2vec:
 
         # Ensure output directory exists before training
         os.makedirs(output_dir, exist_ok=True)
+
+        # Enable TensorBoard
+        if tensorboard_logs_dir != "":
+            tb_callback = TensorBoard(tensorboard_logs_dir)
+            tb_callback.set_model(self._model)
 
         # Set up optimizer (SGD) with maximal learning rate.
         # The idea here is that `perform_train_step` will apply a decaying learning rate.
