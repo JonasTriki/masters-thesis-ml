@@ -6,8 +6,6 @@ python train_word2vec.py \
 --save_to_tokenizer_filepath data/enwiki-20200901.tokenizer \
 --intermediate_embedding_weights_saves 10 \
 --train_logs_to_file \
---dynamic_gpu_memory \
---mixed_precision \
 --max_vocab_size 2000000 \
 --min_word_count 5 \
 --batch_size 256 \
@@ -19,3 +17,6 @@ python train_word2vec.py \
 --num_negative_samples 5 \
 --sampling_factor 0.00001 \
 --unigram_exponent_negative_sampling 0.75
+
+# --dynamic_gpu_memory \
+# --mixed_precision \
