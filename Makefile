@@ -7,7 +7,7 @@ DISKS     = -v $(PWD)/code:/project
 USERID    = $(shell id -u)
 GROUPID   = $(shell id -g)
 USERNAME  = $(shell whoami)
-PORT      = -p 8888:8888
+PORT      = -p 1337:1337 -p 1338:1338
 NETWORK   = --network host
 # Only use GPU #1.
 GPUS      = --gpus device=0
@@ -39,4 +39,4 @@ default: .docker
 
 # requires CONFIG=jupyter
 jupyter:
-	$(RUNCMD) jupyter notebook --ip $(hostname -I) --port 8888
+	$(RUNCMD) jupyter notebook --ip $(hostname -I) --port 1337
