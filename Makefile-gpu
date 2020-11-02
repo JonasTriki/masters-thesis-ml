@@ -1,7 +1,7 @@
 # Change the configuration here.
 # Include your useid/name as part of IMAGENAME to avoid conflicts
 IMAGENAME = docker-jtr008-masters
-CONFIG    = masters
+CONFIG    = gpu
 COMMAND   = bash
 DISKS     = -v $(PWD)/code:/project
 USERID    = $(shell id -u)

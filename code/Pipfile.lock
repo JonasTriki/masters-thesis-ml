@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "af3ee3029685b63ce0c7857a737f6dcff7c00a3d79cc6d4e21beafeeb0ead42b"
+            "sha256": "8f3faa0916ebcde31a12aedef784b347fc082e3de460cc107c5ae91be3ad8339"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1049,24 +1049,6 @@
             "markers": "python_version >= '3.0'",
             "version": "==2.0.1"
         },
-        "tensorflow-addons": {
-            "hashes": [
-                "sha256:16b3fc4258a0251401bb0ced75742c6c02d7c5dee0531df976499da8208b5bb4",
-                "sha256:22177e036e17d057afeeea0327f045d2aeb84539db31c4d81dbb5e7942692ce5",
-                "sha256:35ae042544b6f3334c2d05f111db7bc9692ac2a001078c20f4414d270c481832",
-                "sha256:551b0097f28075c31dfebc3d8e717bc23bd8521ba03f2d69e2141c2bd687cd29",
-                "sha256:677bbe0714eb8286667d7ecf3a41e53234de72d93e67d23f63b6e55345da91b6",
-                "sha256:76d7a1b99ddb69c3990581147fe751c9767f3b2555836f170c4a580525decdf9",
-                "sha256:8663048652b8b5f7fb09c58b1c166c001fdf6e704e4a132307daef08f1b7beab",
-                "sha256:adcfcddc62f879880f0e164344612198ea3b6de0f54978b9379cad5c350af5ff",
-                "sha256:c3dcf5fd56aeacf13fd41b198eb6c11567b9cf86f516673b9766a1f97061bde2",
-                "sha256:cfbd34c93327de78ef0dee14956fed19bac9ef039670869000b0a4405f539c4e",
-                "sha256:e36dd53520989dbd2c6850ea92a23739bd90fb481d7076777d8d521dce47fcc8",
-                "sha256:e6b9acec0a8353b52854d7c7e422a1e96459c58c3307ee4c7ba7bf3afb035fb6"
-            ],
-            "index": "pypi",
-            "version": "==0.11.2"
-        },
         "terminado": {
             "hashes": [
                 "sha256:3da72a155b807b01c9e8a5babd214e052a0a45a975751da3521a1c3381ce6d76",
@@ -1201,14 +1183,6 @@
                 "sha256:fe460b922ec15dd205595c9b5b99e2f056fd98ae8f9f56b888e7a17dc2b757e7"
             ],
             "version": "==1.4.1"
-        },
-        "typeguard": {
-            "hashes": [
-                "sha256:a75c6d86ac9d1faf85c5ae952de473e5d26824dda6d4394ff6bc676849cfb939",
-                "sha256:d830132dcd544d3f8a2a842ea739eaa0d7c099fcebb9dcdf3802f4c9929d8191"
-            ],
-            "markers": "python_full_version >= '3.5.3'",
-            "version": "==2.10.0"
         },
         "umap-learn": {
             "hashes": [
