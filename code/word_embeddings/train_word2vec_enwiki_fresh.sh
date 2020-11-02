@@ -6,9 +6,8 @@ python train_word2vec.py \
 --save_to_tokenizer_filepath data/enwiki-20200901.tokenizer \
 --intermediate_embedding_weights_saves 10 \
 --train_logs_to_file \
---cpu_only \
 --tensorboard_logs_dir tensorboard_logs \
---max_vocab_size 2000000 \
+--max_vocab_size -1 \
 --min_word_count 5 \
 --batch_size 256 \
 --n_epochs 5 \
@@ -22,3 +21,4 @@ python train_word2vec.py \
 
 # --dynamic_gpu_memory \
 # --mixed_precision \
+# --cpu_only \
