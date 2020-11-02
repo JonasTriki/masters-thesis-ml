@@ -87,6 +87,7 @@ def preprocess_country_capitals(raw_data_dir: str, output_dir: str) -> None:
     world_cities_df_capitals["city"] = world_cities_df_capitals["city"].apply(
         preprocess_name
     )
+    world_cities_df_capitals.rename(columns={"city": "capital"}, inplace=True)
 
     # Save to file
     world_cities_df_capitals.to_csv(output_filepath, index=False)
