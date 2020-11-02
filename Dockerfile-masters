@@ -18,6 +18,8 @@ ARG gid=1000
 ENV DEBIAN_FRONTEND=noninteractive
 ENV HOME=/project
 
+RUN pip3 list
+
 # Install any needed packages from apt
 RUN pip3 install --trusted-host pypi.python.org --upgrade pip
 RUN pip3 install --trusted-host pypi.python.org pipenv
@@ -26,7 +28,7 @@ RUN pip3 install --trusted-host pypi.python.org -r requirements.txt --ignore-ins
 # RUN pipenv install --system --deploy
 
 # Install optimized Tensorflow binary
-RUN pip3 install https://intel-optimized-tensorflow.s3.cn-north-1.amazonaws.com.cn/intel_tensorflow_avx512-2.3.0-cp36-cp36m-manylinux2010_x86_64.whl
+# RUN pip3 install https://intel-optimized-tensorflow.s3.cn-north-1.amazonaws.com.cn/intel_tensorflow_avx512-2.3.0-cp36-cp36m-manylinux2010_x86_64.whl
 
 # Install screen
 RUN apt-get update && apt-get install -y sudo screen
