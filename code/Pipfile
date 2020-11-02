@@ -14,7 +14,6 @@ jupyter = "*"
 [packages]
 pandas = "*"
 numpy = "*"
-tensorflow = "*"
 pydot = "*"
 scipy = "*"
 scikit-learn = "*"
