@@ -381,4 +381,5 @@ if __name__ == "__main__":
         dynamic_gpu_memory=args.dynamic_gpu_memory,
         mixed_precision=args.mixed_precision,
         tensorboard_logs_dir=args.tensorboard_logs_dir,
+        cpu_only=args.cpu_only,
     )
