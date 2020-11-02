@@ -6,6 +6,7 @@ python train_word2vec.py \
 --tokenizer_filepath data/enwiki-20200901.tokenizer \
 --intermediate_embedding_weights_saves 10 \
 --train_logs_to_file \
+--cpu_only \
 --tensorboard_logs_dir tensorboard_logs \
 --max_vocab_size 2000000 \
 --min_word_count 5 \

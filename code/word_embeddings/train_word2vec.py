@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 from datetime import datetime
 from os.path import join
@@ -168,6 +169,12 @@ def parse_args() -> argparse.Namespace:
         default="tensorboard_logs",
         help="TensorBoard logs directory",
     )
+    parser.add_argument(
+        "--cpu_only",
+        default=False,
+        action="store_true",
+        help="Whether or not to train on the CPU only",
+    )
     return parser.parse_args()
 
 
@@ -196,6 +203,7 @@ def train_word2vec(
     dynamic_gpu_memory: bool,
     mixed_precision: bool,
     tensorboard_logs_dir: str,
+    cpu_only: bool,
 ) -> None:
     """
     Trains a word2vec model using skip-gram negative sampling.
@@ -252,6 +260,8 @@ def train_word2vec(
         (requires NVIDIA GPU, e.g., RTX, Titan V, V100).
     tensorboard_logs_dir : str
         TensorBoard logs directory
+    cpu_only : bool
+        Whether or not to train on the CPU only
     """
     if (
         text_data_filepath == ""
@@ -267,12 +277,17 @@ def train_word2vec(
     else:
         text_data_filepaths = get_all_filepaths(text_data_dir, ".txt")
 
+    if cpu_only:
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+        print("Only using CPU!")
+
     # Count number of lines in text data file.
     print("Counting lines in text data files...")
     num_texts = text_files_total_line_count(text_data_filepaths)
     print("Done!")
 
-    if dynamic_gpu_memory:
+    if dynamic_gpu_memory and not cpu_only:
         if enable_dynamic_gpu_memory():
             print("Enabled dynamic GPU memory!")
 
