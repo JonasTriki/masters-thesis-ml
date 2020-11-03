@@ -507,7 +507,7 @@ class Word2vec:
             Where to save the model.
         """
         # Save model to file
-        joblib.dump(self, target_filepath)
+        joblib.dump(self, target_filepath, protocol=4)  # protocol=4 for saving big files
 
     def save_embedding_weights(self, target_filepath: str) -> None:
         """

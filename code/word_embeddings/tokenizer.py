@@ -460,7 +460,9 @@ class Tokenizer:
         destination_filepath : str
             Where to save the tokenizer to.
         """
-        joblib.dump(self, destination_filepath)
+        joblib.dump(
+            self, destination_filepath, protocol=4
+        )  # protocol=4 for saving big files
 
 
 def load_tokenizer(tokenizer_filepath: str) -> Tokenizer:
