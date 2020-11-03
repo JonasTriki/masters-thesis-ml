@@ -40,6 +40,7 @@ scikit-learn-extra = "*"
 gudhi = "*"
 h5py = "*"
 hickle = "*"
+joblib = "*"
 
 [requires]
 python_version = "3.6"

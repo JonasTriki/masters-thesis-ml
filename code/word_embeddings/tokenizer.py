@@ -2,7 +2,7 @@ import itertools
 from collections import Counter
 from typing import List, Optional
 
-import hickle
+import joblib
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
@@ -460,10 +460,10 @@ class Tokenizer:
         destination_filepath : str
             Where to save the tokenizer to.
         """
-        hickle.dump(self, destination_filepath, mode="w")
+        joblib.dump(self, destination_filepath)
 
 
-def load_tokenizer(tokenizer_filepath: str) -> object:
+def load_tokenizer(tokenizer_filepath: str) -> Tokenizer:
     """
     Loads the tokenizer vocabulary from file.
 
@@ -478,4 +478,4 @@ def load_tokenizer(tokenizer_filepath: str) -> object:
         Tokenizer instance.
     """
     # Read saved model dictionary from file
-    return hickle.load(tokenizer_filepath)
+    return joblib.load(tokenizer_filepath)

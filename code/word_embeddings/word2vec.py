@@ -4,7 +4,7 @@ from os.path import isfile
 from time import time
 from typing import List, Optional, TextIO
 
-import hickle as hkl
+import joblib
 import numpy as np
 import tensorflow as tf
 from dataset import create_dataset
@@ -12,9 +12,11 @@ from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 from tokenizer import Tokenizer
-from train_utils import (create_model_checkpoint_filepath,
-                         create_model_intermediate_embedding_weights_filepath,
-                         create_model_train_logs_filepath)
+from train_utils import (
+    create_model_checkpoint_filepath,
+    create_model_intermediate_embedding_weights_filepath,
+    create_model_train_logs_filepath,
+)
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -505,7 +507,7 @@ class Word2vec:
             Where to save the model.
         """
         # Save model to file
-        hkl.dump(self, target_filepath, mode="w")
+        joblib.dump(self, target_filepath)
 
     def save_embedding_weights(self, target_filepath: str) -> None:
         """
@@ -567,7 +569,7 @@ class Word2vec:
             model_train_config.write(file)
 
 
-def load_model(model_filepath: str) -> object:
+def load_model(model_filepath: str) -> Word2vec:
     """
     Loads and returns a word2vec instance from file.
 
@@ -582,4 +584,4 @@ def load_model(model_filepath: str) -> object:
         Word2vec instance.
     """
     # Read saved model dictionary from file
-    return hkl.load(model_filepath)
+    return joblib.load(model_filepath)

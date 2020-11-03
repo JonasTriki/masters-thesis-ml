@@ -1,11 +1,11 @@
 import argparse
-import pickle
 import re
 import sys
 import tarfile
 from os import makedirs
 from os.path import isdir, isfile, join
 
+import joblib
 from tqdm import tqdm
 
 sys.path.append("..")
@@ -106,11 +106,10 @@ def preprocess_questions_words(raw_data_dir: str, output_dir: str) -> None:
     print("Done!")
 
     # Save questions-words dict to file
-    dest_filename = "sswr.pkl"
+    dest_filename = "sswr.joblib"
     questions_words_filepath = join(output_dir, dest_filename)
     print("Saving to file...")
-    with open(questions_words_filepath, "wb") as file:
-        pickle.dump(questions_words_dict, file)
+    joblib.dump(questions_words_dict, questions_words_filepath)
     print("Done!")
 
 
@@ -134,7 +133,7 @@ def preprocess_msr(raw_data_dir: str, output_dir: str) -> None:
     raw_data_url = "https://download.microsoft.com/download/A/B/4/AB4F476B-48A6-47CF-9716-5FF9D0D1F7EA/FeatureAugmentedRNNToolkit-v1.1.tgz"
     raw_data_zip_filepath = join(raw_data_dir, f"{dataset_name}.tgz")
     raw_data_extracted_zip_filepath = join(raw_data_dir, dataset_name)
-    output_filepath = join(output_dir, f"{dataset_name}.pkl")
+    output_filepath = join(output_dir, f"{dataset_name}.joblib")
 
     # Download raw data if not present
     if not isfile(raw_data_zip_filepath):
@@ -187,8 +186,7 @@ def preprocess_msr(raw_data_dir: str, output_dir: str) -> None:
 
     # Save list of analogies from MSR to file
     print("Saving to file...")
-    with open(output_filepath, "wb") as file:
-        pickle.dump(word_relationship_questions_answers, file)
+    joblib.dump(word_relationship_questions_answers, output_filepath)
     print("Done!")
 
 
