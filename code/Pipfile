@@ -38,6 +38,8 @@ fastdist = "*"
 seaborn = "*"
 scikit-learn-extra = "*"
 gudhi = "*"
+h5py = "*"
+hickle = "*"
 
 [requires]
 python_version = "3.6"

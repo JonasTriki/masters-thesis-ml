@@ -1,8 +1,8 @@
 import itertools
-import pickle
 from collections import Counter
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
+import hickle
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
@@ -460,11 +460,10 @@ class Tokenizer:
         destination_filepath : str
             Where to save the tokenizer to.
         """
-        with open(destination_filepath, "wb") as file:
-            pickle.dump(self, file)
+        hickle.dump(self, destination_filepath, mode="w")
 
 
-def load_tokenizer(tokenizer_filepath: str) -> Tokenizer:
+def load_tokenizer(tokenizer_filepath: str) -> object:
     """
     Loads the tokenizer vocabulary from file.
 
@@ -479,5 +478,4 @@ def load_tokenizer(tokenizer_filepath: str) -> Tokenizer:
         Tokenizer instance.
     """
     # Read saved model dictionary from file
-    with open(tokenizer_filepath, "rb") as file:
-        return pickle.load(file)
+    return hickle.load(tokenizer_filepath)

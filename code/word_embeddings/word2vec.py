@@ -1,10 +1,10 @@
 import os
-import pickle
 from configparser import ConfigParser
 from os.path import isfile
 from time import time
 from typing import List, Optional, TextIO
 
+import hickle as hkl
 import numpy as np
 import tensorflow as tf
 from dataset import create_dataset
@@ -505,8 +505,7 @@ class Word2vec:
             Where to save the model.
         """
         # Save model to file
-        with open(target_filepath, "wb") as file:
-            pickle.dump(self, file)
+        hkl.dump(self, target_filepath, mode="w")
 
     def save_embedding_weights(self, target_filepath: str) -> None:
         """
@@ -568,7 +567,7 @@ class Word2vec:
             model_train_config.write(file)
 
 
-def load_model(model_filepath: str) -> Word2vec:
+def load_model(model_filepath: str) -> object:
     """
     Loads and returns a word2vec instance from file.
 
@@ -583,5 +582,4 @@ def load_model(model_filepath: str) -> Word2vec:
         Word2vec instance.
     """
     # Read saved model dictionary from file
-    with open(model_filepath, "rb") as file:
-        return pickle.load(file)
+    return hkl.load(model_filepath)
