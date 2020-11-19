@@ -1,6 +1,6 @@
 #/bin/bash
 python evaluate_word2vec.py \
---model_dir ../output/word2vec_training/31-Oct-2020_14-45-28 \
+--model_dir ../output/word2vec_training/03-Nov-2020_11-01-00 \
 --model_name word2vec \
 --dataset_name enwiki \
 --sswr_dataset_filepath data/sswr.pkl \
