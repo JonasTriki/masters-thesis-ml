@@ -41,6 +41,7 @@ gudhi = "*"
 h5py = "*"
 hickle = "*"
 joblib = "*"
+countryinfo = "*"
 
 [requires]
 python_version = "3.6"
