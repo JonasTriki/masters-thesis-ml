@@ -41,7 +41,7 @@ gudhi = "*"
 h5py = "*"
 hickle = "*"
 joblib = "*"
-countryinfo = "*"
+xlrd = "*"
 
 [requires]
 python_version = "3.6"

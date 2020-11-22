@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a355b3ce4f7524ab70ac10f9cd8bc6840e5c522184e6f4490615aa64c897c46c"
+            "sha256": "c7cea161e2c8eaa0230ae4aa15230f8bba1e6752c87774c8650942a649a16ae9"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -180,13 +180,6 @@
             ],
             "index": "pypi",
             "version": "==0.0.25"
-        },
-        "countryinfo": {
-            "hashes": [
-                "sha256:fd518b3fd8899f6520518320ac17b67bf410c7db5044c61cb191f802bb85c34d"
-            ],
-            "index": "pypi",
-            "version": "==0.1.2"
         },
         "cycler": {
             "hashes": [
@@ -1208,11 +1201,11 @@
         },
         "tqdm": {
             "hashes": [
-                "sha256:18d6a615aedd09ec8456d9524489dab330af4bd5c2a14a76eb3f9a0e14471afe",
-                "sha256:80d9d5165d678dbd027dd102dfb99f71bf05f333b61fb761dbba13b4ab719ead"
+                "sha256:3d3f1470d26642e88bd3f73353cb6ff4c51ef7d5d7efef763238f4bc1f7e4e81",
+                "sha256:5ff3f5232b19fa4c5531641e480b7fad4598819f708a32eb815e6ea41c5fa313"
             ],
             "index": "pypi",
-            "version": "==4.52.0"
+            "version": "==4.53.0"
         },
         "traitlets": {
             "hashes": [
@@ -1305,6 +1298,14 @@
             ],
             "index": "pypi",
             "version": "==0.1"
+        },
+        "xlrd": {
+            "hashes": [
+                "sha256:546eb36cee8db40c3eaa46c351e67ffee6eeb5fa2650b71bc4c758a29a1b29b2",
+                "sha256:e551fb498759fa3a5384a94ccd4c3c02eb7c00ea424426e212ac0c57be9dfbde"
+            ],
+            "index": "pypi",
+            "version": "==1.2.0"
         },
         "zipp": {
             "hashes": [
