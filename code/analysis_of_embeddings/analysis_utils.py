@@ -80,5 +80,5 @@ def words_in_clusters(cluster_labels: np.ndarray, words: np.ndarray) -> tuple:
     for cluster_label in labels_unique:
         words_in_cluster = words[cluster_labels == cluster_label]
         cluster_words.append(words_in_cluster)
-    cluster_words = np.array(cluster_words)
+    cluster_words = np.array(cluster_words, dtype=object)
     return cluster_words, labels_counts
