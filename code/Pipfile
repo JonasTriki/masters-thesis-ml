@@ -42,6 +42,7 @@ h5py = "*"
 hickle = "*"
 joblib = "*"
 xlrd = "*"
+tikzplotlib = "*"
 
 [requires]
 python_version = "3.6"
