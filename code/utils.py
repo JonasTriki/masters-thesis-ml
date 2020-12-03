@@ -326,3 +326,22 @@ def pairwise_cosine_distances(X: np.ndarray) -> np.ndarray:
     np.fill_diagonal(X_cosine_dists, 0)
 
     return X_cosine_dists
+
+
+def cosine_distance(x: np.ndarray, y: np.ndarray) -> float:
+    """
+    Computes the cosine distance between two points x and y.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        First point
+    y : np.ndarray
+        Second point
+
+    Returns
+    -------
+    cosine_dist : float
+        Cosine distance between x and y
+    """
+    return 1 - fastdist.cosine(x, y)
