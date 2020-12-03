@@ -18,14 +18,14 @@ ARG gid=1000
 ENV DEBIAN_FRONTEND=noninteractive
 ENV HOME=/project
 
+# Install needed programs from apt-get
+RUN apt-get update && apt-get install -y sudo screen git
+
 # Install any needed packages from apt
 RUN pip3 install --trusted-host pypi.python.org --upgrade pip
 RUN pip3 install --trusted-host pypi.python.org pipenv
 RUN pipenv lock -r > requirements.txt
 RUN pip3 install --trusted-host pypi.python.org -r requirements.txt --ignore-installed
-
-# Install screen
-RUN apt-get update && apt-get install -y sudo screen
 
 # Configure user
 RUN groupadd -g $gid $user
