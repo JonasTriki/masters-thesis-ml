@@ -1,7 +1,8 @@
 from typing import List, Tuple
 
 import tensorflow as tf
-from tokenizer import Tokenizer
+
+from word_embeddings.tokenizer import Tokenizer
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
