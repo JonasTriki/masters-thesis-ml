@@ -3,6 +3,9 @@ from configparser import ConfigParser
 from os.path import isfile
 from time import time
 from typing import List, Optional, TextIO
+import sys
+
+sys.path.append("..")
 
 import joblib
 import numpy as np
@@ -17,6 +20,7 @@ from train_utils import (
     create_model_intermediate_embedding_weights_filepath,
     create_model_train_logs_filepath,
 )
+from utils import get_model_checkpoint_filepaths
 from word2vec_model import Word2VecSGNSModel
 
 
@@ -585,3 +589,51 @@ def load_model(model_filepath: str) -> Word2vec:
     """
     # Read saved model dictionary from file
     return joblib.load(model_filepath)
+
+
+def load_model_training_output(
+    model_training_output_dir: str, model_name: str, dataset_name: str
+) -> dict:
+    """
+    Loads and returns a dict object containing output from word2vec training
+
+    Parameters
+    ----------
+    model_training_output_dir : str
+        word2vec model training output directory
+    model_name : str
+        Name of the trained model.
+    dataset_name : str
+        Name of the dataset the model is trained on.
+
+    Returns
+    -------
+    model_training_output : dict
+        Dictionary containing output from word2vec training
+    """
+
+    # Get filepaths of the model output
+    checkpoint_filepaths_dict = get_model_checkpoint_filepaths(
+        output_dir=model_training_output_dir,
+        model_name=model_name,
+        dataset_name=dataset_name,
+    )
+
+    # Get last word embeddings from training
+    last_embedding_weights_filepath = checkpoint_filepaths_dict[
+        "intermediate_embedding_weight_filepaths"
+    ][-1]
+    last_embedding_weights = np.load(
+        last_embedding_weights_filepath, mmap_mode="r"
+    ).astype(np.float64)
+
+    # Get array of words and word_to_int lookup dictionary
+    with open(checkpoint_filepaths_dict["train_words_filepath"], "r") as file:
+        words = np.array(file.read().split("\n"))
+    word_to_int = {word: i for i, word in enumerate(words)}
+
+    return {
+        "last_embedding_weights": last_embedding_weights,
+        "words": words,
+        "word_to_int": word_to_int,
+    }
