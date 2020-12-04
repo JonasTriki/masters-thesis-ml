@@ -1,27 +1,27 @@
 import os
+import sys
 from configparser import ConfigParser
 from os.path import isfile
 from time import time
 from typing import List, Optional, TextIO
-import sys
 
 sys.path.append("..")
 
 import joblib
 import numpy as np
 import tensorflow as tf
-from dataset import create_dataset
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
-from tokenizer import Tokenizer
-from train_utils import (
+
+from utils import get_model_checkpoint_filepaths
+from word_embeddings.dataset import create_dataset
+from word_embeddings.tokenizer import Tokenizer
+from word_embeddings.train_utils import (
     create_model_checkpoint_filepath,
     create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath,
-)
-from utils import get_model_checkpoint_filepaths
-from word2vec_model import Word2VecSGNSModel
+    create_model_train_logs_filepath)
+from word_embeddings.word2vec_model import Word2VecSGNSModel
 
 
 class Word2vec:
