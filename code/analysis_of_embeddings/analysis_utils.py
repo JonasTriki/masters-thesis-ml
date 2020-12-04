@@ -2,6 +2,7 @@ from os.path import join
 
 import joblib
 import numpy as np
+import seaborn as sns
 from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
 from sklearn.cluster import AgglomerativeClustering
@@ -133,26 +134,6 @@ def create_linkage_matrix(clustering: AgglomerativeClustering) -> list:
     return linkage_matrix
 
 
-def plot_silhouette_scores(cluster_numbers: list, silhouette_scores: list) -> None:
-    """
-    Plots silhouette scores.
-
-    Parameters
-    ----------
-    cluster_numbers : list
-        List containing cluster numbers for each silhouette score
-    silhouette_scores : list
-        List of silhouette scores
-    """
-    xs = range(len(cluster_numbers))
-    plt.plot(xs, silhouette_scores)
-    plt.scatter(xs, silhouette_scores)
-    plt.xticks(xs, cluster_numbers, rotation=90)
-    plt.xlabel("Number of clusters")
-    plt.ylabel("Average silhouette score")
-    plt.show()
-
-
 def plot_cluster_metric_scores(
     hyperparameters: list,
     scores: list,
@@ -191,6 +172,50 @@ def plot_cluster_metric_scores(
     plt.ylabel(f"{metric_name} score")
     plt.tight_layout()
     plt.show()
+
+
+def plot_cluster_sizes(cluster_labels: list, ax: plt.axis = None) -> np.ndarray:
+    """
+    Plots cluster sizes using a histogram and returns a list of most frequent
+    cluster sizes.
+
+    Parameters
+    ----------
+    cluster_labels : list
+        List of cluster labels
+    ax : plt.axis
+        Matplotlib axis (default None)
+
+    Returns
+    -------
+    most_common_cluster_sizes : np.ndarray
+        Numpy array containing the most common cluster sizes
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+
+    # Print cluster size ratio (max / min)
+    labels_unique, labels_counts = np.unique(cluster_labels, return_counts=True)
+    cluster_sizes, cluster_size_counts = np.unique(labels_counts, return_counts=True)
+
+    num_clusters = len(labels_unique)
+    max_cluster_size = max(labels_counts)
+    min_cluster_size = min(labels_counts)
+    cluster_size_ratio = max_cluster_size / min_cluster_size
+    print(
+        f"{num_clusters} clusters: max={max_cluster_size}, min={min_cluster_size}, ratio={cluster_size_ratio}"
+    )
+
+    # Plot distribution of cluster sizes
+    sns.histplot(labels_counts, bins=max_cluster_size, ax=ax)
+    ax.set_xlabel("Cluster size")
+    ax.set_ylabel("Number of words in cluster")
+    plt.show()
+
+    # Sort cluster sizes by frequency
+    most_common_cluster_sizes = cluster_sizes[np.argsort(cluster_size_counts)[::-1]]
+
+    return most_common_cluster_sizes
 
 
 def words_in_clusters(cluster_labels: np.ndarray, words: np.ndarray) -> tuple:
