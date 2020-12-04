@@ -59,6 +59,40 @@ def plot_silhouette_scores(cluster_numbers: list, silhouette_scores: list) -> No
     plt.show()
 
 
+def plot_cluster_metric_scores(
+    hyperparameters: list,
+    scores: list,
+    best_score_idx: int,
+    metric_name: str,
+    scatter: bool = True,
+) -> None:
+    """
+    Plots internal cluster validation metric scores
+
+    Parameters
+    ----------
+    hyperparameters : list
+        List of hyperparameters used to compute the scores
+    scores : list
+        List of scores computes using metric
+    best_score_idx : int
+        Best score index
+    metric_name : str
+        Name of the internal cluster validation metric
+    scatter : bool
+        Whether or not to scatter points
+    """
+    xs = range(len(hyperparameters))
+    plt.plot(xs, scores)
+    if scatter:
+        plt.scatter(xs, scores)
+        plt.scatter(xs[best_score_idx], scores[best_score_idx], c="r")
+    plt.xticks(xs, hyperparameters, rotation=90)
+    plt.xlabel("Hyperparameters")
+    plt.ylabel(metric_name)
+    plt.show()
+
+
 def words_in_clusters(cluster_labels: np.ndarray, words: np.ndarray) -> tuple:
     """
     Gets words in clusters from a list of cluster labels.
