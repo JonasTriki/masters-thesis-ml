@@ -43,7 +43,8 @@ hickle = "*"
 joblib = "*"
 xlrd = "*"
 tikzplotlib = "*"
-dbcv = {git = "https://github.com/christopherjenness/DBCV.git"}
+s-dbw = "*"
+tensorflow = "*"
 
 [requires]
 python_version = "3.6"
