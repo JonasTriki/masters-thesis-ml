@@ -13,7 +13,7 @@ from sklearn.metrics import silhouette_score
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import ParameterGrid
 from sklearn_extra.cluster import KMedoids
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 
 def save_cluster_result_to_disk(
@@ -488,41 +488,53 @@ def hdbscan_cluster_hyperparameter_search(
 
 
 def plot_cluster_metric_scores(
+    metric_scores: list,
     hyperparameters: list,
-    scores: list,
     best_score_idx: int,
     metric_name: str,
     scatter: bool = True,
+    set_xticks: bool = True,
     ax: plt.axis = None,
+    xlabel: str = "Hyperparameters",
+    xrange: range = None,
 ) -> None:
     """
     Plots internal cluster validation metric scores
 
     Parameters
     ----------
+    metric_scores : list
+        List of scores computed using metric
     hyperparameters : list
         List of hyperparameters used to compute the scores
-    scores : list
-        List of scores computes using metric
     best_score_idx : int
         Best score index
     metric_name : str
         Name of the internal cluster validation metric
     scatter : bool
         Whether or not to scatter points (defaults to True)
+    set_xticks : bool
+        Whether or not to set the ticks on the x-axis
     ax : plt.axis
         Matplotlib axis (defaults to None)
+    xlabel : str
+        X-axis label (defaults to "Hyperparameters")
+    xrange : range
+        Range to use for the x-axis (default starts from 0 and )
     """
     if ax is None:
         _, ax = plt.subplots()
-    xs = range(len(hyperparameters))
-    plt.plot(xs, scores)
+    if xrange is None:
+        xrange = range(len(hyperparameters))
+    ax.plot(xrange, metric_scores)
     if scatter:
-        plt.scatter(xs, scores)
-        plt.scatter(xs[best_score_idx], scores[best_score_idx], c="r")
-    plt.xticks(xs, hyperparameters, rotation=90)
-    plt.xlabel("Hyperparameters")
-    plt.ylabel(f"{metric_name} score")
+        plt.scatter(xrange, metric_scores)
+    ax.scatter(xrange[best_score_idx], metric_scores[best_score_idx], c="r", s=72)
+    if set_xticks:
+        ax.set_xticks(xrange)
+        ax.set_xticklabels(hyperparameters, rotation=90, ha="center")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(f"{metric_name} score")
     plt.tight_layout()
     plt.show()
 
