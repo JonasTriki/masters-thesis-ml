@@ -606,3 +606,69 @@ def words_in_clusters(cluster_labels: np.ndarray, words: np.ndarray) -> tuple:
         cluster_words.append(words_in_cluster)
     cluster_words = np.array(cluster_words, dtype=object)
     return cluster_words, labels_counts
+
+
+def inspect_word_clusters(
+    cluster_labels: np.ndarray,
+    words: np.ndarray,
+    min_cluster_size: int,
+    most_common_cluster_sizes: np.ndarray,
+    num_words_in_clusters_print: int = 10,
+) -> None:
+    """
+    Inspects words in clusters:
+    - `num_words_in_clusters_print` largest/smallest clusters
+    - Words from clusters whose cluster number is the most common
+
+    Parameters
+    ----------
+    cluster_labels : np.ndarray
+        Cluster labels to inspect.
+    words : np.ndarray
+        Words in vocabulary.
+    min_cluster_size : int
+        Minimum cluster size to investigate.
+    most_common_cluster_sizes : np.ndarray
+        Cluster sizes sorted by most common to least common
+    num_words_in_clusters_print : int
+        Number of words to print of each cluster (defaults to 10).
+    """
+    # Look at the words corresponding to the different clusters (biggest, smallest, etc.)
+    cluster_words, cluster_sizes = words_in_clusters(
+        cluster_labels=cluster_labels, words=words
+    )
+
+    # Only inspect clusters with at least `min_cluster_size` words in them
+    filter_min_cluster_size_mask = cluster_sizes >= min_cluster_size
+    cluster_sizes_filtered = cluster_sizes[filter_min_cluster_size_mask]
+    cluster_words_filtered = cluster_words[filter_min_cluster_size_mask]
+
+    # Print `num_words_in_clusters_print` largest/smallest clusters
+    sorted_cluster_indices = np.argsort(cluster_sizes_filtered)[::-1]
+
+    print(f"-- {num_words_in_clusters_print} largest clusters --")
+    for i in range(num_words_in_clusters_print):
+        print(cluster_words_filtered[sorted_cluster_indices[i]])
+    print()
+
+    print(f"-- {num_words_in_clusters_print} smallest clusters --")
+    for i in range(1, num_words_in_clusters_print + 1):
+        print(cluster_words_filtered[sorted_cluster_indices[-i]])
+    print()
+
+    # Inspect words from clusters whose cluster numbers is the most common
+    most_common_cluster_size = most_common_cluster_sizes[0]
+    print(
+        f"-- {num_words_in_clusters_print} random words from clusters whose cluster number is the most common (i.e. clusters of {most_common_cluster_size} words) -- "
+    )
+    most_common_cluster_words = cluster_words[cluster_sizes == most_common_cluster_size]
+
+    # Print random words
+    rng_indices = np.random.choice(
+        np.arange(len(most_common_cluster_words)),
+        size=num_words_in_clusters_print,
+        replace=False,
+    )
+    most_common_cluster_words_random = most_common_cluster_words[rng_indices]
+    for cluster_words in most_common_cluster_words_random:
+        print(cluster_words)
