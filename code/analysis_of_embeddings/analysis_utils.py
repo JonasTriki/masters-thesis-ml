@@ -286,6 +286,44 @@ def gmm_cluster_hyperparameter_search(
     )
 
 
+def create_linkage_matrix(clustering: AgglomerativeClustering) -> np.ndarray:
+    """
+    Creates a linkage matrix from an agglomerative clustering.
+
+    Code snippet source:
+    https://scikit-learn.org/stable/auto_examples/cluster/plot_agglomerative_dendrogram.html
+    Downloaded 7th of December 2020.
+
+    Parameters
+    ----------
+    clustering : AgglomerativeClustering
+        Agglomerative clustering
+
+    Returns
+    -------
+    linkage_matrix : np.ndarray
+        Linkage matrix
+    """
+    # Create the counts of samples under each node
+    counts = np.zeros(clustering.children_.shape[0])
+    n_samples = len(clustering.labels_)
+    for i, merge in enumerate(clustering.children_):
+        current_count = 0
+        for child_idx in merge:
+            if child_idx < n_samples:
+                current_count += 1  # leaf node
+            else:
+                current_count += counts[child_idx - n_samples]
+        counts[i] = current_count
+
+    # Create required linkage matrix
+    linkage_matrix = np.column_stack(
+        [clustering.children_, clustering.distances_, counts]
+    ).astype(np.float)
+
+    return linkage_matrix
+
+
 def agglomerative_clustering(
     word_embeddings_pairwise_dists: np.ndarray,
     linkages: list = None,
@@ -316,22 +354,8 @@ def agglomerative_clustering(
         )
         clustering.fit(word_embeddings_pairwise_dists)
 
-        # Create the counts of samples under each node
-        counts = np.zeros(clustering.children_.shape[0])
-        n_samples = len(clustering.labels_)
-        for i, merge in enumerate(clustering.children_):
-            current_count = 0
-            for child_idx in merge:
-                if child_idx < n_samples:
-                    current_count += 1  # leaf node
-                else:
-                    current_count += counts[child_idx - n_samples]
-            counts[i] = current_count
-
         # Create required linkage matrix for fcluster function
-        agglomerative_clustering_linkage_matrix = np.column_stack(
-            [clustering.children_, clustering.distances_, counts]
-        ).astype(np.float)
+        agglomerative_clustering_linkage_matrix = create_linkage_matrix(clustering)
 
         # Set result in dict
         agglomerative_clusterings[linkage] = {
