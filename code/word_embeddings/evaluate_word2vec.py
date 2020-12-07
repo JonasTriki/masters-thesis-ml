@@ -1,10 +1,10 @@
 import argparse
-import pickle
 import sys
 from datetime import datetime
 from os import makedirs
 from os.path import join
 
+import joblib
 import numpy as np
 from eval_utils import evaluate_model_word_analogies
 
@@ -85,9 +85,8 @@ def save_analogies_accuracies_to_file(
     analogies_accuracies : dict
         Dictionary containing accuracies
     """
-    analogies_output_filepath = join(output_dir, f"{analogies_dataset_name}.pkl")
-    with open(analogies_output_filepath, "wb") as file:
-        pickle.dump(analogies_accuracies, file)
+    analogies_output_filepath = join(output_dir, f"{analogies_dataset_name}.joblib")
+    joblib.dump(analogies_accuracies, analogies_output_filepath)
 
 
 def evaluate_word2vec(

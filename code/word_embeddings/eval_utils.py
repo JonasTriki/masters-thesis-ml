@@ -1,6 +1,6 @@
-import pickle
 from typing import Dict, List, Optional, Tuple, Union
 
+import joblib
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -486,8 +486,7 @@ def load_analogies_test_dataset(
         from the word vocabulary.
     """
     # Load analogies dict from file
-    with open(analogies_filepath, "rb") as file:
-        analogies_dict_raw = pickle.load(file)
+    analogies_dict_raw = joblib.load(analogies_filepath)
 
     # Initialize resulting dictionary
     analogies_dict = {key: [] for key in analogies_dict_raw.keys()}
