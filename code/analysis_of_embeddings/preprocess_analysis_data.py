@@ -5,13 +5,13 @@ import zipfile
 from os import makedirs
 from os.path import isdir, isfile, join
 
+import numpy as np
 import pandas as pd
-import requests
 
 sys.path.append("..")
 
 from text_preprocessing_utils import preprocess_text
-from utils import download_from_url, get_cached_download_text_file
+from utils import download_from_url
 
 
 def parse_args() -> argparse.Namespace:
@@ -41,6 +41,17 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="jtr008",
         help="GeoNames username (create account here: https://www.geonames.org/login)",
+    )
+    parser.add_argument(
+        "--words_filepath",
+        type=str,
+        help="Filepath of words text file (vocabulary) from word2vec training output",
+    )
+    parser.add_argument(
+        "--word_cluster_analysis_vocab_size",
+        type=int,
+        default=10000,
+        help="Size of word cluster analysis vocabulary",
     )
     return parser.parse_args()
 
@@ -107,73 +118,165 @@ def preprocess_country_info(
         download_from_url(country_info_csv_data_url, country_info_raw_data_csv_filepath)
         print("Done!")
 
-    # Load raw data into Pandas DataFrames and join them
-    all_countries_info_df = pd.read_csv(
-        all_countries_raw_data_txt_filepath,
-        sep="\t",
-        na_filter=False,
-        header=None,
-        names=[
-            "geonameId",
-            "name",
-            "asciiname",
-            "alternatenames",
-            "latitude",
-            "longitude",
-            "feature class",
-            "feature code",
-            "country code",
-            "cc2",
-            "admin1 code",
-            "admin2 code",
-            "admin3 code",
-            "admin4 code",
-            "population",
-            "elevation",
-            "dem",
-            "timezone",
-            "modification date",
-        ],
-        usecols=["geonameId", "latitude", "longitude"],
-        index_col="geonameId",
-    )
-    country_info_df = pd.read_csv(
-        country_info_raw_data_csv_filepath,
-        sep="\t",
-        na_filter=False,
-        usecols=["name", "capital", "continent", "geonameId"],
-    )
-    country_info_df = country_info_df.join(
-        all_countries_info_df, on="geonameId", how="left"
-    )
+    if not isfile(output_filepath):
+        # Load raw data into Pandas DataFrames and join them
+        all_countries_info_df = pd.read_csv(
+            all_countries_raw_data_txt_filepath,
+            sep="\t",
+            na_filter=False,
+            header=None,
+            names=[
+                "geonameId",
+                "name",
+                "asciiname",
+                "alternatenames",
+                "latitude",
+                "longitude",
+                "feature class",
+                "feature code",
+                "country code",
+                "cc2",
+                "admin1 code",
+                "admin2 code",
+                "admin3 code",
+                "admin4 code",
+                "population",
+                "elevation",
+                "dem",
+                "timezone",
+                "modification date",
+            ],
+            usecols=["geonameId", "latitude", "longitude"],
+            index_col="geonameId",
+        )
+        country_info_df = pd.read_csv(
+            country_info_raw_data_csv_filepath,
+            sep="\t",
+            na_filter=False,
+            usecols=["name", "capital", "continent", "geonameId"],
+        )
+        country_info_df = country_info_df.join(
+            all_countries_info_df, on="geonameId", how="left"
+        )
 
-    # Remove unused GeoNameId column
-    country_info_df.drop("geonameId", inplace=True, axis=1)
+        # Remove unused GeoNameId column
+        country_info_df.drop("geonameId", inplace=True, axis=1)
 
-    # Replace continent codes with names
-    continent_code_to_name = {
-        "AF": "Africa",
-        "AS": "Asia",
-        "EU": "Europe",
-        "NA": "North America",
-        "OC": "Oceania",
-        "SA": "South America",
-        "AN": "Antarctica",
-    }
-    country_info_df["continent"] = country_info_df["continent"].apply(
-        lambda code: continent_code_to_name[code]
-    )
+        # Replace continent codes with names
+        continent_code_to_name = {
+            "AF": "Africa",
+            "AS": "Asia",
+            "EU": "Europe",
+            "NA": "North America",
+            "OC": "Oceania",
+            "SA": "South America",
+            "AN": "Antarctica",
+        }
+        country_info_df["continent"] = country_info_df["continent"].apply(
+            lambda code: continent_code_to_name[code]
+        )
 
-    # Apply preprocessing to country name and capital
-    country_info_df["name"] = country_info_df["name"].apply(preprocess_name)
-    country_info_df["capital"] = country_info_df["capital"].apply(preprocess_name)
+        # Apply preprocessing to country name and capital
+        country_info_df["name"] = country_info_df["name"].apply(preprocess_name)
+        country_info_df["capital"] = country_info_df["capital"].apply(preprocess_name)
 
-    # Save to file
-    country_info_df.to_csv(output_filepath, index=False)
+        # Save to file
+        country_info_df.to_csv(output_filepath, index=False)
+
+
+def preprocess_word_cluster_groups(
+    raw_data_dir: str,
+    output_dir: str,
+    words_filepath: str,
+    word_cluster_analysis_vocab_size: int,
+) -> None:
+    """
+    Preprocesses word cluster groups
+
+    Parameters
+    ----------
+    raw_data_dir : str
+        Raw data directory
+    output_dir : str
+        Directory to save output data.
+    words_filepath: str
+        Filepath of words text file (vocabulary) from word2vec training output
+    word_cluster_analysis_vocab_size : int
+        Size of word cluster analysis vocabulary
+    """
+    # Load words from vocabulary
+    with open(words_filepath, "r") as words_file:
+        words = np.array(words_file.read().split("\n"))
+    words = words[:word_cluster_analysis_vocab_size]  # Restrict vocab
+    word_to_int = {word: i for i, word in enumerate(words)}  # Word integer lookup table
+
+    def write_words_to_file(words_to_file: list, output_filepath: str) -> None:
+        """
+        Writes words to file separated by newline.
+
+        Parameters
+        ----------
+        words_to_file : list of words
+            List of words to write to file
+        output_filepath : str
+            Output filepath
+        """
+        with open(output_filepath, "w") as words_output_file:
+            for word in words_to_file:
+                words_output_file.write(f"{word}\n")
+
+    # -- Numbers --
+    max_num = 1000
+    numbers_set = set()
+    for number in np.arange(max_num + 1):
+        for num in preprocess_text(str(number)):
+            if num != "and":
+                numbers_set.add(num)
+    number_words_in_vocab = [
+        num_word for num_word in numbers_set if num_word in word_to_int
+    ]
+    write_words_to_file(number_words_in_vocab, join(output_dir, "numbers.txt"))
+
+    # -- Names --
+    names_data_url = "https://www.ssa.gov/oact/babynames/names.zip"
+    names_raw_zip_filepath = join(raw_data_dir, "names.zip")
+    names_raw_zip_dir = join(raw_data_dir, "names")
+    names_year = 2019
+    names_raw_filepath = join(names_raw_zip_dir, f"yob{names_year}.txt")
+    names_output_filepath = join(output_dir, "names.csv")
+
+    # Download raw data
+    if not isfile(names_raw_zip_filepath):
+        print("Downloading names data...")
+        download_from_url(names_data_url, names_raw_zip_filepath)
+        print("Done!")
+
+    if not isdir(names_raw_zip_dir):
+        print("Extracting raw data...")
+        with zipfile.ZipFile(names_raw_zip_filepath, "r") as zip_file:
+            zip_file.extractall(names_raw_zip_dir)
+        print("Done!")
+
+    if not isfile(names_output_filepath):
+        names_raw_df = pd.read_csv(
+            names_raw_filepath,
+            delimiter=",",
+            header=None,
+            names=["name", "gender", "count"],
+        )
+        names_raw_df["name"] = names_raw_df["name"].str.lower()
+        names_raw_df = names_raw_df[
+            names_raw_df["name"].apply(lambda name: name in word_to_int)
+        ]
+        names_raw_df.to_csv(names_output_filepath, index=False)
 
 
 def preprocess_analysis_data(
-    raw_data_dir: str, output_dir: str, geonames_username: str
+    raw_data_dir: str,
+    output_dir: str,
+    geonames_username: str,
+    words_filepath: str,
+    word_cluster_analysis_vocab_size: int,
 ) -> None:
     """
     Preprocesses data for analysing word embeddings
@@ -186,6 +289,10 @@ def preprocess_analysis_data(
         Directory to save analysis data.
     geonames_username : str
         GeoNames username (create account here: https://www.geonames.org/login)
+    words_filepath : str
+        Filepath of words text file (vocabulary) from word2vec training output
+    word_cluster_analysis_vocab_size : int
+        Size of word cluster analysis vocabulary
     """
     # Ensure raw data/output directories exist
     makedirs(raw_data_dir, exist_ok=True)
@@ -195,6 +302,12 @@ def preprocess_analysis_data(
     preprocess_country_info(raw_data_dir, output_dir, geonames_username)
     print("Done!")
 
+    print("-- Word cluster groups --")
+    preprocess_word_cluster_groups(
+        raw_data_dir, output_dir, words_filepath, word_cluster_analysis_vocab_size
+    )
+    print("Done!")
+
 
 if __name__ == "__main__":
     args = parse_args()
@@ -202,4 +315,6 @@ if __name__ == "__main__":
         raw_data_dir=args.raw_data_dir,
         output_dir=args.output_dir,
         geonames_username=args.geonames_username,
+        words_filepath=args.words_filepath,
+        word_cluster_analysis_vocab_size=args.word_cluster_analysis_vocab_size,
     )
