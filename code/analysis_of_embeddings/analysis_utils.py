@@ -1,9 +1,12 @@
+import re
+import sys
 from os import makedirs
 from os.path import join
 from typing import Callable, Union
 
 import joblib
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
@@ -14,6 +17,33 @@ from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import ParameterGrid
 from sklearn_extra.cluster import KMedoids
 from tqdm.auto import tqdm
+
+sys.path.append("..")
+
+from text_preprocessing_utils import preprocess_text
+
+
+def preprocess_name(name: str) -> str:
+    """
+    Preprocesses names by replacing brackets and combining words into
+    a single word separated by underscore.
+
+    Parameters
+    ----------
+    name : str
+        Name to process
+
+    Returns
+    -------
+    processed_name : str
+        Processed name
+    """
+    remove_brackets_re = re.compile("^(.+?)[(\[].*?[)\]](.*?)$")
+    name_no_brackets_results = re.findall(remove_brackets_re, name)
+    if len(name_no_brackets_results) > 0:
+        name = "".join(name_no_brackets_results[0]).strip()
+    name = "_".join(preprocess_text(name.replace("'", "")))
+    return name
 
 
 def save_cluster_result_to_disk(
@@ -696,3 +726,140 @@ def inspect_word_clusters(
     most_common_cluster_words_random = most_common_cluster_words[rng_indices]
     for cluster_words in most_common_cluster_words_random:
         print(cluster_words)
+
+
+def load_word_cluster_group_words(
+    data_dir: str, custom_data_dir: str, word_to_int: dict
+) -> dict:
+    """
+    Load word groups for clustering.
+
+    Parameters
+    ----------
+    data_dir : str
+        Data directory
+    custom_data_dir : str
+        Custom data directory
+    word_to_int : dict of str and int
+        Dictionary mapping from word to its integer representation.
+
+    Returns
+    -------
+    data : dict
+        Word group data in dictionary
+    """
+    # Constants
+    country_info_filepath = join(data_dir, "country-info.csv")
+    names_filepath = join(data_dir, "names.csv")
+    numbers_filepath = join(data_dir, "numbers.txt")
+
+    # Load country info
+    country_info_df = pd.read_csv(country_info_filepath)
+    countries = country_info_df["name"].values
+    country_capitals = country_info_df["capital"].values
+
+    # Load names
+    names_df = pd.read_csv(names_filepath)
+    names_df = names_df[names_df["name"].apply(lambda name: name in word_to_int)]
+    names = names_df["name"].values
+    male_names = names_df[names_df["gender"] == "M"]["name"].values
+    female_names = names_df[names_df["gender"] == "F"]["name"].values
+
+    # Load numbers
+    with open(numbers_filepath, "r") as file:
+        numbers = file.read().split("\n")
+    numbers = np.array([num for num in numbers if num in word_to_int])
+
+    # Load video games
+    video_games_df = pd.read_excel(
+        join(
+            custom_data_dir,
+            "word2vec_analysis_category_of_words.xlsx",
+        ),
+        sheet_name="video_games",
+    )
+    video_games_df["Name"] = video_games_df["Name"].apply(preprocess_name)
+    video_games = video_games_df["Name"].values
+
+    # Combine data into dictionary
+    data = {
+        "countries": countries,
+        "country_capitals": country_capitals,
+        "names": names,
+        "male_names": male_names,
+        "female_names": female_names,
+        "numbers": numbers,
+        "video_games": video_games,
+    }
+
+    return data
+
+
+def visualize_word_cluster_groups(
+    transformed_word_embeddings: np.ndarray,
+    words: np.ndarray,
+    word_to_int: dict,
+    word_group: list,
+    word_group_name: str,
+    xlabel: str,
+    ylabel: str,
+    ax: plt.axis = None,
+    show_plot: bool = True,
+    alpha: float = 1,
+) -> None:
+    """
+    Visualizes word cluster groups.
+
+    Parameters
+    ----------
+    transformed_word_embeddings : np.ndarray
+        Transformed word embeddings.
+    words : np.ndarray
+        Numpy array containing all words from vocabulary.
+    word_to_int : dict of str and int
+        Dictionary mapping from word to its integer representation.
+    word_group : list
+        List of words in group to visualize
+    word_group_name : str
+        Name of the word group
+    xlabel : str
+        X-axis label
+    ylabel : str
+        Y-axis label
+    ax : plt.axis
+        Matplotlib axis (defaults to None)
+    show_plot : bool
+        Whether or not to call plt.show() (defaults to True)
+    alpha : float
+        Scatter plot alpha value (defaults to 1)
+    """
+    if ax is None:
+        _, ax = plt.subplots(figsize=(12, 7))
+
+    # Create masks for words inside/outside word group
+    words_in_group_mask = [word in word_group for word in words]
+    words_not_in_group_mask = [word not in word_group for word in words]
+
+    # Plot words outside word group
+    ax.scatter(
+        x=transformed_word_embeddings[words_not_in_group_mask][:, 0],
+        y=transformed_word_embeddings[words_not_in_group_mask][:, 1],
+        c="r",
+        alpha=alpha,
+    )
+
+    # Plot words inside word group
+    ax.scatter(
+        x=transformed_word_embeddings[words_in_group_mask][:, 0],
+        y=transformed_word_embeddings[words_in_group_mask][:, 1],
+        c="g",
+        alpha=alpha,
+    )
+
+    ax.legend(
+        [f"Words which are not {word_group_name}", f"Words which are {word_group_name}"]
+    )
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    if show_plot:
+        plt.show()

@@ -1,5 +1,4 @@
 import argparse
-import re
 import sys
 import zipfile
 from os import makedirs
@@ -7,6 +6,7 @@ from os.path import isdir, isfile, join
 
 import numpy as np
 import pandas as pd
+from analysis_utils import preprocess_name
 
 sys.path.append("..")
 
@@ -48,18 +48,6 @@ def parse_args() -> argparse.Namespace:
         help="Filepath of words text file (vocabulary) from word2vec training output",
     )
     return parser.parse_args()
-
-
-def preprocess_name(name: str) -> str:
-    """
-    TODO: Docs
-    """
-    remove_brackets_re = re.compile("^(.+?)[(\[].*?[)\]](.*?)$")
-    name_no_brackets_results = re.findall(remove_brackets_re, name)
-    if len(name_no_brackets_results) > 0:
-        name = "".join(name_no_brackets_results[0]).strip()
-    name = "_".join(preprocess_text(name.replace("'", "")))
-    return name
 
 
 def preprocess_country_info(
