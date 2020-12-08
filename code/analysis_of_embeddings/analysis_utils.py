@@ -8,8 +8,10 @@ import joblib
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from cdbw import CDbw
 from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
+from s_dbw import S_Dbw
 from scipy.cluster.hierarchy import fcluster
 from sklearn.cluster import AgglomerativeClustering, KMeans, MiniBatchKMeans
 from sklearn.metrics import silhouette_score
@@ -95,7 +97,10 @@ def k_means_cluster_hyperparameter_search(
 ) -> dict:
     """
     Searches for the best set of hyperparameters using K-means clustering
-    and mean Silhouette Coefficient as the internal cluster metric.
+    and various internal cluster metrics:
+    - Silhouette Coefficient
+    - S_Dbw validity index
+    - CDbw validity index
 
     Parameters
     ----------
@@ -130,25 +135,60 @@ def k_means_cluster_hyperparameter_search(
 
     # Perform clustering
     cluster_labels = []
-    cluster_metric_values = []
+    cluster_metrics = {
+        "silhouette_coeff": {
+            "name": "Silhouette Coefficient",
+            "scores": [],
+            "best_score_idx": -1,
+        },
+        "s_dbw": {
+            "name": "S_Dbw validity index",
+            "scores": [],
+            "best_score_idx": -1,
+        },
+        "cdbw": {
+            "name": "CDbw validity index",
+            "scores": [],
+            "best_score_idx": -1,
+        },
+    }
     for params in tqdm(param_grid, desc=f"Performing clustering using {clusterer_name}"):
         cls = clusterer(**params, **default_params)
         cluster_labels_pred = cls.fit_predict(word_embeddings)
         cluster_labels.append(cluster_labels_pred)
 
-        # Compute Silhouette Coefficient score
-        cluster_metric_value = silhouette_score(
+        # Compute metric scores
+        silhouette_coeff_score = silhouette_score(
             X=word_embeddings_pairwise_dists,
             labels=cluster_labels_pred,
             metric="precomputed",
         )
-        cluster_metric_values.append(cluster_metric_value)
+        s_dbw_score = S_Dbw(
+            X=word_embeddings, labels=cluster_labels_pred, metric="cosine"
+        )
+        cdbw_score = CDbw(
+            X=word_embeddings, labels=cluster_labels_pred, metric="cosine", s=3
+        )
+
+        # Append metric scores
+        cluster_metrics["silhouette_coeff"]["scores"].append(silhouette_coeff_score)
+        cluster_metrics["s_dbw"]["scores"].append(s_dbw_score)
+        cluster_metrics["cdbw"]["scores"].append(cdbw_score)
+
+    # Find set score index for each metric
+    cluster_metrics["silhouette_coeff"]["best_score_idx"] = np.argmax(
+        cluster_metrics["silhouette_coeff"]["scores"]
+    )
+    cluster_metrics["s_dbw"]["best_score_idx"] = np.argmin(
+        cluster_metrics["s_dbw"]["scores"]
+    )
+    cluster_metrics["cdbw"]["best_score_idx"] = np.argmax(
+        cluster_metrics["cdbw"]["scores"]
+    )
 
     result = {
-        "metric_name": "Silhouette Coefficient",
-        "metric_scores": cluster_metric_values,
         "cluster_labels": cluster_labels,
-        "best_cluster_labels_idx": np.argmax(cluster_metric_values),
+        "metrics": cluster_metrics,
     }
 
     # Save result to output dir
@@ -171,7 +211,10 @@ def k_means_mini_batch_cluster_hyperparameter_search(
 ) -> dict:
     """
     Searches for the best set of hyperparameters using mini-batch K-means
-    clustering and mean Silhouette Coefficient as the internal cluster metric.
+    clustering and various internal cluster metrics:
+    - Silhouette Coefficient
+    - S_Dbw validity index
+    - CDbw validity index
 
     Parameters
     ----------
@@ -223,7 +266,10 @@ def k_medoids_cluster_hyperparameter_search(
 ) -> dict:
     """
     Searches for the best set of hyperparameters using K-medoids clustering
-    and mean Silhouette Coefficient as the internal cluster metric.
+    and various internal cluster metrics:
+    - Silhouette Coefficient
+    - S_Dbw validity index
+    - CDbw validity index
 
     Parameters
     ----------
@@ -275,8 +321,10 @@ def gmm_cluster_hyperparameter_search(
 ) -> dict:
     """
     Searches for the best set of hyperparameters using Gaussian mixture
-    models (GMM) clustering and mean Silhouette Coefficient as the internal
-    cluster metric.
+    models (GMM) clustering and various internal cluster metrics:
+    - Silhouette Coefficient
+    - S_Dbw validity index
+    - CDbw validity index
 
     Parameters
     ----------
@@ -399,6 +447,7 @@ def agglomerative_cluster_hyperparameter_search(
     cluster_numbers: list,
     linkages: list,
     agglomerative_clusterings: dict,
+    word_embeddings: np.ndarray,
     word_embeddings_pairwise_dists: np.ndarray,
     output_dir: str,
     model_name: str,
@@ -407,7 +456,10 @@ def agglomerative_cluster_hyperparameter_search(
 ) -> dict:
     """
     Searches for the best set of hyperparameters using agglomerative
-    clustering and mean Silhouette Coefficient as the internal cluster metric.
+    clustering and various internal cluster metrics:
+    - Silhouette Coefficient
+    - S_Dbw validity index
+    - CDbw validity index
 
     Parameters
     ----------
@@ -418,6 +470,8 @@ def agglomerative_cluster_hyperparameter_search(
     agglomerative_clusterings : dict
         Dictionary containing result from `agglomerative_clustering`
         function.
+    word_embeddings : np.ndarray
+        Word embeddings to perform clustering on
     word_embeddings_pairwise_dists : np.ndarray
         Numpy matrix containing pairwise distances between word embeddings
     output_dir : str
@@ -442,28 +496,63 @@ def agglomerative_cluster_hyperparameter_search(
     print(f"-- Fitting and predicting cluster labels for agglomerative clustering --")
     for linkage in linkages:
         print(f"Linkage: {linkage}")
-        clustering_result[linkage] = {
-            "metric_name": "Silhouette Coefficient",
-            "cluster_labels": [],
-            "metric_scores": [],
-            "best_cluster_labels_idx": -1,
+
+        cluster_labels = []
+        cluster_metrics = {
+            "silhouette_coeff": {
+                "name": "Silhouette Coefficient",
+                "scores": [],
+                "best_score_idx": -1,
+            },
+            "s_dbw": {
+                "name": "S_Dbw validity index",
+                "scores": [],
+                "best_score_idx": -1,
+            },
+            "cdbw": {
+                "name": "CDbw validity index",
+                "scores": [],
+                "best_score_idx": -1,
+            },
         }
+
         for k in tqdm(cluster_numbers):
             linkage_matrix = agglomerative_clusterings[linkage]["linkage_matrix"]
             cluster_labels_pred = fcluster(Z=linkage_matrix, criterion="maxclust", t=k)
-            clustering_result[linkage]["cluster_labels"].append(cluster_labels_pred)
+            cluster_labels.append(cluster_labels_pred)
 
-            # Compute Silhouette Coefficient score
-            cluster_metric_value = silhouette_score(
+            # Compute metric scores
+            silhouette_coeff_score = silhouette_score(
                 X=word_embeddings_pairwise_dists,
                 labels=cluster_labels_pred,
                 metric="precomputed",
             )
-            clustering_result[linkage]["metric_scores"].append(cluster_metric_value)
+            s_dbw_score = S_Dbw(
+                X=word_embeddings, labels=cluster_labels_pred, metric="cosine"
+            )
+            cdbw_score = CDbw(
+                X=word_embeddings, labels=cluster_labels_pred, metric="cosine", s=3
+            )
 
-        clustering_result[linkage]["best_cluster_labels_idx"] = np.argmax(
-            clustering_result[linkage]["metric_scores"]
+            # Append metric scores
+            cluster_metrics["silhouette_coeff"]["scores"].append(silhouette_coeff_score)
+            cluster_metrics["s_dbw"]["scores"].append(s_dbw_score)
+            cluster_metrics["cdbw"]["scores"].append(cdbw_score)
+
+        # Find set score index for each metric
+        cluster_metrics["silhouette_coeff"]["best_score_idx"] = np.argmax(
+            cluster_metrics["silhouette_coeff"]["scores"]
         )
+        cluster_metrics["s_dbw"]["best_score_idx"] = np.argmin(
+            cluster_metrics["s_dbw"]["scores"]
+        )
+        cluster_metrics["cdbw"]["best_score_idx"] = np.argmax(
+            cluster_metrics["cdbw"]["scores"]
+        )
+        clustering_result[linkage] = {
+            "cluster_labels": cluster_labels,
+            "cluster_metrics": cluster_metrics,
+        }
 
     # Save result to output dir
     save_cluster_result_to_disk(
@@ -483,10 +572,11 @@ def hdbscan_cluster_hyperparameter_search(
     output_filepath_suffix: str,
 ) -> dict:
     """
-    Searches for the best set of hyperparameters using HDBSCAN and
-    Density-Based Clustering Validation (DBCV) as the internal
-    cluster metric.
-
+    Searches for the best set of hyperparameters using HDBSCAN
+    and various internal cluster metrics:
+    - Density-Based Clustering Validation (DBCV)
+    - S_Dbw validity index
+    - CDbw validity index
 
     Parameters
     ----------
@@ -514,23 +604,58 @@ def hdbscan_cluster_hyperparameter_search(
     makedirs(output_dir, exist_ok=True)
 
     # Perform clustering
-    hdbscan_cluster_labels = []
-    hdbscan_dbcv_scores = []
+    cluster_labels = []
+    cluster_metrics = {
+        "dbcv_relative": {
+            "name": "Density-Based Clustering Validation (relative)",
+            "scores": [],
+            "best_score_idx": -1,
+        },
+        "s_dbw": {
+            "name": "S_Dbw validity index",
+            "scores": [],
+            "best_score_idx": -1,
+        },
+        "cdbw": {
+            "name": "CDbw validity index",
+            "scores": [],
+            "best_score_idx": -1,
+        },
+    }
     for params in tqdm(param_grid, desc="Performing clustering using HDBSCAN"):
         hdbscan_clustering = HDBSCAN(**params, **default_params)
         cluster_labels_pred = hdbscan_clustering.fit_predict(word_embeddings)
-        hdbscan_cluster_labels.append(cluster_labels_pred)
+        cluster_labels.append(cluster_labels_pred)
 
-        # Use already computed DBCV score to compare parameters
+        # Compute metric scores (DBCV already computed)
         dbcv_score = hdbscan_clustering.relative_validity_
-        hdbscan_dbcv_scores.append(dbcv_score)
+        s_dbw_score = S_Dbw(
+            X=word_embeddings, labels=cluster_labels_pred, metric="cosine"
+        )
+        cdbw_score = CDbw(
+            X=word_embeddings, labels=cluster_labels_pred, metric="cosine", s=3
+        )
+
+        # Append metric scores
+        cluster_metrics["dbcv_relative"]["scores"].append(dbcv_score)
+        cluster_metrics["s_dbw"]["scores"].append(s_dbw_score)
+        cluster_metrics["cdbw"]["scores"].append(cdbw_score)
+
+    # Find set score index for each metric
+    cluster_metrics["dbcv_relative"]["best_score_idx"] = np.argmax(
+        cluster_metrics["dbcv_relative"]["scores"]
+    )
+    cluster_metrics["s_dbw"]["best_score_idx"] = np.argmin(
+        cluster_metrics["s_dbw"]["scores"]
+    )
+    cluster_metrics["cdbw"]["best_score_idx"] = np.argmax(
+        cluster_metrics["cdbw"]["scores"]
+    )
 
     # Create result as dict
     result = {
-        "metric_name": "DBCV",
-        "metric_scores": hdbscan_dbcv_scores,
-        "cluster_labels": hdbscan_cluster_labels,
-        "best_cluster_labels_idx": np.argmax(hdbscan_dbcv_scores),
+        "cluster_labels": cluster_labels,
+        "metrics": cluster_metrics,
     }
 
     # Save result to output dir
