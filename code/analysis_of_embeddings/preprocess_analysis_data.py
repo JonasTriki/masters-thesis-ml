@@ -47,12 +47,6 @@ def parse_args() -> argparse.Namespace:
         type=str,
         help="Filepath of words text file (vocabulary) from word2vec training output",
     )
-    parser.add_argument(
-        "--word_cluster_analysis_vocab_size",
-        type=int,
-        default=10000,
-        help="Size of word cluster analysis vocabulary",
-    )
     return parser.parse_args()
 
 
@@ -188,7 +182,6 @@ def preprocess_word_cluster_groups(
     raw_data_dir: str,
     output_dir: str,
     words_filepath: str,
-    word_cluster_analysis_vocab_size: int,
 ) -> None:
     """
     Preprocesses word cluster groups
@@ -201,13 +194,10 @@ def preprocess_word_cluster_groups(
         Directory to save output data.
     words_filepath: str
         Filepath of words text file (vocabulary) from word2vec training output
-    word_cluster_analysis_vocab_size : int
-        Size of word cluster analysis vocabulary
     """
     # Load words from vocabulary
     with open(words_filepath, "r") as words_file:
         words = np.array(words_file.read().split("\n"))
-    words = words[:word_cluster_analysis_vocab_size]  # Restrict vocab
     word_to_int = {word: i for i, word in enumerate(words)}  # Word integer lookup table
 
     def write_words_to_file(words_to_file: list, output_filepath: str) -> None:
@@ -276,7 +266,6 @@ def preprocess_analysis_data(
     output_dir: str,
     geonames_username: str,
     words_filepath: str,
-    word_cluster_analysis_vocab_size: int,
 ) -> None:
     """
     Preprocesses data for analysing word embeddings
@@ -291,8 +280,6 @@ def preprocess_analysis_data(
         GeoNames username (create account here: https://www.geonames.org/login)
     words_filepath : str
         Filepath of words text file (vocabulary) from word2vec training output
-    word_cluster_analysis_vocab_size : int
-        Size of word cluster analysis vocabulary
     """
     # Ensure raw data/output directories exist
     makedirs(raw_data_dir, exist_ok=True)
@@ -303,9 +290,7 @@ def preprocess_analysis_data(
     print("Done!")
 
     print("-- Word cluster groups --")
-    preprocess_word_cluster_groups(
-        raw_data_dir, output_dir, words_filepath, word_cluster_analysis_vocab_size
-    )
+    preprocess_word_cluster_groups(raw_data_dir, output_dir, words_filepath)
     print("Done!")
 
 
@@ -316,5 +301,4 @@ if __name__ == "__main__":
         output_dir=args.output_dir,
         geonames_username=args.geonames_username,
         words_filepath=args.words_filepath,
-        word_cluster_analysis_vocab_size=args.word_cluster_analysis_vocab_size,
     )
