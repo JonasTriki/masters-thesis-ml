@@ -45,6 +45,7 @@ xlrd = "*"
 tikzplotlib = "*"
 s-dbw = "*"
 tensorflow = "*"
+cdbw = "*"
 
 [requires]
 python_version = "3.6"
