@@ -8,7 +8,6 @@ import joblib
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from cdbw import CDbw
 from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
 from s_dbw import S_Dbw
@@ -100,7 +99,6 @@ def k_means_cluster_hyperparameter_search(
     and various internal cluster metrics:
     - Silhouette Coefficient
     - S_Dbw validity index
-    - CDbw validity index
 
     Parameters
     ----------
@@ -146,11 +144,6 @@ def k_means_cluster_hyperparameter_search(
             "scores": [],
             "best_score_idx": -1,
         },
-        "cdbw": {
-            "name": "CDbw validity index",
-            "scores": [],
-            "best_score_idx": -1,
-        },
     }
     for params in tqdm(param_grid, desc=f"Performing clustering using {clusterer_name}"):
         cls = clusterer(**params, **default_params)
@@ -166,14 +159,10 @@ def k_means_cluster_hyperparameter_search(
         s_dbw_score = S_Dbw(
             X=word_embeddings, labels=cluster_labels_pred, metric="cosine"
         )
-        cdbw_score = CDbw(
-            X=word_embeddings, labels=cluster_labels_pred, metric="cosine", s=3
-        )
 
         # Append metric scores
         cluster_metrics["silhouette_coeff"]["scores"].append(silhouette_coeff_score)
         cluster_metrics["s_dbw"]["scores"].append(s_dbw_score)
-        cluster_metrics["cdbw"]["scores"].append(cdbw_score)
 
     # Find set score index for each metric
     cluster_metrics["silhouette_coeff"]["best_score_idx"] = np.argmax(
@@ -181,9 +170,6 @@ def k_means_cluster_hyperparameter_search(
     )
     cluster_metrics["s_dbw"]["best_score_idx"] = np.argmin(
         cluster_metrics["s_dbw"]["scores"]
-    )
-    cluster_metrics["cdbw"]["best_score_idx"] = np.argmax(
-        cluster_metrics["cdbw"]["scores"]
     )
 
     result = {
@@ -214,7 +200,6 @@ def k_means_mini_batch_cluster_hyperparameter_search(
     clustering and various internal cluster metrics:
     - Silhouette Coefficient
     - S_Dbw validity index
-    - CDbw validity index
 
     Parameters
     ----------
@@ -269,7 +254,6 @@ def k_medoids_cluster_hyperparameter_search(
     and various internal cluster metrics:
     - Silhouette Coefficient
     - S_Dbw validity index
-    - CDbw validity index
 
     Parameters
     ----------
@@ -324,7 +308,6 @@ def gmm_cluster_hyperparameter_search(
     models (GMM) clustering and various internal cluster metrics:
     - Silhouette Coefficient
     - S_Dbw validity index
-    - CDbw validity index
 
     Parameters
     ----------
@@ -459,7 +442,6 @@ def agglomerative_cluster_hyperparameter_search(
     clustering and various internal cluster metrics:
     - Silhouette Coefficient
     - S_Dbw validity index
-    - CDbw validity index
 
     Parameters
     ----------
@@ -509,16 +491,13 @@ def agglomerative_cluster_hyperparameter_search(
                 "scores": [],
                 "best_score_idx": -1,
             },
-            "cdbw": {
-                "name": "CDbw validity index",
-                "scores": [],
-                "best_score_idx": -1,
-            },
         }
 
         for k in tqdm(cluster_numbers):
             linkage_matrix = agglomerative_clusterings[linkage]["linkage_matrix"]
-            cluster_labels_pred = fcluster(Z=linkage_matrix, criterion="maxclust", t=k)
+            cluster_labels_pred = (
+                fcluster(Z=linkage_matrix, criterion="maxclust", t=k) - 1
+            )
             cluster_labels.append(cluster_labels_pred)
 
             # Compute metric scores
@@ -530,14 +509,10 @@ def agglomerative_cluster_hyperparameter_search(
             s_dbw_score = S_Dbw(
                 X=word_embeddings, labels=cluster_labels_pred, metric="cosine"
             )
-            cdbw_score = CDbw(
-                X=word_embeddings, labels=cluster_labels_pred, metric="cosine", s=3
-            )
 
             # Append metric scores
             cluster_metrics["silhouette_coeff"]["scores"].append(silhouette_coeff_score)
             cluster_metrics["s_dbw"]["scores"].append(s_dbw_score)
-            cluster_metrics["cdbw"]["scores"].append(cdbw_score)
 
         # Find set score index for each metric
         cluster_metrics["silhouette_coeff"]["best_score_idx"] = np.argmax(
@@ -545,9 +520,6 @@ def agglomerative_cluster_hyperparameter_search(
         )
         cluster_metrics["s_dbw"]["best_score_idx"] = np.argmin(
             cluster_metrics["s_dbw"]["scores"]
-        )
-        cluster_metrics["cdbw"]["best_score_idx"] = np.argmax(
-            cluster_metrics["cdbw"]["scores"]
         )
         clustering_result[linkage] = {
             "cluster_labels": cluster_labels,
@@ -576,7 +548,6 @@ def hdbscan_cluster_hyperparameter_search(
     and various internal cluster metrics:
     - Density-Based Clustering Validation (DBCV)
     - S_Dbw validity index
-    - CDbw validity index
 
     Parameters
     ----------
@@ -616,11 +587,6 @@ def hdbscan_cluster_hyperparameter_search(
             "scores": [],
             "best_score_idx": -1,
         },
-        "cdbw": {
-            "name": "CDbw validity index",
-            "scores": [],
-            "best_score_idx": -1,
-        },
     }
     for params in tqdm(param_grid, desc="Performing clustering using HDBSCAN"):
         hdbscan_clustering = HDBSCAN(**params, **default_params)
@@ -632,14 +598,10 @@ def hdbscan_cluster_hyperparameter_search(
         s_dbw_score = S_Dbw(
             X=word_embeddings, labels=cluster_labels_pred, metric="cosine"
         )
-        cdbw_score = CDbw(
-            X=word_embeddings, labels=cluster_labels_pred, metric="cosine", s=3
-        )
 
         # Append metric scores
         cluster_metrics["dbcv_relative"]["scores"].append(dbcv_score)
         cluster_metrics["s_dbw"]["scores"].append(s_dbw_score)
-        cluster_metrics["cdbw"]["scores"].append(cdbw_score)
 
     # Find set score index for each metric
     cluster_metrics["dbcv_relative"]["best_score_idx"] = np.argmax(
@@ -647,9 +609,6 @@ def hdbscan_cluster_hyperparameter_search(
     )
     cluster_metrics["s_dbw"]["best_score_idx"] = np.argmin(
         cluster_metrics["s_dbw"]["scores"]
-    )
-    cluster_metrics["cdbw"]["best_score_idx"] = np.argmax(
-        cluster_metrics["cdbw"]["scores"]
     )
 
     # Create result as dict
