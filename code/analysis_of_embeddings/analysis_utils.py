@@ -877,15 +877,23 @@ def load_word_cluster_group_words(
     country_info_filepath = join(data_dir, "country-info.csv")
     names_filepath = join(data_dir, "names.csv")
     numbers_filepath = join(data_dir, "numbers.txt")
+    video_games_filepath = join(data_dir, "video_games.csv")
+
+    # Filter words out of vocabulary
+    word_in_vocab_filter = lambda word: word in word_to_int
 
     # Load country info
     country_info_df = pd.read_csv(country_info_filepath)
+    country_info_df_vocab_mask = (
+        country_info_df[["name", "capital"]].isin(word_to_int.keys()).apply(all, axis=1)
+    )
+    country_info_df = country_info_df[country_info_df_vocab_mask]
     countries = country_info_df["name"].values
     country_capitals = country_info_df["capital"].values
 
     # Load names
     names_df = pd.read_csv(names_filepath)
-    names_df = names_df[names_df["name"].apply(lambda name: name in word_to_int)]
+    names_df = names_df[names_df["name"].apply(word_in_vocab_filter)]
     names = names_df["name"].values
     male_names = names_df[names_df["gender"] == "M"]["name"].values
     female_names = names_df[names_df["gender"] == "F"]["name"].values
@@ -893,17 +901,11 @@ def load_word_cluster_group_words(
     # Load numbers
     with open(numbers_filepath, "r") as file:
         numbers = file.read().split("\n")
-    numbers = np.array([num for num in numbers if num in word_to_int])
+    numbers = np.array([num for num in numbers if word_in_vocab_filter(num)])
 
     # Load video games
-    video_games_df = pd.read_excel(
-        join(
-            custom_data_dir,
-            "word2vec_analysis_category_of_words.xlsx",
-        ),
-        sheet_name="video_games",
-    )
-    video_games_df["Name"] = video_games_df["Name"].apply(preprocess_name)
+    video_games_df = pd.read_csv(video_games_filepath)
+    video_games_df = video_games_df[video_games_df["Name"].apply(word_in_vocab_filter)]
     video_games = video_games_df["Name"].values
 
     # Combine data into dictionary
