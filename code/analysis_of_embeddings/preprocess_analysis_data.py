@@ -225,32 +225,23 @@ def preprocess_word_cluster_groups(
         words = np.array(words_file.read().split("\n"))
     word_to_int = {word: i for i, word in enumerate(words)}  # Word integer lookup table
 
-    def write_words_to_file(words_to_file: list, output_filepath: str) -> None:
-        """
-        Writes words to file separated by newline.
-
-        Parameters
-        ----------
-        words_to_file : list of words
-            List of words to write to file
-        output_filepath : str
-            Output filepath
-        """
-        with open(output_filepath, "w") as words_output_file:
-            for word in words_to_file:
-                words_output_file.write(f"{word}\n")
-
     # -- Numbers --
-    max_num = 1000
-    numbers_set = set()
-    for number in np.arange(max_num + 1):
+    numbers_list = []
+    numbers_list.extend(list(range(100)))
+    numbers_list.extend([100, 1000, 1000000, 1000000000, 1000000000000])
+    numbers_textual_reprs = []
+    for number in numbers_list:
         for num in preprocess_text(str(number)):
-            if num != "and":
-                numbers_set.add(num)
+            if num != "and" and num not in numbers_textual_reprs:
+                numbers_textual_reprs.append(num)
     number_words_in_vocab = [
-        num_word for num_word in numbers_set if num_word in word_to_int
+        num_word for num_word in numbers_textual_reprs if num_word in word_to_int
     ]
-    write_words_to_file(number_words_in_vocab, join(output_dir, "numbers.txt"))
+    with open(join(output_dir, "numbers.txt"), "w") as words_output_file:
+        for i, word in enumerate(number_words_in_vocab):
+            if i > 0:
+                words_output_file.write("\n")
+            words_output_file.write(f"{word}")
 
     # -- Names --
     names_data_url = "https://www.ssa.gov/oact/babynames/names.zip"
