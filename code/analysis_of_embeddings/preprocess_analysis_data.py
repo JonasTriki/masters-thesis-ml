@@ -171,8 +171,42 @@ def preprocess_country_info(
         country_info_df.to_csv(output_filepath, index=False)
 
 
+def preprocess_custom_data(custom_data_dir: str, output_dir: str) -> None:
+    """
+    Preprocesses custom data files
+
+    Parameters
+    ----------
+    custom_data_dir : str
+        Data directory containing custom data files.
+    output_dir : str
+        Directory to save output data.
+    """
+    custom_data_filenames = [
+        "word2vec_analysis_category_of_words.xlsx"  # Analysing category of words
+    ]
+    custom_data_filepaths = [join(custom_data_dir, fn) for fn in custom_data_filenames]
+
+    # Parsing excel files
+    for custom_data_filepath in custom_data_filepaths:
+        excel_file = pd.ExcelFile(custom_data_filepath)
+        excel_sheet_dfs = [
+            (sheet_name, excel_file.parse(sheet_name))
+            for sheet_name in excel_file.sheet_names
+        ]
+
+        # Iterate over all sheets in excel file
+        for sheet_name, custom_data_df in excel_sheet_dfs:
+
+            # Apply preprocessing to names
+            custom_data_df["Name"] = custom_data_df["Name"].apply(preprocess_name)
+
+            # Save to file
+            custom_data_df.to_csv(join(output_dir, f"{sheet_name}.csv"), index=False)
+
+
 def preprocess_word_cluster_groups(
-    raw_data_dir: str, custom_data_dir: str, output_dir: str, words_filepath: str
+    raw_data_dir: str, output_dir: str, words_filepath: str
 ) -> None:
     """
     Preprocesses word cluster groups
@@ -181,8 +215,6 @@ def preprocess_word_cluster_groups(
     ----------
     raw_data_dir : str
         Raw data directory
-    custom_data_dir : str
-        Data directory containing custom data files
     output_dir : str
         Directory to save output data.
     words_filepath: str
@@ -252,36 +284,6 @@ def preprocess_word_cluster_groups(
         names_raw_df = names_raw_df[names_raw_df["name"].apply(word_in_vocab)]
         names_raw_df.to_csv(names_output_filepath, index=False)
 
-    # -- Custom data --
-    custom_data_filenames = [
-        "word2vec_analysis_category_of_words.xlsx"  # Analysing category of words
-    ]
-    custom_data_filepaths = [join(custom_data_dir, fn) for fn in custom_data_filenames]
-
-    # Parsing excel files
-    for custom_data_filepath in custom_data_filepaths:
-        excel_file = pd.ExcelFile(custom_data_filepath)
-        excel_sheet_dfs = [
-            (sheet_name, excel_file.parse(sheet_name))
-            for sheet_name in excel_file.sheet_names
-        ]
-
-        # Iterate over all sheets in excel file
-        for sheet_name, custom_data_df in excel_sheet_dfs:
-
-            # Apply preprocessing to names
-            custom_data_df["Name"] = custom_data_df["Name"].apply(preprocess_name)
-
-            # Ensure names are in vocabulary
-            custom_data_in_vocab_df = custom_data_df[
-                custom_data_df["Name"].apply(word_in_vocab)
-            ]
-
-            # Save to file
-            custom_data_in_vocab_df.to_csv(
-                join(output_dir, f"{sheet_name}.csv"), index=False
-            )
-
 
 def preprocess_analysis_data(
     raw_data_dir: str,
@@ -314,10 +316,16 @@ def preprocess_analysis_data(
     preprocess_country_info(raw_data_dir, output_dir, geonames_username)
     print("Done!")
 
+    print("-- Custom data -- ")
+    preprocess_custom_data(
+        custom_data_dir,
+        output_dir,
+    )
+    print("Done!")
+
     print("-- Word cluster groups --")
     preprocess_word_cluster_groups(
         raw_data_dir,
-        custom_data_dir,
         output_dir,
         words_filepath,
     )
