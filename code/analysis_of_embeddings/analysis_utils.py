@@ -7,6 +7,7 @@ from typing import Callable, Union
 import joblib
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import seaborn as sns
 from cdbw import CDbw
 from hdbscan import HDBSCAN
@@ -925,14 +926,15 @@ def load_word_cluster_group_words(
 def visualize_word_cluster_groups(
     transformed_word_embeddings: np.ndarray,
     words: np.ndarray,
-    word_to_int: dict,
-    word_group: list,
-    word_group_name: str,
+    word_groups: dict,
+    visualize_non_group_words: bool,
     xlabel: str,
     ylabel: str,
+    non_group_words_color: str = "#c44e52",
     ax: plt.axis = None,
     show_plot: bool = True,
     alpha: float = 1,
+    interactive: bool = False,
 ) -> None:
     """
     Visualizes word cluster groups.
@@ -943,50 +945,98 @@ def visualize_word_cluster_groups(
         Transformed word embeddings.
     words : np.ndarray
         Numpy array containing all words from vocabulary.
-    word_to_int : dict of str and int
-        Dictionary mapping from word to its integer representation.
-    word_group : list
-        List of words in group to visualize
-    word_group_name : str
-        Name of the word group
+    word_groups : dict
+        Dictionary containing word groups to visualize.
+    visualize_non_group_words : bool
+        Whether or not to visualize words outside word groups
     xlabel : str
         X-axis label
     ylabel : str
         Y-axis label
+    non_group_words_color : str
+        Color for words outside groups (defaults to #c44e52)
     ax : plt.axis
         Matplotlib axis (defaults to None)
     show_plot : bool
         Whether or not to call plt.show() (defaults to True)
     alpha : float
         Scatter plot alpha value (defaults to 1)
+    interactive : bool
+        Whether or not to make the visualization interactive
+        using Plotly (defaults to False).
     """
-    if ax is None:
+    if ax is None and not interactive:
         _, ax = plt.subplots(figsize=(12, 7))
+    if interactive:
+        fig = go.Figure(layout=dict(xaxis=dict(title=xlabel), yaxis=dict(title=ylabel)))
 
-    # Create masks for words inside/outside word group
-    words_in_group_mask = [word in word_group for word in words]
-    words_not_in_group_mask = [word not in word_group for word in words]
+    if visualize_non_group_words:
 
-    # Plot words outside word group
-    ax.scatter(
-        x=transformed_word_embeddings[words_not_in_group_mask][:, 0],
-        y=transformed_word_embeddings[words_not_in_group_mask][:, 1],
-        c="r",
-        alpha=alpha,
-    )
+        # Create boolean mask for words outside groups
+        words_in_groups = []
+        for group_name in word_groups.keys():
+            words_in_groups.extend(word_groups[group_name]["words"])
+        words_not_in_groups_mask = [word not in words_in_groups for word in words]
 
-    # Plot words inside word group
-    ax.scatter(
-        x=transformed_word_embeddings[words_in_group_mask][:, 0],
-        y=transformed_word_embeddings[words_in_group_mask][:, 1],
-        c="g",
-        alpha=alpha,
-    )
+        # Plot words outside word group
+        if interactive:
+            fig.add_trace(
+                go.Scatter(
+                    x=transformed_word_embeddings[words_not_in_groups_mask][:, 0],
+                    y=transformed_word_embeddings[words_not_in_groups_mask][:, 1],
+                    mode="markers",
+                    marker=dict(color=non_group_words_color),
+                    hovertext=words[words_not_in_groups_mask],
+                    hoverinfo="x+y+text",
+                    name=f"Non group words",
+                    opacity=alpha,
+                )
+            )
+        else:
+            ax.scatter(
+                x=transformed_word_embeddings[words_not_in_groups_mask][:, 0],
+                y=transformed_word_embeddings[words_not_in_groups_mask][:, 1],
+                c=non_group_words_color,
+                alpha=alpha,
+            )
 
-    ax.legend(
-        [f"Words which are not {word_group_name}", f"Words which are {word_group_name}"]
-    )
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    if show_plot:
-        plt.show()
+    # Visualize words in groups
+    for group_name, word_group in word_groups.items():
+        words_in_group = word_group["words"]
+        words_in_group_mask = [word in words_in_group for word in words]
+        word_group_color = word_group["color"]
+
+        # Plot words inside word group
+        if interactive:
+            fig.add_trace(
+                go.Scatter(
+                    x=transformed_word_embeddings[words_in_group_mask][:, 0],
+                    y=transformed_word_embeddings[words_in_group_mask][:, 1],
+                    mode="markers",
+                    marker=dict(color=word_group_color),
+                    hovertext=words_in_group,
+                    hoverinfo="x+y+text",
+                    name=f"Words in {group_name}",
+                    opacity=alpha,
+                )
+            )
+        else:
+            ax.scatter(
+                x=transformed_word_embeddings[words_in_group_mask][:, 0],
+                y=transformed_word_embeddings[words_in_group_mask][:, 1],
+                c=word_group_color,
+                alpha=alpha,
+            )
+
+    if interactive:
+        fig.show()
+    else:
+        ax_legends = ["Non group words"]
+        ax_legends.extend(
+            [f"Words which are {group_name}" for group_name in word_groups.keys()]
+        )
+        ax.legend(ax_legends)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        if show_plot:
+            plt.show()
