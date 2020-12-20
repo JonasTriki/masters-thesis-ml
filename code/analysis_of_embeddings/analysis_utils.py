@@ -1008,7 +1008,7 @@ def visualize_word_cluster_groups(
     for group_name, word_group in word_groups.items():
         words_in_group = word_group["words"]
         words_in_group_mask = [word in words_in_group for word in words]
-        words_in_group_sorted = [word for word in words if word not in words_in_group]
+        words_in_group_sorted = [word for word in words if word in words_in_group]
         word_group_color = word_group["color"]
 
         # Plot words inside word group
