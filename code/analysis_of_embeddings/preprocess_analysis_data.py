@@ -298,9 +298,9 @@ def preprocess_word_cluster_groups(
         surnames_raw_df = pd.read_csv(surnames_raw_filepath, usecols=["name", "count"])
         surnames_raw_df["name"] = surnames_raw_df["name"].str.lower()
         surnames_raw_df = surnames_raw_df[
-            surnames_raw_df["name"]
-            .apply(word_in_vocab)
-            .apply(lambda name: name not in forenames_raw_df["name"])
+            surnames_raw_df["name"].apply(
+                lambda name: word_in_vocab(name) and name not in forenames_raw_df["name"]
+            )
         ]
         surnames_raw_df.to_csv(surnames_output_filepath, index=False)
 

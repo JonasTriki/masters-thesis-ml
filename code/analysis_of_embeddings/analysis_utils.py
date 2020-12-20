@@ -894,9 +894,9 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     forenames_df = forenames_df[forenames_df["name"].apply(word_in_vocab_filter)]
     surnames_df = pd.read_csv(surnames_filepath)
     surnames_df = surnames_df[surnames_df["name"].apply(word_in_vocab_filter)]
-    names = forenames_df["name"].values
-    male_names = forenames_df[forenames_df["gender"] == "M"]["name"].values
-    female_names = forenames_df[forenames_df["gender"] == "F"]["name"].values
+    forenames = forenames_df["name"].values
+    forenames_male = forenames_df[forenames_df["gender"] == "M"]["name"].values
+    forenames_female = forenames_df[forenames_df["gender"] == "F"]["name"].values
     surnames = surnames_df["name"].values
 
     # Load numbers
@@ -913,9 +913,9 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     data = {
         "countries": countries,
         "country_capitals": country_capitals,
-        "names": names,
-        "male_names": male_names,
-        "female_names": female_names,
+        "forenames": forenames,
+        "forenames_male": forenames_male,
+        "forenames_female": forenames_female,
         "surnames": surnames,
         "numbers": numbers,
         "video_games": video_games,
