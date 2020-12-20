@@ -876,7 +876,8 @@ def load_word_cluster_group_words(
     """
     # Constants
     country_info_filepath = join(data_dir, "country-info.csv")
-    names_filepath = join(data_dir, "names.csv")
+    forenames_filepath = join(data_dir, "forenames.csv")
+    surnames_filepath = join(data_dir, "surnames.csv")
     numbers_filepath = join(data_dir, "numbers.txt")
     video_games_filepath = join(data_dir, "video_games.csv")
 
@@ -893,11 +894,14 @@ def load_word_cluster_group_words(
     country_capitals = country_info_df["capital"].values
 
     # Load names
-    names_df = pd.read_csv(names_filepath)
-    names_df = names_df[names_df["name"].apply(word_in_vocab_filter)]
-    names = names_df["name"].values
-    male_names = names_df[names_df["gender"] == "M"]["name"].values
-    female_names = names_df[names_df["gender"] == "F"]["name"].values
+    forenames_df = pd.read_csv(forenames_filepath)
+    forenames_df = forenames_df[forenames_df["name"].apply(word_in_vocab_filter)]
+    surnames_df = pd.read_csv(surnames_filepath)
+    surnames_df = surnames_df[surnames_df["name"].apply(word_in_vocab_filter)]
+    names = forenames_df["name"].values
+    male_names = forenames_df[forenames_df["gender"] == "M"]["name"].values
+    female_names = forenames_df[forenames_df["gender"] == "F"]["name"].values
+    surnames = surnames_df["name"].values
 
     # Load numbers
     with open(numbers_filepath, "r") as file:
@@ -916,6 +920,7 @@ def load_word_cluster_group_words(
         "names": names,
         "male_names": male_names,
         "female_names": female_names,
+        "surnames": surnames,
         "numbers": numbers,
         "video_games": video_games,
     }
