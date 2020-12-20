@@ -244,36 +244,63 @@ def preprocess_word_cluster_groups(
             words_output_file.write(f"{word}")
 
     # -- Names --
-    names_data_url = "https://www.ssa.gov/oact/babynames/names.zip"
-    names_raw_zip_filepath = join(raw_data_dir, "names.zip")
-    names_raw_zip_dir = join(raw_data_dir, "names")
-    names_year = 2019
-    names_raw_filepath = join(names_raw_zip_dir, f"yob{names_year}.txt")
-    names_output_filepath = join(output_dir, "names.csv")
+    forenames_data_url = "https://www.ssa.gov/oact/babynames/names.zip"
+    forenames_raw_zip_filepath = join(raw_data_dir, "forenames.zip")
+    forenames_raw_zip_dir = join(raw_data_dir, "forenames")
+    forenames_year = 2019
+    forenames_raw_filepath = join(forenames_raw_zip_dir, f"yob{forenames_year}.txt")
+    forenames_output_filepath = join(output_dir, "forenames.csv")
+
+    surnames_year = 2010
+    surnames_data_url = (
+        f"https://www2.census.gov/topics/genealogy/{surnames_year}surnames/names.zip"
+    )
+    surnames_raw_zip_filepath = join(raw_data_dir, "surnames.zip")
+    surnames_raw_zip_dir = join(raw_data_dir, "surnames")
+    surnames_raw_filepath = join(surnames_raw_zip_dir, f"Names_{surnames_year}Census.csv")
+    surnames_output_filepath = join(output_dir, "surnames.csv")
 
     # Download raw data
-    if not isfile(names_raw_zip_filepath):
-        print("Downloading names data...")
-        download_from_url(names_data_url, names_raw_zip_filepath)
+    if not isfile(forenames_raw_zip_filepath):
+        print("Downloading forenames data...")
+        download_from_url(forenames_data_url, forenames_raw_zip_filepath)
         print("Done!")
 
-    if not isdir(names_raw_zip_dir):
-        print("Extracting raw data...")
-        with zipfile.ZipFile(names_raw_zip_filepath, "r") as zip_file:
-            zip_file.extractall(names_raw_zip_dir)
+    if not isdir(forenames_raw_zip_dir):
+        print("Extracting raw forenames data...")
+        with zipfile.ZipFile(forenames_raw_zip_filepath, "r") as zip_file:
+            zip_file.extractall(forenames_raw_zip_dir)
         print("Done!")
 
+    if not isfile(surnames_raw_zip_filepath):
+        print("Downloading surnames data...")
+        download_from_url(surnames_data_url, surnames_raw_zip_filepath)
+        print("Done!")
+
+    if not isdir(surnames_raw_zip_dir):
+        print("Extracting raw surnames data...")
+        with zipfile.ZipFile(surnames_raw_zip_filepath, "r") as zip_file:
+            zip_file.extractall(surnames_raw_zip_dir)
+        print("Done!")
+
+    # Parse and save forenames
     word_in_vocab = lambda word: word in word_to_int
-    if not isfile(names_output_filepath):
-        names_raw_df = pd.read_csv(
-            names_raw_filepath,
-            delimiter=",",
+    if not isfile(forenames_output_filepath):
+        forenames_raw_df = pd.read_csv(
+            forenames_raw_filepath,
             header=None,
             names=["name", "gender", "count"],
         )
-        names_raw_df["name"] = names_raw_df["name"].str.lower()
-        names_raw_df = names_raw_df[names_raw_df["name"].apply(word_in_vocab)]
-        names_raw_df.to_csv(names_output_filepath, index=False)
+        forenames_raw_df["name"] = forenames_raw_df["name"].str.lower()
+        forenames_raw_df = forenames_raw_df[forenames_raw_df["name"].apply(word_in_vocab)]
+        forenames_raw_df.to_csv(forenames_output_filepath, index=False)
+
+    # Parse and save surnames
+    if not isfile(surnames_output_filepath):
+        surnames_raw_df = pd.read_csv(surnames_raw_filepath, usecols=["name", "count"])
+        surnames_raw_df["name"] = surnames_raw_df["name"].str.lower()
+        surnames_raw_df = surnames_raw_df[surnames_raw_df["name"].apply(word_in_vocab)]
+        surnames_raw_df.to_csv(surnames_output_filepath, index=False)
 
 
 def preprocess_analysis_data(
