@@ -854,9 +854,7 @@ def inspect_word_clusters(
         print(cluster_words)
 
 
-def load_word_cluster_group_words(
-    data_dir: str, custom_data_dir: str, word_to_int: dict
-) -> dict:
+def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     """
     Load word groups for clustering.
 
@@ -864,8 +862,6 @@ def load_word_cluster_group_words(
     ----------
     data_dir : str
         Data directory
-    custom_data_dir : str
-        Custom data directory
     word_to_int : dict of str and int
         Dictionary mapping from word to its integer representation.
 

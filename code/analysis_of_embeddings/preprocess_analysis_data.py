@@ -283,9 +283,9 @@ def preprocess_word_cluster_groups(
             zip_file.extractall(surnames_raw_zip_dir)
         print("Done!")
 
-    # Parse and save forenames
+    # Parse and save forenames/surnames
     word_in_vocab = lambda word: word in word_to_int
-    if not isfile(forenames_output_filepath):
+    if not isfile(forenames_output_filepath) or not isfile(surnames_output_filepath):
         forenames_raw_df = pd.read_csv(
             forenames_raw_filepath,
             header=None,
@@ -295,11 +295,13 @@ def preprocess_word_cluster_groups(
         forenames_raw_df = forenames_raw_df[forenames_raw_df["name"].apply(word_in_vocab)]
         forenames_raw_df.to_csv(forenames_output_filepath, index=False)
 
-    # Parse and save surnames
-    if not isfile(surnames_output_filepath):
         surnames_raw_df = pd.read_csv(surnames_raw_filepath, usecols=["name", "count"])
         surnames_raw_df["name"] = surnames_raw_df["name"].str.lower()
-        surnames_raw_df = surnames_raw_df[surnames_raw_df["name"].apply(word_in_vocab)]
+        surnames_raw_df = surnames_raw_df[
+            surnames_raw_df["name"]
+            .apply(word_in_vocab)
+            .apply(lambda name: name not in forenames_raw_df["name"])
+        ]
         surnames_raw_df.to_csv(surnames_output_filepath, index=False)
 
 
