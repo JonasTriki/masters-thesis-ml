@@ -978,6 +978,9 @@ def visualize_word_cluster_groups(
         for group_name in word_groups.keys():
             words_in_groups.extend(word_groups[group_name]["words"])
         words_not_in_groups_mask = [word not in words_in_groups for word in words]
+        words_not_in_groups_sorted = [
+            word for word in words if word not in words_in_groups
+        ]
 
         # Plot words outside word group
         if interactive:
@@ -987,7 +990,7 @@ def visualize_word_cluster_groups(
                     y=transformed_word_embeddings[words_not_in_groups_mask][:, 1],
                     mode="markers",
                     marker=dict(color=non_group_words_color),
-                    hovertext=words[words_not_in_groups_mask],
+                    hovertext=words_not_in_groups_sorted,
                     hoverinfo="x+y+text",
                     name=f"Non group words",
                     opacity=alpha,
@@ -1005,6 +1008,7 @@ def visualize_word_cluster_groups(
     for group_name, word_group in word_groups.items():
         words_in_group = word_group["words"]
         words_in_group_mask = [word in words_in_group for word in words]
+        words_in_group_sorted = [word for word in words if word not in words_in_group]
         word_group_color = word_group["color"]
 
         # Plot words inside word group
@@ -1015,7 +1019,7 @@ def visualize_word_cluster_groups(
                     y=transformed_word_embeddings[words_in_group_mask][:, 1],
                     mode="markers",
                     marker=dict(color=word_group_color),
-                    hovertext=words_in_group,
+                    hovertext=words_in_group_sorted,
                     hoverinfo="x+y+text",
                     name=f"Words in {group_name}",
                     opacity=alpha,
