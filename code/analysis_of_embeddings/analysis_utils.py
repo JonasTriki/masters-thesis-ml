@@ -876,6 +876,7 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     surnames_filepath = join(data_dir, "surnames.csv")
     numbers_filepath = join(data_dir, "numbers.txt")
     video_games_filepath = join(data_dir, "video_games.csv")
+    foods_filepath = join(data_dir, "foods.csv")
 
     # Filter words out of vocabulary
     word_in_vocab_filter = lambda word: word in word_to_int
@@ -912,6 +913,11 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     video_games_df = video_games_df[video_games_df["Name"].apply(word_in_vocab_filter)]
     video_games = video_games_df["Name"].values
 
+    # Load
+    foods_df = pd.read_csv(foods_filepath)
+    foods_df = foods_df[foods_df["Name"].apply(word_in_vocab_filter)]
+    foods = foods_df["Name"].values
+
     # Combine data into dictionary
     data = {
         "countries": countries,
@@ -923,6 +929,7 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
         "surnames": surnames,
         "numbers": numbers,
         "video_games": video_games,
+        "foods": foods,
     }
 
     return data
