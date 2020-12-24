@@ -918,6 +918,12 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     video_games_df = pd.read_csv(video_games_filepath)
     video_games_df = video_games_df[video_games_df["Name"].apply(word_in_vocab_filter)]
     video_games = video_games_df["Name"].values
+    video_games_genres = video_games_df["Genre"].values
+    video_games_data = {"all": video_games}
+    for video_game_genre in video_games_genres:
+        video_games_data[video_game_genre] = video_games_df[
+            video_games_df["Genre"] == video_game_genre
+        ]["Name"].values
 
     # Load
     foods_df = pd.read_csv(foods_filepath)
@@ -936,7 +942,7 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
         "forenames": forenames_data,
         "surnames": surnames,
         "numbers": numbers,
-        "video_games": video_games,
+        "video_games": video_games_data,
         "foods": foods_data,
     }
 
