@@ -325,6 +325,9 @@ def pairwise_cosine_distances(X: np.ndarray) -> np.ndarray:
     # Ensure diagonal is filled with zeros
     np.fill_diagonal(X_cosine_dists, 0)
 
+    # Clip values between 0 and 1 to ensure validity
+    X_cosine_dists = np.clip(X_cosine_dists, 0, 1)
+
     return X_cosine_dists
 
 
