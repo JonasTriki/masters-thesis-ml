@@ -900,7 +900,13 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     forenames_female_mask = forenames_df["gender"] == "F"
     forenames_male = forenames_df[forenames_male_mask]["name"].values
     forenames_female = forenames_df[forenames_female_mask]["name"].values
-    forenames_both = np.intersect1d(forenames_male, forenames_female)
+    forenames_intersection = np.intersect1d(forenames_male, forenames_female)
+    forenames_data = {
+        "male": forenames_male,
+        "female": forenames_female,
+        "intersection": forenames_intersection,
+        "all": forenames,
+    }
     surnames = surnames_df["name"].values
 
     # Load numbers
@@ -916,20 +922,22 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     # Load
     foods_df = pd.read_csv(foods_filepath)
     foods_df = foods_df[foods_df["Name"].apply(word_in_vocab_filter)]
-    foods = foods_df["Name"].values
+    food_categories = foods_df["Category"].values
+    foods_data = {"all": foods_df["Name"].values}
+    for food_category in food_categories:
+        foods_data[food_category] = foods_df[foods_df["Category"] == food_category][
+            "Name"
+        ].values
 
     # Combine data into dictionary
     data = {
         "countries": countries,
         "country_capitals": country_capitals,
-        "forenames": forenames,
-        "forenames_male": forenames_male,
-        "forenames_female": forenames_female,
-        "forenames_both": forenames_both,
+        "forenames": forenames_data,
         "surnames": surnames,
         "numbers": numbers,
         "video_games": video_games,
-        "foods": foods,
+        "foods": foods_data,
     }
 
     return data

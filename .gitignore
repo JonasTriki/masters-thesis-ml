@@ -12,3 +12,6 @@ code/**/data/*
 code/**/raw_data/*
 code/**/nltk_data/*
 code/output
+
+# Excel temporary
+~$*.xls*
