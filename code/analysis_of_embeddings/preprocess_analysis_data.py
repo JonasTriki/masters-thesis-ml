@@ -303,6 +303,7 @@ def preprocess_word_cluster_groups(
             )
         ]
         surnames_raw_df.to_csv(surnames_output_filepath, index=False)
+        # TODO: Filter uncommon surnames (noisy words), e.g., count >= some count.
 
 
 def preprocess_analysis_data(
