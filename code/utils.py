@@ -328,6 +328,31 @@ def pairwise_cosine_distances(X: np.ndarray) -> np.ndarray:
     return X_cosine_dists
 
 
+def create_word_embeddings_distances_matrix(
+    word_embeddings: np.ndarray,
+    vocabulary: np.ndarray,
+) -> np.ndarray:
+    """
+    Creates distance matrix for word embeddings
+
+    Parameters
+    ----------
+    word_embeddings : np.ndarray
+        Word embeddings
+    vocabulary : np.ndarray
+        Array consisting of word integers to use as vocabulary
+
+    Returns
+    -------
+    word_embeddings_distances : np.ndarray
+        Pairwise cosine distances between word embeddings from vocabulary
+    """
+    # Compute cosine distance matrix
+    word_embeddings_to_precompute = word_embeddings[vocabulary]
+    word_embeddings_distances = pairwise_cosine_distances(word_embeddings_to_precompute)
+    return word_embeddings_distances
+
+
 def cosine_distance(x: np.ndarray, y: np.ndarray) -> float:
     """
     Computes the cosine distance between two points x and y.
