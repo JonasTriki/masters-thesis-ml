@@ -2,7 +2,7 @@
 In this master thesis, we will use several general machine learning methods in conjunction with each other. In this chapter we will introduce and explain these methods.
 
 \section{Artificial Neural Networks (ANNs)}
-In this section we will explain artificial neural networks (ANNs). In particular, we will focus on the multilayer perceptron (MLP). We refer to \cite[Chapter 11]{intro_to_ml_2014} and \cite{rong2016word2vec} when describing ANNs.
+In this section we will explain artificial neural networks (ANNs). In particular, we will focus on the multilayer perceptron (MLP) (\textbf{TODO: Do not write MLP, use multilayered network}). We refer to \cite[Chapter 1]{Aggarwal18} and \cite{rong2016word2vec} when describing ANNs.
 
 \begin{definition}
 An artificial neuron (or unit) is a function which receives one or more inputs and a bias, and then sums them to produce an output, as illustrated in \cref{fig:artificial_neuron}; $\left\{ x_1, \ldots, x_K \right\}$ are the input values, $x_0$ is the bias, $\left\{ w_0, \ldots, w_K \right\}$ are the weights and $y$ is a scalar output. We denote $f$ as the activation function.
@@ -11,7 +11,7 @@ An artificial neuron (or unit) is a function which receives one or more inputs a
 \begin{figure}
     \centering
     \includegraphics[width=8cm]{thesis/figures/artificial-neuron-rong-2014.png}
-    \caption{An artificial neuron as illustrated by \cite[Figure 5]{rong2016word2vec}. Note that the bias is omitted from this illustration ($x_0=0$).}
+    \caption{An artificial neuron as illustrated by \cite[Figure 5]{rong2016word2vec}. Note that the bias is omitted from this illustration (i.e. $x_0=0$).}
     \label{fig:artificial_neuron}
 \end{figure}
 
@@ -45,6 +45,7 @@ where $x$ is a $K$-dimensional input vector. Note that we here separate $x$ and 
 In the following subsections, we will go over the different types of layers in the ANN, namely the input, hidden and output layers.
 
 \subsection{Input layer}
+\label{sec:ann-input-layer}
 The first layer in the ANN is the input layer $\layer{x}{k} = \left\{ x_1, x_2, \ldots, x_K \right\}$. It is responsible for taking in input and passing it to the proceeding layer in the network. We illustrate the input layer in \cref{fig:input_layer_ann}.
 
 \begin{figure}[H]
@@ -66,7 +67,7 @@ More formally, we define the input layer in \cref{eqn:input_layer_ann} using \cr
 With this in mind, we look at the layer the input layer is connected to, namely the hidden layer.
 
 \subsection{Hidden layer}
-The hidden layer is the second layer in the ANN $\layer{h}{i} = \left\{ h_1, h_2, \ldots, h_N \right\}$, and is most commonly connected to the input layer. It should be noted, however, that we might have multiple hidden layers in the ANN (making the neural network deeper), connecting them to each other. For illustration purposes, we will assume that we only have one hidden layer in our neural network. The hidden layer is illustrated in \cref{fig:hidden_layer_ann}. Here we observe that every unit in the input layer is connected to the units in the hidden layer with a line. This is what we call fully connected layers, meaning that every unit is connected to each other.
+The hidden layer is the second layer in the ANN $\layer{h}{i} = \left\{ h_1, h_2, \ldots, h_N \right\}$, and is most commonly connected to the input layer. It should be noted, however, that we might have multiple hidden layers in the ANN (making the neural network deeper), connecting them to each other. For illustration purposes, we will assume that we only have one hidden layer in our neural network. The hidden layer is illustrated in \cref{fig:hidden_layer_ann}. Here we observe that every unit in the input layer is connected to the units in the hidden layer, as illustrated the lines. This is what we call fully connected layers, meaning that every unit is connected to each other.
 
 \begin{figure}[H]
     \centering
@@ -82,7 +83,7 @@ We formalize the description of the hidden layer in \cref{eqn:hidden-layer-ann}
 \end{align}
 where $f_{\layer{h}{i}}$ is a user-specified activation function, $W_{\layer{h}{i}}$ is an $N \times K$-dimensional weight matrix and $b_{\layer{h}{i}}$ is an $N$-dimensional bias vector.
 
-The hidden layer tries to learn a latent representation of the input data $x$. We will explain how the neural network learns the latent representation when optimizers in \cref{sec:optimizers-ann}. Assuming that we have some $N$-dimensional latent representation of the data, we would like to connect it to the final layer in the neural network, namely the output layer.
+The hidden layer tries to learn a latent representation of the input data $x$. We will explain how the neural network learns the latent representation when introducing optimizers in \cref{sec:optimizers-ann}. Assuming that we have some $N$-dimensional latent representation of the data, we would like to connect it to the final layer in the neural network, namely the output layer.
 
 \subsection{Output layer}
 The last layer in the ANN is the output layer $\layer{y}{j} = \left\{ y_1, y_2, \ldots, y_M \right\}$ and is connected to the last hidden layer. Similar to the hidden layer, we connect each unit in the last hidden layer to each unit in the output layer, as illustrated in \cref{fig:mlp-one-hidden}.
@@ -105,14 +106,41 @@ We have now covered the different layers in an MLP, but have yet to cover the di
 
 \subsection{Activation functions}
 \label{sec:activation-functions-ann}
-TODO
-\begin{itemize}
-    \item Simplest activation: identity function $id(x)=x$
-    \item Sigmoid
-    \item tanh
-    \item ReLU
-    \item Softmax
-\end{itemize}
+The data which is fed into an ANN might contain complex patterns and have non-linear relationships. To deal with this problem, one applies an activation function to each layer before the result is sent to the proceeding layer. There are several choices of activation functions, and we will go over some of the most common ones.
+
+The simplest type of activation is the identity function, as seen in \cref{eqn:identity-function}.
+\begin{align}
+    \label{eqn:identity-function}
+    f(x) = x
+\end{align}
+
+The identity function is commonly used when we want to pass on the values from one layer to another without modifying the value itself, as we have already seen in \cref{sec:ann-input-layer}.
+
+Other choices of activation functions include  sigmoid, tanh, Rectified Linear Unit (ReLU) and Softmax, as illustrated in \cref{fig:activation-functions}.
+\begin{align}
+    f(x) &= \frac{1}{1 + \exp{ \left( -x \right) }} \thickspace \text{(sigmoid function)} \\
+    f(x) &= \frac{\exp{ \left( 2x \right) } - 1}{\exp{ \left( 2x \right) } + 1} \thickspace \text{(tanh function)} \\
+    f(x) &= \max{\left\{ x, 0 \right\}} \thickspace \text{(ReLU function)} \\
+    f(x_i) &= \frac{\exp \left( x_i \right)}{\sumlim{j=0}{K} \exp \left( x_j \right)} \thickspace \text{, $i \in \left\{ 1, \ldots, K \right\}$ (Softmax function)} \label{eqn:softmax-activation-function}
+\end{align}
+where $K$ is the number of output values for the Softmax layer.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=13cm]{thesis/figures/activation-functions-aggarwal-2018.png}
+    \caption{Various activation functions, as illustrated by \cite[Figure 1.8]{Aggarwal18}. \textbf{TODO:} Replace with own .tex plot}
+    \label{fig:activation-functions}
+\end{figure}
+
+The sigmoid and tanh activation functions were typically used in the early development of neural networks. The sigmoid activation function maps a value to a value in $(0, 1)$ and is particularly useful since it creates a probabilistic output. The tanh activation function has a similar shape to the sigmoid activation function, and maps values to values in $[-1, 1]$. In fact, the tanh and sigmoid activation functions are related, as illustrated in \cref{eqn:tanh-sigmoid-relation}.
+\begin{align}
+    \label{eqn:tanh-sigmoid-relation}
+    \text{tanh}(x) = 2 \cdot \text{sigmoid}(2x) - 1
+\end{align}
+
+In recent years, the ReLU activation function has become more popular, partly due to its computational simplicity. In fact, both the sigmoid and tanh activation function suffers from vanishing gradients (i.e. gradients become zero, leading to very little learning) and ReLU is used as a substitute to overcome this problem. This does not mean, however, that the ReLU activation function can be used without problems, as it can "die out" since it is non-differentiable at 0. We will come back to this problem when introducing the gradient descent optimizer in \cref{sec:optimizers-ann}.
+
+So far we have only discussed activation functions where we have a single output value. If we were to do a classification with $K$ outputs, one typically uses the Softmax activation function. The Softmax activation function is defined in \cref{eqn:softmax-activation-function} and can be thought of the probabilities of the $K$ outputs.
 
 \subsection{Loss functions}
 \label{sec:loss-functions-ann}
