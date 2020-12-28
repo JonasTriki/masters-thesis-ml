@@ -31,7 +31,6 @@ beautifulsoup4 = "*"
 lxml = "*"
 contractions = "*"
 tqdm = "*"
-wikiextractor = "*"
 numba = "*"
 pynndescent = "*"
 fastdist = "*"
@@ -46,6 +45,7 @@ tikzplotlib = "*"
 s-dbw = "*"
 tensorflow = "*"
 cdbw = "*"
+wikiextractor = {git = "https://github.com/attardi/wikiextractor.git", ref = "3eeffcb470a9268e28b3a3b1581bf2bfd1179e4f"}
 
 [requires]
 python_version = "3.6"
