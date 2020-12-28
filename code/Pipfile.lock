@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "fa6cbe991425db315ce34d185e9cc7075c06d29d94ad318e8b5753af01b73f43"
+            "sha256": "e98fcc32e61ae517ff50e1264dbc4aebc743b2302d4d145ccbe588d3e0db3b11"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1624,8 +1624,12 @@
             "version": "==3.5.1"
         },
         "wikiextractor": {
-            "git": "https://github.com/attardi/wikiextractor.git",
-            "ref": "3eeffcb470a9268e28b3a3b1581bf2bfd1179e4f"
+            "hashes": [
+                "sha256:a6b5905eabae49aaa9a2f55726410f655103bdc6119d73b2b95fd36fb783cf23",
+                "sha256:cd91e892afd91a63ef27b41a2a3135a94622d6645e2375e0438d0c95cc4216c1"
+            ],
+            "index": "pypi",
+            "version": "==3.0.4"
         },
         "wrapt": {
             "hashes": [
