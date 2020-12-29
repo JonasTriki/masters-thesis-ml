@@ -45,7 +45,7 @@ tikzplotlib = "*"
 s-dbw = "*"
 tensorflow = "*"
 cdbw = "*"
-wikiextractor = "*"
+wikiextractor = {git = "https://github.com/JonasTriki/wikiextractor.git", ref = "fix-compressed-file-write"}
 
 [requires]
 python_version = "3.6"

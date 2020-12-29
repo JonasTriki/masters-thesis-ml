@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "e98fcc32e61ae517ff50e1264dbc4aebc743b2302d4d145ccbe588d3e0db3b11"
+            "sha256": "2d015fb5c3067a67c604ba8fbfcc095f905785782024d9f6ac79ddede5372b3e"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -198,11 +198,11 @@
         },
         "contractions": {
             "hashes": [
-                "sha256:478be774bf198f5d68ecdeedefea3cd3704cbfd8b92937c1c824ac485c272b79",
-                "sha256:f7530d41fcbc68f72399538fd4ab922a47727be382a39b692d100f3f699a979e"
+                "sha256:3658383f8c230c6d9128e1949422ce65f0e7702efe360bf4a4bc612999da23a8",
+                "sha256:aa0802ed681c56c98cf16470c128c87bf1b0a97ec5a863f8f2f97c8d8fd496c5"
             ],
             "index": "pypi",
-            "version": "==0.0.43"
+            "version": "==0.0.45"
         },
         "cycler": {
             "hashes": [
@@ -1624,12 +1624,8 @@
             "version": "==3.5.1"
         },
         "wikiextractor": {
-            "hashes": [
-                "sha256:a6b5905eabae49aaa9a2f55726410f655103bdc6119d73b2b95fd36fb783cf23",
-                "sha256:cd91e892afd91a63ef27b41a2a3135a94622d6645e2375e0438d0c95cc4216c1"
-            ],
-            "index": "pypi",
-            "version": "==3.0.4"
+            "git": "https://github.com/JonasTriki/wikiextractor.git",
+            "ref": "0458f0c1fd39f9541442b28d0d948432275c8465"
         },
         "wrapt": {
             "hashes": [
