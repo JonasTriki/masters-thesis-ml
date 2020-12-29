@@ -211,12 +211,21 @@ def get_all_filepaths_recursively(root_dir: str, file_ext: str) -> List[str]:
         List of filepaths in root directory with given file extension.
     """
     filepaths = get_all_filepaths(root_dir, file_ext)
-    dirs = [d for d in listdir(root_dir) if isdir(join(root_dir, d))]
-    for d in dirs:
-        files_in_d = get_all_filepaths_recursively(join(root_dir, d), file_ext)
-        if files_in_d:
-            for f in files_in_d:
-                filepaths.append(join(f))
+    dirs = [
+        dir_in_root
+        for dir_in_root in listdir(root_dir)
+        if isdir(join(root_dir, dir_in_root))
+    ]
+    for dir in dirs:
+        files_in_dir = get_all_filepaths_recursively(join(root_dir, dir), file_ext)
+        if files_in_dir:
+            for filepath in files_in_dir:
+
+                # Ensure the file size is > 0
+                if os.stat(filepath).st_size == 0:
+                    continue
+
+                filepaths.append(join(filepath))
     return filepaths
 
 
