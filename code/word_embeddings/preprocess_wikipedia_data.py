@@ -124,6 +124,7 @@ def load_and_preprocess_data(
                 "wikiextractor.WikiExtractor",
                 "-cb",
                 "250K",
+                "--no-templates",
                 "-o",
                 raw_data_bz2_extracted_dir,
                 raw_data_bz2_filepath,
