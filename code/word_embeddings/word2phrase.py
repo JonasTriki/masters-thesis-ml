@@ -117,15 +117,16 @@ class Word2phrase:
         print(f"Initial vocabulary size: {len(word_occurrences_counter)}")
 
         # Only use most common words
-        if 0 <= max_vocab_size < len(word_occurrences_counter):
+        if max_vocab_size == -1:
+            word_occurrences_counter = word_occurrences_counter.most_common()
+            print("Using all words in vocabulary!")
+        elif 0 <= max_vocab_size < len(word_occurrences_counter):
             word_occurrences_counter = word_occurrences_counter.most_common(
                 max_vocab_size
             )
             print(
                 f"New vocabulary size after maximization: {len(word_occurrences_counter)}"
             )
-        else:
-            print("Using all words in vocabulary!")
 
         # Exclude words with less than `self._min_word_count` occurrences
         word_occurrences_counter = {
