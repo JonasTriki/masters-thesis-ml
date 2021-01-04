@@ -273,8 +273,10 @@ def cluster_analysis(
         metric_best_scores_sorted_indices = np.argsort(metric_best_scores)
         if metric_obj_max:
             metric_best_scores_sorted_indices = metric_best_scores_sorted_indices[::-1]
-        best_clusterer_names_sorted = clusterer_names[metric_best_scores_sorted_indices]
-        metric_preferred_clusterers[cluster_metric_name] = best_clusterer_names_sorted
+        metric_preferred_clusterers[cluster_metric_name] = {
+            "clusterer_names": clusterer_names[metric_best_scores_sorted_indices],
+            "best_metric_scores": metric_best_scores[metric_best_scores_sorted_indices],
+        }
 
     # Return result as dictionary
     cluster_analysis_result = {
