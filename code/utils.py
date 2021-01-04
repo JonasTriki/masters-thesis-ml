@@ -382,3 +382,32 @@ def cosine_distance(x: np.ndarray, y: np.ndarray) -> float:
         Cosine distance between x and y
     """
     return 1 - fastdist.cosine(x, y)
+
+
+def words_to_vectors(
+    words: list,
+    word_to_int: dict,
+    word_embeddings: np.ndarray,
+) -> np.ndarray:
+    """
+    Gets word embeddings for a list of words.
+
+    Parameters
+    ----------
+    words : list
+        List of words to find word embeddings from
+    word_to_int : dict
+        Dictionary mapping from word to integer
+    word_embeddings : np.ndarray
+        Word embeddings
+
+    Returns
+    -------
+    word_vectors : np.ndarray
+        Word embeddings of input words
+    """
+    # Create array with word vectors
+    word_vectors = np.zeros((len(words), word_embeddings.shape[1]))
+    for i, word in enumerate(words):
+        word_vectors[i] = word_embeddings[word_to_int[word]]
+    return word_vectors

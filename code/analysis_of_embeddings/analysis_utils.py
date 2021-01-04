@@ -10,6 +10,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
 from cdbw import CDbw
+from cluster_analysis_utils import (create_linkage_matrix,
+                                    save_cluster_result_to_disk)
 from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
 from s_dbw import S_Dbw
@@ -47,36 +49,6 @@ def preprocess_name(name: str) -> str:
         name = "".join(name_no_brackets_results[0]).strip()
     name = "_".join(preprocess_text(name.replace("'", "")))
     return name
-
-
-def save_cluster_result_to_disk(
-    cluster_result: dict,
-    output_dir: str,
-    model_name: str,
-    dataset_name: str,
-    output_filepath_suffix: str,
-) -> None:
-    """
-    Saves cluster result to disk.
-
-    Parameters
-    ----------
-    cluster_result : dict
-        Dictionary containing result from clustering
-    output_dir : str
-        Output directory
-    model_name : str
-        Name of the model
-    dataset_name : str
-        Name of the dataset the model was trained on
-    output_filepath_suffix : str
-        Output filepath suffix
-    """
-    # Save result to output dir
-    joblib.dump(
-        cluster_result,
-        join(output_dir, f"{model_name}-{dataset_name}-{output_filepath_suffix}.joblib"),
-    )
 
 
 def k_means_cluster_hyperparameter_search(
@@ -363,44 +335,6 @@ def gmm_cluster_hyperparameter_search(
         clusterer=GaussianMixture,
         clusterer_name="GMM clustering",
     )
-
-
-def create_linkage_matrix(clustering: AgglomerativeClustering) -> np.ndarray:
-    """
-    Creates a linkage matrix from an agglomerative clustering.
-
-    Code snippet source:
-    https://scikit-learn.org/stable/auto_examples/cluster/plot_agglomerative_dendrogram.html
-    Downloaded 7th of December 2020.
-
-    Parameters
-    ----------
-    clustering : AgglomerativeClustering
-        Agglomerative clustering
-
-    Returns
-    -------
-    linkage_matrix : np.ndarray
-        Linkage matrix
-    """
-    # Create the counts of samples under each node
-    counts = np.zeros(clustering.children_.shape[0])
-    n_samples = len(clustering.labels_)
-    for i, merge in enumerate(clustering.children_):
-        current_count = 0
-        for child_idx in merge:
-            if child_idx < n_samples:
-                current_count += 1  # leaf node
-            else:
-                current_count += counts[child_idx - n_samples]
-        counts[i] = current_count
-
-    # Create required linkage matrix
-    linkage_matrix = np.column_stack(
-        [clustering.children_, clustering.distances_, counts]
-    ).astype(np.float)
-
-    return linkage_matrix
 
 
 def agglomerative_clustering(
