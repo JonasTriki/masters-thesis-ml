@@ -209,14 +209,14 @@ def cluster_analysis(
                     and eval_metric_params.get("metric") == "precomputed"
                 ):
                     metric_name, metric_score, metric_obj_max = eval_metric(
-                        X=word_vectors_pairwise_distances,
+                        word_embeddings=word_vectors_pairwise_distances,
                         cluster_labels=predicted_labels,
                         clusterer=clusterer_instance,
                         **eval_metric_params,
                     )
                 else:
                     metric_name, metric_score, metric_obj_max = eval_metric(
-                        X=word_vectors,
+                        word_embeddings=word_vectors,
                         cluster_labels=predicted_labels,
                         clusterer=clusterer_instance,
                         **eval_metric_params,
