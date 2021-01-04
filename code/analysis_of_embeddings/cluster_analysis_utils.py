@@ -204,7 +204,7 @@ def cluster_analysis(
             # Evaluate predicted cluster labels using internal evaluation metrics
             for eval_metric_tuple in eval_metrics:
                 eval_metric_key, eval_metric = eval_metric_tuple
-                eval_metric_params = eval_metrics_params[eval_metric_key]
+                eval_metric_params = eval_metrics_params.get(eval_metric_key, {})
                 if (
                     compute_pairwise_word_distances
                     and eval_metric_params.get("metric") == "precomputed"
