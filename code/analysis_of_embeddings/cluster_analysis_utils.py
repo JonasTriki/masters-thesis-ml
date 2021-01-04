@@ -158,8 +158,6 @@ def cluster_analysis(
                 },
             )
 
-        print(agglomerative_clustering_idx)
-
     # Perform cluster analysis
     clusterers_result = {}
     unique_cluster_metrics = set()
@@ -256,9 +254,10 @@ def cluster_analysis(
     for cluster_metric_name in unique_cluster_metrics:
         metric_obj_max = None
         metric_best_scores = []
-        clusterer_names = np.array(list(clusterers_result.keys()))
-        for clusterer_result in clusterers_result.values():
+        clusterer_names = []
+        for clusterer_name, clusterer_result in clusterers_result.items():
             if cluster_metric_name in clusterer_result["cluster_metrics"]:
+                clusterer_names.append(clusterer_name)
                 metric_result = clusterer_result["cluster_metrics"][cluster_metric_name]
                 if metric_obj_max is None:
                     metric_obj_max = metric_result["metric_obj_max"]
@@ -266,6 +265,7 @@ def cluster_analysis(
                     metric_result["best_metric_score_indices"][0]
                 ]
                 metric_best_scores.append(best_metric_score)
+        clusterer_names = np.array(clusterer_names)
 
         metric_best_scores_sorted_indices = np.argsort(metric_best_scores)
         if metric_obj_max:
