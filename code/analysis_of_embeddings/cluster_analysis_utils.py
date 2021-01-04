@@ -90,7 +90,7 @@ def cluster_analysis(
     words_vocabulary: list,
     word_to_int: dict,
     compute_pairwise_word_distances: bool = False,
-    agglomerative_clustering_cluster_numbers: list = None,
+    agglomerative_clustering_optimized: bool = False,
     return_word_vectors: bool = False,
     save_result_to_disk: bool = False,
     output_dir: str = None,
@@ -124,8 +124,7 @@ def cluster_analysis(
         if clusterer_cls is AgglomerativeClustering
     ]
     fast_agglomerative_clustering = (
-        agglomerative_clustering_cluster_numbers is not None
-        and len(agglomerative_clustering_idx) > 0
+        agglomerative_clustering_optimized and len(agglomerative_clustering_idx) > 0
     )
     if fast_agglomerative_clustering:
         agglomerative_clustering_idx = agglomerative_clustering_idx[0]
@@ -182,12 +181,12 @@ def cluster_analysis(
             if (
                 fast_agglomerative_clustering
                 and isinstance(clusterer_cls, dict)
-                and "clustering" in clusterer_cls
+                and "linkage_matrix" in clusterer_cls
             ):
                 predicted_labels = fcluster(
                     Z=clusterer_cls["linkage_matrix"],
                     criterion="maxclust",
-                    t=agglomerative_clustering_cluster_numbers[params_idx],
+                    t=params["n_clusters"],
                 )
                 clusterer_instance = None
             else:
