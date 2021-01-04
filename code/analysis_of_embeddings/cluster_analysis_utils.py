@@ -269,6 +269,7 @@ def cluster_analysis(
                 ]
                 metric_best_scores.append(best_metric_score)
         clusterer_names = np.array(clusterer_names)
+        metric_best_scores = np.array(metric_best_scores)
 
         metric_best_scores_sorted_indices = np.argsort(metric_best_scores)
         if metric_obj_max:
