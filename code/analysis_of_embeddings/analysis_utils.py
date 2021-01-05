@@ -608,7 +608,25 @@ def transform_word_embeddings(
     word_to_int: dict,
 ) -> dict:
     """
-    TODO: Docs
+    Transforms word embeddings using dimensionality reduction techniques
+    such as PCA or UMAP.
+
+    Parameters
+    ----------
+    embedders : list
+        List of embedder instances (e.g. PCA, UMAP)
+    word_embeddings : np.ndarray
+        Word embeddings
+    words_vocabulary : list
+        List of either words (str) or word integer representations (int), signalizing
+        what part of the vocabulary we want to use.
+    word_to_int : dict of str and int
+        Dictionary mapping from word to its integer representation.
+
+    Returns
+    -------
+    transformed_embeddings_result : dict
+        Dictionary with transformed word embeddings
     """
     # Create word vectors from given words/vocabulary
     word_vectors = words_to_vectors(
@@ -618,12 +636,12 @@ def transform_word_embeddings(
     )
 
     # Create embeddings
-    transformed_embedding_result = {}
+    transformed_embeddings_result = {}
     for embedder_name, embedder_instance in embedders:
-        transformed_embedding_result[embedder_name] = embedder_instance.fit_transform(
+        transformed_embeddings_result[embedder_name] = embedder_instance.fit_transform(
             word_vectors
         )
-    return transformed_embedding_result
+    return transformed_embeddings_result
 
 
 def plot_cluster_metric_scores(
