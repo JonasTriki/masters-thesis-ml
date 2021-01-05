@@ -85,12 +85,11 @@ def cluster_analysis(
     clusterers: list,
     hyperparameter_grids: list,
     eval_metrics_grid: list,
-    eval_metrics_params: list,
+    eval_metrics_params: dict,
     word_embeddings: np.ndarray,
     words_vocabulary: list,
     word_to_int: dict,
     compute_pairwise_word_distances: bool = False,
-    agglomerative_clustering_optimized: bool = False,
     return_word_vectors: bool = False,
     save_result_to_disk: bool = False,
     output_dir: str = None,
@@ -99,7 +98,59 @@ def cluster_analysis(
     output_filepath_suffix: str = None,
 ) -> Union[dict, tuple]:
     """
-    TODO: Docs
+    Performs cluster hyperparameter and algorithm search over a range of clusterers
+    and set of hyperparameters. Uses internal cluster evaluation metrics to select
+    best performing clusterer (with some set of hyperparameters).
+
+    Parameters
+    ----------
+    clusterers : list
+        List of clusterer classes, where each element in the list should be a tuple
+        of the form (clusterer_name, clusterer_cls).
+    hyperparameter_grids : list
+        List of dictionaries with hyperparameters, sent to ParameterGrid for each
+        respective clusterer.
+    eval_metrics_grid : list
+        List of internal cluster evaluation metrics used for each respective clusterer.
+        Each element of the list is a tuple of the form (eval_metric_key, eval_metric_func).
+    eval_metrics_params : dict
+        Dictionary containing kwargs given to internal cluster evaluation metrics
+        before computing metric score. The dictionary maps from eval_metric_key to
+        some kwargs (dictionary).
+    word_embeddings : np.ndarray
+        Word embeddings
+    words_vocabulary : list
+        List of either words (str) or word integer representations (int), signalizing
+        what part of the vocabulary we want to use.
+    word_to_int : dict of str and int
+        Dictionary mapping from word to its integer representation.
+    compute_pairwise_word_distances : bool
+        Whether or not to compute the pairwise distances between each word vector
+        (defaults to False). Set this to true if you want to use the pairwise distances
+        for fitting clusterers or in evaluation metrics.
+    return_word_vectors : bool
+        Whether or not to return word vectors and pairwise distances as well
+        (if compute_pairwise_word_distances is set to True). Defaults to False.
+    save_result_to_disk : bool
+        Whether or not to save the cluster analysis result to disk (defaults to False).
+        If true, then output_dir, model_name, dataset_name and output_filepath_suffix must
+        be set accordingly.
+    output_dir : str
+        Output directory to save the result to (defaults to None).
+    model_name : str
+        Name of the trained model in which the word embeddings are from (defaults to None).
+    dataset_name : str
+        Name of the dataset the word embeddings model is trained on (defaults to None).
+    output_filepath_suffix : str
+        Output filepath suffix to use when saving result to disk (defaults to None).
+
+    Returns
+    -------
+    cluster_analysis_result : dict or tuple
+        Cluster analysis result as dictionary. If return_word_vectors is true,
+        then word vectors are returned as well in addition to the cluster analysis result
+        in a tuple. If both return_word_vectors and compute_pairwise_word_distances are true,
+        then the pairwise word distances are returned as well.
     """
     # Create word vectors from given words/vocabulary
     word_vectors = words_to_vectors(
@@ -116,9 +167,7 @@ def cluster_analysis(
         for i, (_, clusterer_cls) in enumerate(clusterers)
         if clusterer_cls is AgglomerativeClustering
     ]
-    fast_agglomerative_clustering = (
-        agglomerative_clustering_optimized and len(agglomerative_clustering_idx) > 0
-    )
+    fast_agglomerative_clustering = len(agglomerative_clustering_idx) > 0
     if fast_agglomerative_clustering:
         agglomerative_clustering_idx = agglomerative_clustering_idx[0]
         param_grid = ParameterGrid(hyperparameter_grids[agglomerative_clustering_idx])
