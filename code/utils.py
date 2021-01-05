@@ -385,7 +385,7 @@ def cosine_distance(x: np.ndarray, y: np.ndarray) -> float:
 
 
 def words_to_vectors(
-    words: list,
+    words_vocabulary: list,
     word_to_int: dict,
     word_embeddings: np.ndarray,
 ) -> np.ndarray:
@@ -394,8 +394,8 @@ def words_to_vectors(
 
     Parameters
     ----------
-    words : list
-        List of words to find word embeddings from
+    words_vocabulary : list
+        List of words/integers from vocabulary to find word embeddings from
     word_to_int : dict
         Dictionary mapping from word to integer
     word_embeddings : np.ndarray
@@ -406,8 +406,15 @@ def words_to_vectors(
     word_vectors : np.ndarray
         Word embeddings of input words
     """
-    # Create array with word vectors
-    word_vectors = np.zeros((len(words), word_embeddings.shape[1]))
-    for i, word in enumerate(words):
-        word_vectors[i] = word_embeddings[word_to_int[word]]
+    # Create word vectors from given words/vocabulary
+    if all(isinstance(elem, str) for elem in words_vocabulary):
+        word_vectors = np.zeros((len(words_vocabulary), word_embeddings.shape[1]))
+        for i, word in enumerate(words_vocabulary):
+            word_vectors[i] = word_embeddings[word_to_int[word]]
+    elif all(isinstance(elem, int) for elem in words_vocabulary):
+        word_vectors = word_embeddings[words_vocabulary]
+    else:
+        raise TypeError(
+            "words_vocabulary argument must contain list of words or integers representing the vocabulary."
+        )
     return word_vectors

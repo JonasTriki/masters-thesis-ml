@@ -10,7 +10,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
 from cdbw import CDbw
-from cluster_analysis_utils import create_linkage_matrix, save_cluster_result_to_disk
+from cluster_analysis_utils import (create_linkage_matrix,
+                                    save_cluster_result_to_disk)
 from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
 from s_dbw import S_Dbw
@@ -25,6 +26,7 @@ from tqdm.auto import tqdm
 sys.path.append("..")
 
 from text_preprocessing_utils import preprocess_text
+from utils import words_to_vectors
 
 
 def preprocess_name(name: str) -> str:
@@ -609,7 +611,20 @@ def transform_word_embeddings(
     """
     TODO: Implement
     """
-    pass
+    # Create word vectors from given words/vocabulary
+    word_vectors = words_to_vectors(
+        words_vocabulary=words_vocabulary,
+        word_to_int=word_to_int,
+        word_embeddings=word_embeddings,
+    )
+
+    # Create embeddings
+    transformed_embedding_result = {}
+    for embedder_name, embedder_instance in embedders:
+        transformed_embedding_result[embedder_name] = embedder_instance.fit_transform(
+            word_vectors
+        )
+    return transformed_embedding_result
 
 
 def plot_cluster_metric_scores(

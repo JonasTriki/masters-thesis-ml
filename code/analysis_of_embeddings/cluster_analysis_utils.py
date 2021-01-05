@@ -102,18 +102,11 @@ def cluster_analysis(
     TODO: Docs
     """
     # Create word vectors from given words/vocabulary
-    if all(isinstance(elem, str) for elem in words_vocabulary):
-        word_vectors = words_to_vectors(
-            words=words_vocabulary,
-            word_to_int=word_to_int,
-            word_embeddings=word_embeddings,
-        )
-    elif all(isinstance(elem, int) for elem in words_vocabulary):
-        word_vectors = word_embeddings[words_vocabulary]
-    else:
-        raise TypeError(
-            "words_vocabulary argument must contain list of words or integers representing the vocabulary."
-        )
+    word_vectors = words_to_vectors(
+        words_vocabulary=words_vocabulary,
+        word_to_int=word_to_int,
+        word_embeddings=word_embeddings,
+    )
     if compute_pairwise_word_distances:
         word_vectors_pairwise_distances = pairwise_cosine_distances(word_vectors)
 
