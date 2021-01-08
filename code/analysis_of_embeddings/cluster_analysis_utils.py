@@ -15,6 +15,7 @@ from tqdm.auto import tqdm
 sys.path.append("..")
 
 import analysis_utils
+
 from utils import pairwise_cosine_distances, words_to_vectors
 
 
