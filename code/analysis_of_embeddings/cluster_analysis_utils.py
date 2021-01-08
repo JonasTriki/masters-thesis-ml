@@ -12,9 +12,9 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.model_selection import ParameterGrid
 from tqdm.auto import tqdm
 
-sys.path.append("..")
-from analysis_utils import plot_cluster_metric_scores
+from analysis_of_embeddings.analysis_utils import plot_cluster_metric_scores
 
+sys.path.append("..")
 from utils import pairwise_cosine_distances, words_to_vectors
 
 
