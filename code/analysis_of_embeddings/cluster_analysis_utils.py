@@ -5,7 +5,6 @@ from typing import Union
 import joblib
 import numpy as np
 import plotly.graph_objects as go
-from analysis_utils import plot_cluster_metric_scores
 from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
 from scipy.cluster.hierarchy import fcluster
@@ -14,6 +13,7 @@ from sklearn.model_selection import ParameterGrid
 from tqdm.auto import tqdm
 
 sys.path.append("..")
+from analysis_utils import plot_cluster_metric_scores
 
 from utils import pairwise_cosine_distances, words_to_vectors
 
