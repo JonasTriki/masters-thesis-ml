@@ -4,12 +4,17 @@ from typing import Union
 
 import joblib
 import numpy as np
+import plotly.graph_objects as go
+from analysis_utils import plot_cluster_metric_scores
+from matplotlib import pyplot as plt
+from plotly.subplots import make_subplots
 from scipy.cluster.hierarchy import fcluster
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.model_selection import ParameterGrid
 from tqdm.auto import tqdm
 
 sys.path.append("..")
+
 from utils import pairwise_cosine_distances, words_to_vectors
 
 
@@ -344,3 +349,192 @@ def cluster_analysis(
             return cluster_analysis_result, word_vectors
     else:
         return cluster_analysis_result
+
+
+def visualize_cluster_analysis_result(
+    cluster_analysis_result: dict,
+    print_hyperparameters: bool = True,
+    interactive: bool = False,
+) -> None:
+    """
+    Visualizes cluster analysis results from `cluster_analysis` function.
+
+    Parameters
+    ----------
+    cluster_analysis_result : dict
+        Cluster analysis result as returned from `cluster_analysis`.
+    print_hyperparameters : bool
+        Whether or not to print out hyperparameters prior to plotting
+        metric scores for each clusterer (defaults to True).
+    interactive : bool
+        Whether or not to use interactive plotting with Plotly
+        (defaults to False).
+    """
+    for clusterer_name, clusterer_result in cluster_analysis_result["clusterers"].items():
+        num_clusterer_metrics = len(clusterer_result["cluster_metrics"])
+        if interactive:
+            fig = make_subplots(
+                rows=1,
+                cols=num_clusterer_metrics,
+            )
+            fig.update_layout(
+                title={
+                    "text": clusterer_name,
+                    "y": 0.9,
+                    "x": 0.5,
+                    "xanchor": "center",
+                    "yanchor": "top",
+                }
+            )
+        else:
+            _, axes = plt.subplots(
+                nrows=1,
+                ncols=num_clusterer_metrics,
+                figsize=(5 * num_clusterer_metrics, 5),
+            )
+            plt.suptitle(clusterer_name)
+
+        clusterer_params = clusterer_result["cluster_params"]
+        if print_hyperparameters:
+            print(f"Hyperparameters used for {clusterer_name}:")
+            for i, hyperparams in enumerate(clusterer_params):
+                print(f"{i}: {hyperparams}")
+        xs = list(range(len(clusterer_params)))
+
+        if interactive:
+            for i, (clusterer_metric_name, clusterer_metric_result) in zip(
+                range(1, num_clusterer_metrics + 1),
+                clusterer_result["cluster_metrics"].items(),
+            ):
+                metric_scores = clusterer_metric_result["metric_scores"]
+                best_metric_score_idx = clusterer_metric_result[
+                    "best_metric_score_indices"
+                ][0]
+
+                fig.update_xaxes(title_text="Hyperparameter set (index)", row=1, col=i)
+                fig.update_yaxes(
+                    title_text=f"{clusterer_metric_name} score", row=1, col=i
+                )
+                fig.add_trace(
+                    go.Scatter(x=xs, y=metric_scores, name=clusterer_metric_name),
+                    row=1,
+                    col=i,
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=[best_metric_score_idx],
+                        y=[metric_scores[best_metric_score_idx]],
+                        marker={
+                            "size": 10,
+                        },
+                        name="Best score",
+                        showlegend=False,
+                    ),
+                    row=1,
+                    col=i,
+                )
+            fig.show()
+        else:
+            for ax, (clusterer_metric_name, clusterer_metric_result) in zip(
+                axes, clusterer_result["cluster_metrics"].items()
+            ):
+                metric_scores = clusterer_metric_result["metric_scores"]
+                best_metric_score_idx = clusterer_metric_result[
+                    "best_metric_score_indices"
+                ][0]
+
+                ax.set_xticks(xs)
+                plot_cluster_metric_scores(
+                    metric_scores=metric_scores,
+                    hyperparameters=clusterer_params,
+                    best_score_idx=best_metric_score_idx,
+                    metric_name=clusterer_metric_name,
+                    xlabel="Hyperparameter set (index)",
+                    set_xticks=False,
+                    set_xtickslabels=False,
+                    show_plot=False,
+                    ax=ax,
+                )
+            plt.tight_layout()
+            plt.show()
+
+    total_num_clusterer_metrics = len(
+        cluster_analysis_result["metric_preferred_clusterers"]
+    )
+    if interactive:
+        fig = make_subplots(
+            rows=1,
+            cols=total_num_clusterer_metrics,
+        )
+        fig.update_layout(
+            title={
+                "text": "Most preferred clusterers (by metrics)",
+                "y": 0.9,
+                "x": 0.5,
+                "xanchor": "center",
+                "yanchor": "top",
+            }
+        )
+        for i, (clusterer_metric_name, clusterer_metric_result) in zip(
+            range(1, total_num_clusterer_metrics + 1),
+            cluster_analysis_result["metric_preferred_clusterers"].items(),
+        ):
+            best_metric_scores = clusterer_metric_result["best_metric_scores"]
+            clusterer_names = clusterer_metric_result["clusterer_names"]
+            xs = list(range(len(clusterer_names)))
+            print(best_metric_scores)
+
+            fig.update_xaxes(title_text="Clusterer", row=1, col=i)
+            fig.update_yaxes(title_text=f"{clusterer_metric_name} score", row=1, col=i)
+            fig.update_layout(
+                {
+                    f"xaxis{i}": dict(
+                        tickmode="array", tickvals=xs, ticktext=clusterer_names
+                    )
+                },
+            )
+            fig.add_trace(
+                go.Scatter(x=xs, y=best_metric_scores, name=clusterer_metric_name),
+                row=1,
+                col=i,
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=[0],
+                    y=[best_metric_scores[0]],
+                    marker={
+                        "size": 10,
+                    },
+                    name="Best score",
+                    showlegend=False,
+                ),
+                row=1,
+                col=i,
+            )
+
+        fig.show()
+    else:
+        _, axes = plt.subplots(
+            nrows=1,
+            ncols=total_num_clusterer_metrics,
+            figsize=(5 * total_num_clusterer_metrics, 5),
+        )
+        plt.suptitle("Most preferred clusterers (by metrics)")
+        for ax, (clusterer_metric_name, clusterer_metric_result) in zip(
+            axes, cluster_analysis_result["metric_preferred_clusterers"].items()
+        ):
+            best_metric_scores = clusterer_metric_result["best_metric_scores"]
+            clusterer_names = clusterer_metric_result["clusterer_names"]
+            print(best_metric_scores)
+            plot_cluster_metric_scores(
+                metric_scores=best_metric_scores,
+                hyperparameters=clusterer_names,
+                best_score_idx=0,
+                metric_name=clusterer_metric_name,
+                xlabel="Clusterer",
+                xtickslabels_rotation=45,
+                show_plot=False,
+                ax=ax,
+            )
+        plt.tight_layout()
+        plt.show()
