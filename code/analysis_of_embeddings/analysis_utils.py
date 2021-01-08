@@ -10,7 +10,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
 from cdbw import CDbw
-from cluster_analysis_utils import create_linkage_matrix, save_cluster_result_to_disk
+from cluster_analysis_utils import (create_linkage_matrix,
+                                    save_cluster_result_to_disk)
 from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
 from s_dbw import S_Dbw
@@ -654,6 +655,7 @@ def plot_cluster_metric_scores(
     ax: plt.axis = None,
     xlabel: str = "Hyperparameters",
     xrange: range = None,
+    show_plot: bool = True,
 ) -> None:
     """
     Plots internal cluster validation metric scores
@@ -677,7 +679,9 @@ def plot_cluster_metric_scores(
     xlabel : str
         X-axis label (defaults to "Hyperparameters")
     xrange : range
-        Range to use for the x-axis (default starts from 0 and )
+        Range to use for the x-axis (default starts from 0 to)
+    show_plot : bool
+        Whether or not to call plt.show() (defaults to True)
     """
     if ax is None:
         _, ax = plt.subplots()
@@ -685,15 +689,16 @@ def plot_cluster_metric_scores(
         xrange = range(len(hyperparameters))
     ax.plot(xrange, metric_scores)
     if scatter:
-        plt.scatter(xrange, metric_scores)
+        ax.scatter(xrange, metric_scores)
     ax.scatter(xrange[best_score_idx], metric_scores[best_score_idx], c="r", s=72)
     if set_xticks:
         ax.set_xticks(xrange)
         ax.set_xticklabels(hyperparameters, rotation=90, ha="center")
     ax.set_xlabel(xlabel)
     ax.set_ylabel(f"{metric_name} score")
-    plt.tight_layout()
-    plt.show()
+    if show_plot:
+        plt.tight_layout()
+        plt.show()
 
 
 def plot_cluster_sizes(cluster_labels: list, ax: plt.axis = None) -> np.ndarray:
