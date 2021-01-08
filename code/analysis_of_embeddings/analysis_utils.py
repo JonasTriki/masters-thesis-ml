@@ -652,6 +652,8 @@ def plot_cluster_metric_scores(
     metric_name: str,
     scatter: bool = True,
     set_xticks: bool = True,
+    set_xtickslabels: bool = True,
+    xtickslabels_rotation: int = 90,
     ax: plt.axis = None,
     xlabel: str = "Hyperparameters",
     xrange: range = None,
@@ -674,6 +676,11 @@ def plot_cluster_metric_scores(
         Whether or not to scatter points (defaults to True)
     set_xticks : bool
         Whether or not to set the ticks on the x-axis
+    set_xtickslabels : bool
+        Whether or not to set the labels on the x-axis
+    xtickslabels_rotation : int
+        Sets the xticks labels rotation (defaults to 90), set_xtickslabels
+        must be set to True to have an effect.
     ax : plt.axis
         Matplotlib axis (defaults to None)
     xlabel : str
@@ -693,7 +700,8 @@ def plot_cluster_metric_scores(
     ax.scatter(xrange[best_score_idx], metric_scores[best_score_idx], c="r", s=72)
     if set_xticks:
         ax.set_xticks(xrange)
-        ax.set_xticklabels(hyperparameters, rotation=90, ha="center")
+    if set_xtickslabels:
+        ax.set_xticklabels(hyperparameters, rotation=xtickslabels_rotation, ha="center")
     ax.set_xlabel(xlabel)
     ax.set_ylabel(f"{metric_name} score")
     if show_plot:
