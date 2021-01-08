@@ -21,10 +21,9 @@ from sklearn.model_selection import ParameterGrid
 from sklearn_extra.cluster import KMedoids
 from tqdm.auto import tqdm
 
-import analysis_of_embeddings.cluster_analysis_utils as cluster_analysis_utils
-
 sys.path.append("..")
 
+import cluster_analysis_utils
 from text_preprocessing_utils import preprocess_text
 from utils import words_to_vectors
 
