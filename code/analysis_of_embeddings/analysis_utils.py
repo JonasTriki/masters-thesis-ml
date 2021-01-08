@@ -10,6 +10,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
 from cdbw import CDbw
+from cluster_analysis_utils import (create_linkage_matrix,
+                                    save_cluster_result_to_disk)
 from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
 from s_dbw import S_Dbw
@@ -20,11 +22,6 @@ from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import ParameterGrid
 from sklearn_extra.cluster import KMedoids
 from tqdm.auto import tqdm
-
-from analysis_of_embeddings.cluster_analysis_utils import (
-    create_linkage_matrix,
-    save_cluster_result_to_disk,
-)
 
 sys.path.append("..")
 
