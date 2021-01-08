@@ -10,8 +10,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
 from cdbw import CDbw
-from cluster_analysis_utils import (create_linkage_matrix,
-                                    save_cluster_result_to_disk)
 from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
 from s_dbw import S_Dbw
@@ -22,6 +20,8 @@ from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import ParameterGrid
 from sklearn_extra.cluster import KMedoids
 from tqdm.auto import tqdm
+
+import analysis_of_embeddings.cluster_analysis_utils as cluster_analysis_utils
 
 sys.path.append("..")
 
@@ -166,7 +166,7 @@ def k_means_cluster_hyperparameter_search(
     }
 
     # Save result to output dir
-    save_cluster_result_to_disk(
+    cluster_analysis_utils.save_cluster_result_to_disk(
         result, output_dir, model_name, dataset_name, output_filepath_suffix
     )
 
@@ -369,7 +369,9 @@ def agglomerative_clustering(
         clustering.fit(word_embeddings_pairwise_dists)
 
         # Create required linkage matrix for fcluster function
-        agglomerative_clustering_linkage_matrix = create_linkage_matrix(clustering)
+        agglomerative_clustering_linkage_matrix = (
+            cluster_analysis_utils.create_linkage_matrix(clustering)
+        )
 
         # Set result in dict
         agglomerative_clusterings[linkage] = {
@@ -491,7 +493,7 @@ def agglomerative_cluster_hyperparameter_search(
         }
 
     # Save result to output dir
-    save_cluster_result_to_disk(
+    cluster_analysis_utils.save_cluster_result_to_disk(
         clustering_result, output_dir, model_name, dataset_name, output_filepath_suffix
     )
 
@@ -595,7 +597,7 @@ def hdbscan_cluster_hyperparameter_search(
     }
 
     # Save result to output dir
-    save_cluster_result_to_disk(
+    cluster_analysis_utils.save_cluster_result_to_disk(
         result, output_dir, model_name, dataset_name, output_filepath_suffix
     )
 

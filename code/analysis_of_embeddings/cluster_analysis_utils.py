@@ -5,13 +5,14 @@ from typing import Union
 import joblib
 import numpy as np
 import plotly.graph_objects as go
-from analysis_utils import plot_cluster_metric_scores
 from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
 from scipy.cluster.hierarchy import fcluster
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.model_selection import ParameterGrid
 from tqdm.auto import tqdm
+
+import analysis_of_embeddings.analysis_utils as analysis_utils
 
 sys.path.append("..")
 from utils import pairwise_cosine_distances, words_to_vectors
@@ -443,7 +444,7 @@ def visualize_cluster_analysis_result(
                 ][0]
 
                 ax.set_xticks(xs)
-                plot_cluster_metric_scores(
+                analysis_utils.plot_cluster_metric_scores(
                     metric_scores=metric_scores,
                     hyperparameters=clusterer_params,
                     best_score_idx=best_metric_score_idx,
@@ -525,7 +526,7 @@ def visualize_cluster_analysis_result(
             best_metric_scores = clusterer_metric_result["best_metric_scores"]
             clusterer_names = clusterer_metric_result["clusterer_names"]
             print(best_metric_scores)
-            plot_cluster_metric_scores(
+            analysis_utils.plot_cluster_metric_scores(
                 metric_scores=best_metric_scores,
                 hyperparameters=clusterer_names,
                 best_score_idx=0,
