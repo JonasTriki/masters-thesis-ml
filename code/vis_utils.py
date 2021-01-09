@@ -13,6 +13,7 @@ def plot_word_vectors(
     ax: plt.axis = None,
     show_plot: bool = True,
     interactive: bool = False,
+    continuous_word_colors: bool = False,
 ) -> None:
     """
     Plots word vectors in transformed 2D space.
@@ -39,6 +40,8 @@ def plot_word_vectors(
     interactive : bool
         Whether or not to make the visualization interactive
         using Plotly (defaults to False).
+    continuous_word_colors : bool
+        Whether or not to make the word color continuous (defaults to False).
     """
     if interactive:
 
@@ -48,7 +51,10 @@ def plot_word_vectors(
             y=transformed_word_embeddings[:, 1],
             title=title,
             labels={"x": x_label, "y": y_label},
-            color=[str(cluster_label) for cluster_label in word_colors]
+            color=[
+                cluster_label if continuous_word_colors else str(cluster_label)
+                for cluster_label in word_colors
+            ]
             if word_colors is not None
             else None,
             hover_data={"word": words},

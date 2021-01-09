@@ -551,7 +551,7 @@ def plot_word_embeddings_clustered(
     transformed_word_embeddings: dict,
     words: np.ndarray,
     cluster_labels: np.ndarray,
-    embedder_labels: dict = {},
+    embedder_labels=None,
     embedder_keys: list = None,
     print_words_in_clusters: bool = False,
 ) -> None:
@@ -573,6 +573,8 @@ def plot_word_embeddings_clustered(
     print_words_in_clusters : bool
         Whether or not to print words in clusters
     """
+    if embedder_labels is None:
+        embedder_labels = {}
     if embedder_keys is None:
         embedder_keys = list(transformed_word_embeddings.keys())
 
