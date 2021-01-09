@@ -554,6 +554,7 @@ def plot_word_embeddings_clustered(
     embedder_labels=None,
     embedder_keys: list = None,
     print_words_in_clusters: bool = False,
+    continuous_word_colors: bool = False,
 ) -> None:
     """
     Plots transformed word embeddings with some given cluster labels.
@@ -572,6 +573,8 @@ def plot_word_embeddings_clustered(
         List of embedders (as keys) to plot (defaults to all embedders)
     print_words_in_clusters : bool
         Whether or not to print words in clusters
+    continuous_word_colors : bool
+        Whether or not to make the word color continuous (defaults to False).
     """
     if embedder_labels is None:
         embedder_labels = {}
@@ -594,6 +597,7 @@ def plot_word_embeddings_clustered(
             y_label=y_label,
             word_colors=cluster_labels,
             interactive=True,
+            continuous_word_colors=continuous_word_colors,
         )
 
     if print_words_in_clusters:
