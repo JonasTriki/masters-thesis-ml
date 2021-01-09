@@ -1,4 +1,5 @@
 import sys
+from copy import deepcopy
 from os.path import join
 from typing import Union
 
@@ -178,6 +179,7 @@ def cluster_analysis(
     if fast_agglomerative_clustering:
         agglomerative_clustering_idx = agglomerative_clustering_idx[0]
         param_grid = ParameterGrid(hyperparameter_grids[agglomerative_clustering_idx])
+        clusterers = deepcopy(clusterers)
         for params in param_grid:
             params_copy = params.copy()
             params_copy.pop(
