@@ -8,7 +8,7 @@ import numpy as np
 import plotly.graph_objects as go
 from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
-from scipy.cluster.hierarchy import fcluster
+from scipy.cluster.hierarchy import cut_tree
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.model_selection import ParameterGrid
 from tqdm.auto import tqdm
@@ -198,7 +198,7 @@ def cluster_analysis(
             else:
                 agglomerative_clustering_instance.fit(word_vectors)
 
-            # Create required linkage matrix for fcluster function
+            # Create required linkage matrix for cut_tree function
             agglomerative_clustering_linkage_matrix = create_linkage_matrix(
                 clustering=agglomerative_clustering_instance
             )
@@ -234,12 +234,12 @@ def cluster_analysis(
                 and isinstance(clusterer_cls, dict)
                 and "linkage_matrix" in clusterer_cls
             ):
-                predicted_labels = fcluster(
+                predicted_labels = cut_tree(
                     Z=clusterer_cls["linkage_matrix"],
-                    criterion="maxclust",
-                    t=params["n_clusters"],
-                )
+                    n_clusters=params["n_clusters"],
+                ).T[0]
                 clusterer_instance = None
+                print(predicted_labels)
             else:
                 clusterer_instance = clusterer_cls(**params)
                 if (
@@ -336,6 +336,16 @@ def cluster_analysis(
         "metric_preferred_clusterers": metric_preferred_clusterers,
     }
 
+    if return_word_vectors:
+        if compute_pairwise_word_distances:
+            cluster_analysis_result = (
+                cluster_analysis_result,
+                word_vectors,
+                word_vectors_pairwise_distances,
+            )
+        else:
+            cluster_analysis_result = (cluster_analysis_result, word_vectors)
+
     # Save result to disk
     if save_result_to_disk:
         save_cluster_result_to_disk(
@@ -346,13 +356,7 @@ def cluster_analysis(
             output_filepath_suffix=output_filepath_suffix,
         )
 
-    if return_word_vectors:
-        if compute_pairwise_word_distances:
-            return cluster_analysis_result, word_vectors, word_vectors_pairwise_distances
-        else:
-            return cluster_analysis_result, word_vectors
-    else:
-        return cluster_analysis_result
+    return cluster_analysis_result
 
 
 def visualize_cluster_analysis_result(
