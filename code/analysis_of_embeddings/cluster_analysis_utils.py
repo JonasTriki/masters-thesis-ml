@@ -416,6 +416,9 @@ def visualize_cluster_analysis_result(
                 fig.update_yaxes(
                     title_text=f"{clusterer_metric_name} score", row=1, col=i
                 )
+                fig.update_layout(
+                    {f"xaxis{i}": dict(tickmode="array", tickvals=xs, ticktext=xs)},
+                )
                 fig.add_trace(
                     go.Scatter(x=xs, y=metric_scores, name=clusterer_metric_name),
                     row=1,
