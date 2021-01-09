@@ -17,6 +17,7 @@ sys.path.append("..")
 import analysis_utils
 
 from utils import pairwise_cosine_distances, words_to_vectors
+from vis_utils import plot_word_vectors
 
 
 def create_linkage_matrix(clustering: AgglomerativeClustering) -> np.ndarray:
@@ -542,3 +543,48 @@ def visualize_cluster_analysis_result(
             )
         plt.tight_layout()
         plt.show()
+
+
+def plot_word_embeddings_clustered(
+    transformed_word_embeddings: dict,
+    words: np.ndarray,
+    cluster_labels: np.ndarray,
+    print_words_in_clusters: bool = False,
+    embedder_keys: list = None,
+) -> None:
+    """
+    Plots transformed word embeddings with some given cluster labels.
+
+    Parameters
+    ----------
+    transformed_word_embeddings : dict
+        Transformed word embeddings dictionary, as returned from `transform_word_embeddings`.
+    words : np.ndarray
+        List of words to plot.
+    cluster_labels : np.ndarray
+        Cluster labels to plot.
+    print_words_in_clusters : bool
+        Whether or not to print words in clusters
+    embedder_keys : list
+        List of embedders (as keys) to plot (defaults to all embedders)
+    """
+    if embedder_keys is None:
+        embedder_keys = list(transformed_word_embeddings.keys())
+
+    cluster_size = len(np.unique(cluster_labels))
+    for embedder_key in embedder_keys:
+        plot_word_vectors(
+            transformed_word_embeddings=transformed_word_embeddings[embedder_key],
+            words=words,
+            title=f"Embedding of words in {embedder_key} coordinates with {cluster_size} clusters",
+            x_label=f"{embedder_key}1",
+            y_label=f"{embedder_key}2",
+            word_colors=cluster_labels,
+            interactive=True,
+        )
+
+    if print_words_in_clusters:
+        cluster_words, _ = analysis_utils.words_in_clusters(cluster_labels, words)
+        print("-- Words in clusters --")
+        for word_cluster in cluster_words:
+            print("Words", word_cluster)
