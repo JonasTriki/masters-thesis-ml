@@ -551,8 +551,9 @@ def plot_word_embeddings_clustered(
     transformed_word_embeddings: dict,
     words: np.ndarray,
     cluster_labels: np.ndarray,
-    print_words_in_clusters: bool = False,
+    embedder_labels: dict = {},
     embedder_keys: list = None,
+    print_words_in_clusters: bool = False,
 ) -> None:
     """
     Plots transformed word embeddings with some given cluster labels.
@@ -565,22 +566,30 @@ def plot_word_embeddings_clustered(
         List of words to plot.
     cluster_labels : np.ndarray
         Cluster labels to plot.
-    print_words_in_clusters : bool
-        Whether or not to print words in clusters
+    embedder_labels : dict
+        Dictionary containing x_label and y_label for each embedder (defaults to empty dict).
     embedder_keys : list
         List of embedders (as keys) to plot (defaults to all embedders)
+    print_words_in_clusters : bool
+        Whether or not to print words in clusters
     """
     if embedder_keys is None:
         embedder_keys = list(transformed_word_embeddings.keys())
 
     cluster_size = len(np.unique(cluster_labels))
     for embedder_key in embedder_keys:
+        if embedder_key in embedder_labels:
+            x_label = embedder_labels[embedder_key]["x_label"]
+            y_label = embedder_labels[embedder_key]["y_label"]
+        else:
+            x_label = f"{embedder_key}1"
+            y_label = f"{embedder_key}2"
         plot_word_vectors(
             transformed_word_embeddings=transformed_word_embeddings[embedder_key],
             words=words,
             title=f"Embedding of words in {embedder_key} coordinates with {cluster_size} clusters",
-            x_label=f"{embedder_key}1",
-            y_label=f"{embedder_key}2",
+            x_label=x_label,
+            y_label=y_label,
             word_colors=cluster_labels,
             interactive=True,
         )
