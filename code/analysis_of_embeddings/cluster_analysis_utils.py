@@ -245,10 +245,11 @@ def cluster_analysis(
                     compute_pairwise_word_distances
                     and params.get("affinity") == "precomputed"
                 ):
-                    clusterer_instance.fit(word_vectors_pairwise_distances)
+                    predicted_labels = clusterer_instance.fit_predict(
+                        word_vectors_pairwise_distances
+                    )
                 else:
-                    clusterer_instance.fit(word_vectors)
-                predicted_labels = clusterer_instance.labels_
+                    predicted_labels = clusterer_instance.fit_predict(word_vectors)
             clusterers_result[clusterer_name]["cluster_labels"].append(predicted_labels)
 
             # Evaluate predicted cluster labels using internal evaluation metrics
