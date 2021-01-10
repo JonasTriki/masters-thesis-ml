@@ -239,7 +239,6 @@ def cluster_analysis(
                     n_clusters=params["n_clusters"],
                 ).T[0]
                 clusterer_instance = None
-                print(predicted_labels)
             else:
                 clusterer_instance = clusterer_cls(**params)
                 if (
