@@ -32,7 +32,14 @@ def silhouette_score_metric(
     # Compute metric scores
     if cluster_labels is None:
         cluster_labels = clusterer.labels_
-    metric_score = silhouette_score(X=word_embeddings, labels=cluster_labels, **kwargs)
+    num_unique_labels = len(np.unique(cluster_labels))
+    num_samples = len(word_embeddings)
+    if 2 <= num_unique_labels <= num_samples - 1:
+        metric_score = silhouette_score(
+            X=word_embeddings, labels=cluster_labels, **kwargs
+        )
+    else:
+        metric_score = np.nan
 
     # Return tuple with result
     return "Silhouette Coefficient", metric_score, True
