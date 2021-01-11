@@ -271,19 +271,26 @@ def cluster_analysis(
                 clusterer_instance = None
             else:
                 clusterer_instance = clusterer_cls(**params)
-                if (
-                    compute_pairwise_word_distances
-                    and params.get("affinity") == "precomputed"
+                if compute_pairwise_word_distances and (
+                    params.get("affinity") == "precomputed"
+                    or params.get("metric") == "precomputed"
                 ):
-                    predicted_labels = clusterer_instance.fit_predict(
-                        word_vectors_pairwise_distances
-                    )
+                    fit_predict_X = word_vectors_pairwise_distances
                 else:
-                    predicted_labels = clusterer_instance.fit_predict(word_vectors)
+                    fit_predict_X = word_vectors
 
-            # Separate noise labels into clusters
-            if clusterer_cls is HDBSCAN:
-                predicted_labels = separate_noise_labels_into_clusters(predicted_labels)
+                # Use fit_predict if it is available.
+                if getattr(clusterer_instance, "fit_predict", None) is not None:
+                    predicted_labels = clusterer_instance.fit_predict(fit_predict_X)
+                else:
+                    clusterer_instance.fit(fit_predict_X)
+                    predicted_labels = clusterer_instance.predict(fit_predict_X)
+
+                # Separate noise labels into clusters
+                if clusterer_cls is HDBSCAN:
+                    predicted_labels = separate_noise_labels_into_clusters(
+                        predicted_labels
+                    )
 
             clusterers_result[clusterer_name]["cluster_labels"].append(predicted_labels)
 
