@@ -234,6 +234,8 @@ def cluster_analysis(
             )
 
             # Set result
+            # TODO: Ensure that there are 1 agglomerative clustering instance
+            # per params in param_grid.
             clusterers[agglomerative_clustering_idx] = (
                 clusterers[agglomerative_clustering_idx][0],
                 {
