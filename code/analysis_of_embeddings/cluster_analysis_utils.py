@@ -6,6 +6,7 @@ from typing import Union
 import joblib
 import numpy as np
 import plotly.graph_objects as go
+from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
 from scipy.cluster.hierarchy import cut_tree
@@ -19,6 +20,35 @@ import analysis_utils
 
 from utils import pairwise_cosine_distances, words_to_vectors
 from vis_utils import plot_word_vectors
+
+
+def separate_noise_labels_into_clusters(
+    labels: np.ndarray, noise_label: int = -1
+) -> np.ndarray:
+    """
+    Separates noise labels into their own clusters
+
+    Parameters
+    ----------
+    labels : array-like, shape (n_samples,)
+        Predicted labels for each sample.  (`noise_label` - for noise)
+    noise_label : int
+        Noise label (defaults to -1)
+
+    Returns
+    -------
+    new_labels : array-like, shape (n_samples,)
+        Modified predicted labels for each sample, where each data point with label
+        `noise_label` are separated into its own cluster.
+    """
+    new_labels = labels.copy()
+    max_label = np.max(new_labels)
+    j = max_label + 1
+    for i in range(len(new_labels)):
+        if new_labels[i] == noise_label:
+            new_labels[i] = j
+            j += 1
+    return new_labels
 
 
 def create_linkage_matrix(clustering: AgglomerativeClustering) -> np.ndarray:
@@ -250,6 +280,11 @@ def cluster_analysis(
                     )
                 else:
                     predicted_labels = clusterer_instance.fit_predict(word_vectors)
+
+            # Separate noise labels into clusters
+            if isinstance(clusterer_cls, HDBSCAN):
+                predicted_labels = separate_noise_labels_into_clusters(predicted_labels)
+
             clusterers_result[clusterer_name]["cluster_labels"].append(predicted_labels)
 
             # Evaluate predicted cluster labels using internal evaluation metrics

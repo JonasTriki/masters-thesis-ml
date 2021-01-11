@@ -80,9 +80,6 @@ def diameter(labels, distances, method="farthest"):
             N = sum(labels == i)
             diameters[i] /= N * (N - 1) / 2
 
-            # Old:
-            # diameters[i] /= sum(labels == i)
-
     elif method == "farthest":
         for i in range(0, len(labels) - 1):
             for ii in range(i + 1, len(labels)):
@@ -121,22 +118,3 @@ def dunn(labels, distances, diameter_method="farthest", cdist_method="nearest"):
     max_diameter = max(diameter(labels, distances, diameter_method))
 
     return min_distance / max_diameter
-
-
-if __name__ == "__main__":
-    from sklearn.cluster import KMeans
-    from sklearn.datasets import load_iris
-    from sklearn.metrics.pairwise import euclidean_distances
-
-    data = load_iris()
-    kmeans = KMeans(n_clusters=3)
-    c = data["target"]
-    x = data["data"]
-    k = kmeans.fit_predict(x)
-    d = euclidean_distances(x)
-
-    for diameter_method in DIAMETER_METHODS:
-        for cdist_method in CLUSTER_DISTANCE_METHODS:
-            dund = dunn(c, d, diameter_method, cdist_method)
-            dunk = dunn(k, d, diameter_method, cdist_method)
-            print(diameter_method, cdist_method, dund, dunk)
