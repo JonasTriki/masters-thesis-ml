@@ -1,5 +1,6 @@
 import numpy as np
 from cdbw import CDbw
+from dunn_index import dunn
 from hdbscan import HDBSCAN
 from s_dbw import SD, S_Dbw
 from sklearn.metrics import davies_bouldin_score, silhouette_score
@@ -67,6 +68,34 @@ def davies_bouldin_score_metric(
 
     # Return tuple with result
     return "Davies–Bouldin index", metric_score, False
+
+
+def dunn_score_metric(
+    cluster_labels: np.ndarray, word_embeddings: np.ndarray, **_: dict
+) -> tuple:
+    """
+    Wrapper function for Dunn score used in `cluster_analysis` function.
+
+    Parameters
+    ----------
+    cluster_labels : np.ndarray
+        Predicted cluster labels
+    word_embeddings : np.ndarray
+        Pairwise word distances
+    **_ : dict
+        Keyword arguments sent into the void (not used)
+
+    Returns
+    -------
+    result : tuple
+        Result as a triple, consisting of metric title, metric score and whether or not
+        the metrics objective function is to maximize the metric score.
+    """
+    # Compute metric scores
+    metric_score = dunn(labels=cluster_labels, distances=word_embeddings)
+
+    # Return tuple with result
+    return "Dunn index", metric_score, True
 
 
 def s_dbw_score_metric(
