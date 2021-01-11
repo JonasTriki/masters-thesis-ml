@@ -282,7 +282,7 @@ def cluster_analysis(
                     predicted_labels = clusterer_instance.fit_predict(word_vectors)
 
             # Separate noise labels into clusters
-            if isinstance(clusterer_cls, HDBSCAN):
+            if clusterer_cls is HDBSCAN:
                 predicted_labels = separate_noise_labels_into_clusters(predicted_labels)
 
             clusterers_result[clusterer_name]["cluster_labels"].append(predicted_labels)
