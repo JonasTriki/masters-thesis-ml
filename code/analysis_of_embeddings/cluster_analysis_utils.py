@@ -208,25 +208,19 @@ def cluster_analysis(
     fast_agglomerative_clustering = len(agglomerative_clustering_idx) > 0
     if fast_agglomerative_clustering:
         agglomerative_clustering_idx = agglomerative_clustering_idx[0]
-        param_grid = hyperparameter_grids[agglomerative_clustering_idx].copy()
-
-        # Disregard default params
-        param_grid.pop("n_clusters", None)
-        param_grid.pop("distance_threshold", None)
-        param_grid = ParameterGrid(param_grid)
+        param_grid = hyperparameter_grids[agglomerative_clustering_idx]
+        linkages = param_grid.get("linkage")
+        affinity = param_grid.get("affinity", "euclidean")
 
         clusterers = deepcopy(clusterers)
         agglomerative_clusterings = {}
-        for params_idx, params in enumerate(param_grid):
+        for linkage in linkages:
 
             # Do agglomerative clustering
             agglomerative_clustering_instance = AgglomerativeClustering(
-                n_clusters=None, distance_threshold=0, **params
+                n_clusters=None, distance_threshold=0, linkage=linkage
             )
-            if (
-                compute_pairwise_word_distances
-                and params.get("affinity") == "precomputed"
-            ):
+            if compute_pairwise_word_distances and affinity == "precomputed":
                 agglomerative_clustering_instance.fit(word_vectors_pairwise_distances)
             else:
                 agglomerative_clustering_instance.fit(word_vectors)
@@ -237,7 +231,7 @@ def cluster_analysis(
             )
 
             # Set result
-            agglomerative_clusterings[params_idx] = {
+            agglomerative_clusterings[linkage] = {
                 "clustering": agglomerative_clustering_instance,
                 "linkage_matrix": agglomerative_clustering_linkage_matrix,
             }
@@ -266,7 +260,7 @@ def cluster_analysis(
         for params_idx, params in enumerate(tqdm(param_grid)):
             clusterers_result[clusterer_name]["cluster_params"].append(params)
             if fast_agglomerative_clustering and isinstance(clusterer_cls, dict):
-                agglomerative_clustering = clusterer_cls[params_idx]
+                agglomerative_clustering = clusterer_cls[params["linkage"]]
                 predicted_labels = cut_tree(
                     Z=agglomerative_clustering["linkage_matrix"],
                     n_clusters=params["n_clusters"],
