@@ -210,7 +210,8 @@ def cluster_analysis(
         agglomerative_clustering_idx = agglomerative_clustering_idx[0]
         param_grid = ParameterGrid(hyperparameter_grids[agglomerative_clustering_idx])
         clusterers = deepcopy(clusterers)
-        for params in param_grid:
+        agglomerative_clusterings = {}
+        for params_idx, params in enumerate(param_grid):
             params_copy = params.copy()
             params_copy.pop(
                 "n_clusters", None
@@ -234,15 +235,16 @@ def cluster_analysis(
             )
 
             # Set result
-            # TODO: Ensure that there are 1 agglomerative clustering instance
-            # per params in param_grid.
-            clusterers[agglomerative_clustering_idx] = (
-                clusterers[agglomerative_clustering_idx][0],
-                {
-                    "clustering": agglomerative_clustering_instance,
-                    "linkage_matrix": agglomerative_clustering_linkage_matrix,
-                },
-            )
+            agglomerative_clusterings[params_idx] = {
+                "clustering": agglomerative_clustering_instance,
+                "linkage_matrix": agglomerative_clustering_linkage_matrix,
+            }
+
+        # Set result
+        clusterers[agglomerative_clustering_idx] = (
+            clusterers[agglomerative_clustering_idx][0],
+            agglomerative_clusterings,
+        )
 
     # Perform cluster analysis
     clusterers_result = {}
@@ -266,8 +268,9 @@ def cluster_analysis(
                 and isinstance(clusterer_cls, dict)
                 and "linkage_matrix" in clusterer_cls
             ):
+                agglomerative_clustering = clusterer_cls[params_idx]
                 predicted_labels = cut_tree(
-                    Z=clusterer_cls["linkage_matrix"],
+                    Z=agglomerative_clustering["linkage_matrix"],
                     n_clusters=params["n_clusters"],
                 ).T[0]
                 clusterer_instance = None
