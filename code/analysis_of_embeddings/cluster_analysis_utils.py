@@ -208,22 +208,24 @@ def cluster_analysis(
     fast_agglomerative_clustering = len(agglomerative_clustering_idx) > 0
     if fast_agglomerative_clustering:
         agglomerative_clustering_idx = agglomerative_clustering_idx[0]
-        param_grid = ParameterGrid(hyperparameter_grids[agglomerative_clustering_idx])
+        param_grid = hyperparameter_grids[agglomerative_clustering_idx].copy()
+
+        # Disregard default params
+        param_grid.pop("n_clusters", None)
+        param_grid.pop("distance_threshold", None)
+        param_grid = ParameterGrid(param_grid)
+
         clusterers = deepcopy(clusterers)
         agglomerative_clusterings = {}
         for params_idx, params in enumerate(param_grid):
-            params_copy = params.copy()
-            params_copy.pop(
-                "n_clusters", None
-            )  # Ensure we don't override n_clusters=None
 
             # Do agglomerative clustering
             agglomerative_clustering_instance = AgglomerativeClustering(
-                n_clusters=None, distance_threshold=0, **params_copy
+                n_clusters=None, distance_threshold=0, **params
             )
             if (
                 compute_pairwise_word_distances
-                and params_copy.get("affinity") == "precomputed"
+                and params.get("affinity") == "precomputed"
             ):
                 agglomerative_clustering_instance.fit(word_vectors_pairwise_distances)
             else:
