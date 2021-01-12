@@ -46,10 +46,33 @@ def punctured_neighbourhood(
     word_to_int: dict,
     word_embeddings: np.ndarray,
     word_embeddings_pairwise_dists: np.ndarray,
+    word_embeddings_norm: np.ndarray,
     neighbourhood_size: int,
 ) -> np.ndarray:
     """
-    TODO: Docs
+    Finds a punctured neighbourhood around a target word using
+    cosine distances.
+
+    Parameters
+    ----------
+    target_word : str
+        Target word (w)
+    word_to_int : dict of str and int
+        Dictionary mapping from word to its integer representation.
+    word_embeddings : np.ndarray
+        Word embeddings
+    word_embeddings_pairwise_dists : np.ndarray
+        Pairwise distances between word embeddings
+    word_embeddings_norm : np.ndarray
+        Normalized word embeddings
+    neighbourhood_size : int
+        Neighbourhood size (n)
+
+    Returns
+    -------
+    neighbouring_word_embeddings : np.ndarray
+        Neighbouring word embeddings of `target_word`, excluding
+        the word itself
     """
     # Find neighbouring words (excluding the target word itself)
     target_word_int = word_to_int[target_word]
@@ -62,7 +85,7 @@ def punctured_neighbourhood(
     neighbourhood_sorted_indices = np.argsort(neighbourhood_distances)[
         1 : neighbourhood_size + 1
     ]
-    neighbouring_word_embeddings = word_embeddings[neighbourhood_sorted_indices]
+    neighbouring_word_embeddings = word_embeddings_norm[neighbourhood_sorted_indices]
     return neighbouring_word_embeddings
 
 
@@ -105,8 +128,7 @@ def tps(
 
     References
     ----------
-    .. [1] Alexander Jakubowski, Milica Gašić, & Marcus Zibrowius. (2020).
-       Topology of Word Embeddings: Singularities Reflect Polysemy.
+    .. [1] Alexander Jakubowski, Milica Gašić, & Marcus Zibrowi
     """
     # Create word vectors from given words/vocabulary
     word_vectors = words_to_vectors(
@@ -122,7 +144,8 @@ def tps(
     target_word_punct_neigh = punctured_neighbourhood(
         target_word=target_word,
         word_to_int=word_to_int,
-        word_embeddings=word_vectors_norm,
+        word_embeddings=word_embeddings,
+        word_embeddings_norm=word_vectors_norm,
         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists,
         neighbourhood_size=neighbourhood_size,
     )
@@ -135,9 +158,9 @@ def tps(
         target_word_punct_neigh_sphere[i] = w_v_diff / np.linalg.norm(w_v_diff)
 
     # Compute the degree zero persistence diagram of target_word_punct_neigh_sphere
-    target_degree = 0
+    target_dim = 0
     rips_complex = RipsComplex(points=target_word_punct_neigh_sphere)
-    simplex_tree = rips_complex.create_simplex_tree(max_dimension=target_degree)
+    simplex_tree = rips_complex.create_simplex_tree(max_dimension=target_dim)
     barcodes = simplex_tree.persistence()
     if sanity_check:
         gd_plot_persistence_diagram(barcodes)
@@ -146,7 +169,7 @@ def tps(
         [
             [birth, death]
             for dim, (birth, death) in barcodes
-            if dim == target_degree and death != np.inf
+            if dim == target_dim and death != np.inf
         ]
     )
     empty_degree_diagram_points = np.zeros(zero_degree_diagram_points.shape)
