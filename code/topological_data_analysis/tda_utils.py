@@ -144,7 +144,7 @@ def tps(
     target_word_punct_neigh = punctured_neighbourhood(
         target_word=target_word,
         word_to_int=word_to_int,
-        word_embeddings=word_embeddings,
+        word_embeddings=word_vectors,
         word_embeddings_norm=word_vectors_norm,
         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists,
         neighbourhood_size=neighbourhood_size,
