@@ -384,6 +384,26 @@ def cosine_distance(x: np.ndarray, y: np.ndarray) -> float:
     return 1 - fastdist.cosine(x, y)
 
 
+def cosine_vector_to_matrix_distance(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """
+    Computes the cosine distance between a 1D vector x and a
+    matrix of vectors y.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        1D vector
+    y : np.ndarray
+        Matrix
+
+    Returns
+    -------
+    cosine_dist : np.ndarray
+        Cosine distance between x and y as a vector
+    """
+    return 1 - fastdist.cosine_vector_to_matrix(x, y)
+
+
 def words_to_vectors(
     words_vocabulary: list,
     word_to_int: dict,

@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 from gudhi.persistence_graphical_tools import \
     plot_persistence_diagram as gd_plot_persistence_diagram
@@ -5,7 +7,9 @@ from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 from matplotlib import pyplot as plt
 
-from utils import pairwise_cosine_distances, words_to_vectors
+sys.path.append("..")
+
+from utils import cosine_vector_to_matrix_distance, words_to_vectors
 
 
 def plot_persistence_diagram(
@@ -48,8 +52,13 @@ def punctured_neighbourhood(
     TODO: Docs
     """
     # Find neighbouring words (excluding the target word itself)
-    target_word_idx = word_to_int[target_word]
-    neighbourhood_distances = word_embeddings_pairwise_dists[target_word_idx]
+    target_word_int = word_to_int[target_word]
+    if word_embeddings_pairwise_dists is None:
+        neighbourhood_distances = cosine_vector_to_matrix_distance(
+            x=word_embeddings[target_word_int], y=word_embeddings
+        )
+    else:
+        neighbourhood_distances = word_embeddings_pairwise_dists[target_word_int]
     neighbourhood_sorted_indices = np.argsort(neighbourhood_distances)[
         1 : neighbourhood_size + 1
     ]
@@ -63,6 +72,7 @@ def tps(
     words_vocabulary: list,
     word_to_int: dict,
     neighbourhood_size: int,
+    word_embeddings_pairwise_dists: np.ndarray = None,
     sanity_check: bool = False,
 ) -> float:
     """
@@ -82,6 +92,9 @@ def tps(
         Dictionary mapping from word to its integer representation.
     neighbourhood_size : int
         Neighbourhood size (n)
+    word_embeddings_pairwise_dists : np.ndarray, optional
+        Numpy matrix containing pairwise distances between word embeddings
+        (defaults to None).
     sanity_check : bool, optional
         Whether or not to run sanity checks (defaults to False).
 
@@ -102,9 +115,6 @@ def tps(
         word_embeddings=word_embeddings,
     )
 
-    # Compute pairwise distances between each word vector
-    pairwise_word_vector_distances = pairwise_cosine_distances(word_vectors)
-
     # Normalize all word vectors to have L2-norm
     word_vectors_norm = word_vectors / np.linalg.norm(word_vectors)
 
@@ -113,7 +123,7 @@ def tps(
         target_word=target_word,
         word_to_int=word_to_int,
         word_embeddings=word_vectors_norm,
-        word_embeddings_pairwise_dists=pairwise_word_vector_distances,
+        word_embeddings_pairwise_dists=word_embeddings_pairwise_dists,
         neighbourhood_size=neighbourhood_size,
     )
 
