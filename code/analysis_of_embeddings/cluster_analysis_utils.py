@@ -263,11 +263,7 @@ def cluster_analysis(
         param_grid = ParameterGrid(hyperparameter_grid)
         for params_idx, params in enumerate(tqdm(param_grid)):
             clusterers_result[clusterer_name]["cluster_params"].append(params)
-            if (
-                fast_agglomerative_clustering
-                and isinstance(clusterer_cls, dict)
-                and "linkage_matrix" in clusterer_cls
-            ):
+            if fast_agglomerative_clustering and isinstance(clusterer_cls, dict):
                 agglomerative_clustering = clusterer_cls[params_idx]
                 predicted_labels = cut_tree(
                     Z=agglomerative_clustering["linkage_matrix"],
