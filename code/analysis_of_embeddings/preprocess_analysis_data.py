@@ -183,7 +183,7 @@ def preprocess_custom_data(custom_data_dir: str, output_dir: str) -> None:
         Directory to save output data.
     """
     custom_data_filenames = [
-        "word2vec_analysis_category_of_words.xlsx"  # Analysing category of words
+        "word2vec_analysis_category_of_words.xls"  # Analysing category of words
     ]
     custom_data_filepaths = [join(custom_data_dir, fn) for fn in custom_data_filenames]
 
@@ -244,6 +244,7 @@ def preprocess_word_cluster_groups(
             words_output_file.write(f"{word}")
 
     # -- Names --
+    num_top_names = 1000
     forenames_data_url = "https://www.ssa.gov/oact/babynames/names.zip"
     forenames_raw_zip_filepath = join(raw_data_dir, "forenames.zip")
     forenames_raw_zip_dir = join(raw_data_dir, "forenames")
@@ -293,6 +294,11 @@ def preprocess_word_cluster_groups(
         )
         forenames_raw_df["name"] = forenames_raw_df["name"].str.lower()
         forenames_raw_df = forenames_raw_df[forenames_raw_df["name"].apply(word_in_vocab)]
+        forenames_male_raw_df = forenames_raw_df[forenames_raw_df["gender"] == "M"]
+        forenames_male_raw_df = forenames_male_raw_df[:num_top_names]
+        forenames_female_raw_df = forenames_raw_df[forenames_raw_df["gender"] == "F"]
+        forenames_female_raw_df = forenames_female_raw_df[:num_top_names]
+        forenames_raw_df = pd.concat([forenames_male_raw_df, forenames_female_raw_df])
         forenames_raw_df.to_csv(forenames_output_filepath, index=False)
 
         surnames_raw_df = pd.read_csv(surnames_raw_filepath, usecols=["name", "count"])
@@ -302,8 +308,8 @@ def preprocess_word_cluster_groups(
                 lambda name: word_in_vocab(name) and name not in forenames_raw_df["name"]
             )
         ]
+        surnames_raw_df = surnames_raw_df[:num_top_names]
         surnames_raw_df.to_csv(surnames_output_filepath, index=False)
-        # TODO: Filter uncommon surnames (noisy words), e.g., count >= some count.
 
 
 def preprocess_analysis_data(
