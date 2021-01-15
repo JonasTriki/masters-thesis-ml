@@ -313,7 +313,7 @@ def preprocess_word_cluster_groups(
         surnames_raw_df.to_csv(surnames_output_filepath, index=False)
 
     # -- Foods --
-    num_top_food_words = 1000
+    num_top_food_words = 250
     foods_output_filepath = join(output_dir, "foods.txt")
     foods_output_raw_filepath = join(raw_data_dir, "foods.csv")
 
