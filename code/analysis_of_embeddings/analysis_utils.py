@@ -929,8 +929,8 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     vegan_foods_df = pd.read_csv(vegan_foods_filepath)
     vegan_foods_df = vegan_foods_df[vegan_foods_df["Name"].apply(word_in_vocab_filter)]
     vegan_food_categories = vegan_foods_df["Category"].values
-    vegan_foods_data = {"all": vegan_food_categories["Name"].values}
-    for vegan_food_category in vegan_foods_data:
+    vegan_foods_data = {"all": vegan_foods_df["Name"].values}
+    for vegan_food_category in vegan_food_categories:
         vegan_foods_data[vegan_food_category] = vegan_foods_df[
             vegan_foods_df["Category"] == vegan_food_category
         ]["Name"].values
