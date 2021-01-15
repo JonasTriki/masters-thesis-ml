@@ -868,7 +868,8 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     surnames_filepath = join(data_dir, "surnames.csv")
     numbers_filepath = join(data_dir, "numbers.txt")
     video_games_filepath = join(data_dir, "video_games.csv")
-    foods_filepath = join(data_dir, "foods.csv")
+    foods_filepath = join(data_dir, "foods.txt")
+    vegan_foods_filepath = join(data_dir, "vegan_foods_categorized.csv")
 
     # Filter words out of vocabulary
     word_in_vocab_filter = lambda word: word in word_to_int
@@ -902,8 +903,8 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     surnames = surnames_df["name"].values
 
     # Load numbers
-    with open(numbers_filepath, "r") as file:
-        numbers = file.read().split("\n")
+    with open(numbers_filepath, "r") as numbers_file:
+        numbers = numbers_file.read().split("\n")
     numbers = np.array([num for num in numbers if word_in_vocab_filter(num)])
 
     # Load video games
@@ -917,15 +918,22 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
             video_games_df["Genre"] == video_game_genre
         ]["Name"].values
 
-    # Load
-    foods_df = pd.read_csv(foods_filepath)
-    foods_df = foods_df[foods_df["Name"].apply(word_in_vocab_filter)]
-    food_categories = foods_df["Category"].values
-    foods_data = {"all": foods_df["Name"].values}
-    for food_category in food_categories:
-        foods_data[food_category] = foods_df[foods_df["Category"] == food_category][
-            "Name"
-        ].values
+    # Load food data
+    with open(foods_filepath, "r") as foods_file:
+        foods = foods_file.read().split("\n")
+    foods = np.array(
+        [food_word for food_word in foods if word_in_vocab_filter(food_word)]
+    )
+
+    # Load categorized vegan food data
+    vegan_foods_df = pd.read_csv(vegan_foods_filepath)
+    vegan_foods_df = vegan_foods_df[vegan_foods_df["Name"].apply(word_in_vocab_filter)]
+    vegan_food_categories = vegan_foods_df["Category"].values
+    vegan_foods_data = {"all": vegan_food_categories["Name"].values}
+    for vegan_food_category in vegan_foods_data:
+        vegan_foods_data[vegan_food_category] = vegan_foods_df[
+            vegan_foods_df["Category"] == vegan_food_category
+        ]["Name"].values
 
     # Combine data into dictionary
     data = {
@@ -935,7 +943,8 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
         "surnames": surnames,
         "numbers": numbers,
         "video_games": video_games_data,
-        "foods": foods_data,
+        "foods": foods,
+        "vegan_foods": vegan_foods_data,
     }
 
     return data
