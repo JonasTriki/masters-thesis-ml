@@ -1,6 +1,7 @@
 import argparse
 import sys
 import zipfile
+from collections import Counter
 from os import makedirs
 from os.path import isdir, isfile, join
 
@@ -310,6 +311,64 @@ def preprocess_word_cluster_groups(
         ]
         surnames_raw_df = surnames_raw_df[:num_top_names]
         surnames_raw_df.to_csv(surnames_output_filepath, index=False)
+
+    # -- Foods --
+    num_top_food_words = 1000
+    foods_output_filepath = join(output_dir, "foods.txt")
+    foods_output_raw_filepath = join(raw_data_dir, "foods.csv")
+
+    # Prepare food ingredient dataframe
+    if not isfile(foods_output_raw_filepath):
+        food_ingredient_list_csv_url = (
+            "https://query.data.world/s/g6zcrqk6kbcks2kadrwdwjvnygbagk"
+        )
+        food_ingredient_df = pd.read_csv(
+            food_ingredient_list_csv_url, usecols=["name", "categories", "features.value"]
+        )
+        food_ingredient_df.rename(columns={"features.value": "ingredients"}, inplace=True)
+        food_ingredient_df = food_ingredient_df.astype(
+            {"name": str, "categories": str, "ingredients": str}
+        )
+
+        # Preprocess food words and save to file
+        preprocess_sent = lambda sent: " ".join(
+            preprocess_text(sent, should_remove_stopwords=True, should_remove_digits=True)
+        )
+        food_ingredient_df["name"] = food_ingredient_df["name"].apply(
+            lambda name: preprocess_sent(name)
+        )
+        food_ingredient_df["categories"] = food_ingredient_df["categories"].apply(
+            lambda name: preprocess_sent(name)
+        )
+        food_ingredient_df["ingredients"] = food_ingredient_df["ingredients"].apply(
+            lambda name: preprocess_sent(name)
+        )
+        food_ingredient_df.to_csv(foods_output_raw_filepath, index=False)
+
+    # Combine food words into one text file sorted by word occurrence.
+    if not isfile(foods_output_filepath):
+        food_ingredient_df = pd.read_csv(foods_output_raw_filepath)
+        food_word_occurrences_counter = Counter()
+
+        # Count food word frequencies
+        for col_name in ["name", "categories", "ingredients"]:
+            for col_sent in food_ingredient_df[col_name].values:
+                if isinstance(col_sent, str):
+                    food_word_occurrences_counter.update(col_sent.split())
+
+        # Only use top `num_top_food_words` which are in the vocabulary.
+        most_common_food_words = [
+            food_word
+            for food_word, _ in food_word_occurrences_counter.most_common()
+            if food_word in word_to_int and len(food_word) > 1
+        ][:num_top_food_words]
+
+        # Save food words to file
+        with open(foods_output_filepath, "w") as foods_file:
+            for i, food_word in enumerate(most_common_food_words):
+                if i > 0:
+                    foods_file.write("\n")
+                foods_file.write(f"{food_word}")
 
 
 def preprocess_analysis_data(

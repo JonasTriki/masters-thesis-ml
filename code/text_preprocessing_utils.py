@@ -5,10 +5,12 @@ https://gist.github.com/MrEliptik/b3f16179aa2f530781ef8ca9a16499af
 """
 
 import re
+from string import digits
 
 import contractions
 import nltk
 from nltk import word_tokenize
+from nltk.corpus import stopwords
 
 # Download NLTK files
 nltk.download("punkt")
@@ -32,6 +34,29 @@ def remove_urls(text: str) -> str:
     """
     url_regex = r"(?:(?:http|ftp)s?:\/\/|www\.)[\n\S]+"
     return re.sub(url_regex, "", text)
+
+
+def remove_stopwords(words: list, language: str):
+    """
+    Removes stop words from list of tokenized words.
+
+    Parameters
+    ----------
+    words : list
+        List of tokenized words.
+    language : str
+        Language of words
+
+    Returns
+    -------
+    new_words : list
+        List of words without stop words.
+    """
+    new_words = []
+    for word in words:
+        if word not in stopwords.words(language):
+            new_words.append(word)
+    return new_words
 
 
 def replace_contractions(text: str, slang: bool = False) -> str:
@@ -102,6 +127,28 @@ def remove_punctuation(words: list) -> list:
         # e.g. out-of-the-box --> out, of, the, box
         for new_word in new_word.split():
             new_words.append(new_word)
+    return new_words
+
+
+def remove_digits(words: list):
+    """
+    Removes digits from list of tokenized words.
+
+    Parameters
+    ----------
+    words : list
+        List of tokenized words.
+
+    Returns
+    -------
+    new_words : list
+        List of words without digits.
+    """
+    new_words = []
+    remove_digits_trans = str.maketrans("", "", digits)
+    for word in words:
+        new_word = word.translate(remove_digits_trans)
+        new_words.append(new_word)
     return new_words
 
 
@@ -203,7 +250,13 @@ def text_to_words(text: str, language: str = "english") -> list:
     return words
 
 
-def preprocess_words(words: list, language: str = "english") -> list:
+def preprocess_words(
+    words: list,
+    language: str = "english",
+    should_remove_digits: bool = False,
+    should_replace_numbers: bool = True,
+    should_remove_stopwords: bool = False,
+) -> list:
     """
     Preprocesses list of words using a series of techniques:
     - Converts to lower-case
@@ -216,6 +269,13 @@ def preprocess_words(words: list, language: str = "english") -> list:
         List of words to preprocess.
     language : str
         Language (defaults to "english")
+    should_remove_digits : bool
+        Whether or not to remove digits from text (defaults to False).
+    should_replace_numbers : bool
+        Whether or not to replace numbers with textual representation
+        (defaults to True). Has no effect if should_remove_digits is set to True.
+    should_remove_stopwords : bool
+        Whether or not to remove stop words (defaults to False).
 
     Returns
     -------
@@ -225,12 +285,23 @@ def preprocess_words(words: list, language: str = "english") -> list:
     # Apply a series of techniques to the words
     words = to_lowercase(words)
     words = remove_punctuation(words)
-    words = replace_all_numbers(words, language)
+    if should_remove_digits:
+        words = remove_digits(words)
+    elif should_replace_numbers:
+        words = replace_all_numbers(words, language)
+    if should_remove_stopwords:
+        words = remove_stopwords(words, language)
 
     return words
 
 
-def preprocess_text(text: str, language: str = "english") -> list:
+def preprocess_text(
+    text: str,
+    language: str = "english",
+    should_remove_digits: bool = False,
+    should_replace_numbers: bool = True,
+    should_remove_stopwords: bool = False,
+) -> list:
     """
     Preprocesses text using a series of techniques:
     - Removes URLs
@@ -248,6 +319,13 @@ def preprocess_text(text: str, language: str = "english") -> list:
         Text to preprocess.
     language : str
         Language (defaults to "english")
+    should_remove_digits : bool
+        Whether or not to remove digits from text (defaults to False).
+    should_replace_numbers : bool
+        Whether or not to replace numbers with textual representation
+        (defaults to True). Has no effect if should_remove_digits is set to True.
+    should_remove_stopwords : bool
+        Whether or not to remove stop words (defaults to False).
 
     Returns
     -------
@@ -258,6 +336,12 @@ def preprocess_text(text: str, language: str = "english") -> list:
     words = text_to_words(text, language)
 
     # Process words
-    words = preprocess_words(words, language)
+    words = preprocess_words(
+        words=words,
+        language=language,
+        should_remove_digits=should_remove_digits,
+        should_replace_numbers=should_replace_numbers,
+        should_remove_stopwords=should_remove_stopwords,
+    )
 
     return words
