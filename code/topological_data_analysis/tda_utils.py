@@ -95,6 +95,7 @@ def tps(
     words_vocabulary: list,
     word_to_int: dict,
     neighbourhood_size: int,
+    word_embeddings_normalized: np.ndarray = None,
     word_embeddings_pairwise_dists: np.ndarray = None,
     sanity_check: bool = False,
 ) -> float:
@@ -108,13 +109,15 @@ def tps(
         Target word (w)
     word_embeddings : np.ndarray
         Word embeddings
-    words_vocabulary : list
+    words_vocabulary : list, optional
         List of either words (str) or word integer representations (int), signalizing
-        what part of the vocabulary we want to use.
+        what part of the vocabulary we want to use. Set to none to use whole vocabulary.
     word_to_int : dict of str and int
         Dictionary mapping from word to its integer representation.
     neighbourhood_size : int
         Neighbourhood size (n)
+    word_embeddings_normalized : np.ndarray, optional
+        Normalized word embeddings (defaults to None).
     word_embeddings_pairwise_dists : np.ndarray, optional
         Numpy matrix containing pairwise distances between word embeddings
         (defaults to None).
@@ -132,28 +135,33 @@ def tps(
        Topology of Word Embeddings: Singularities Reflect Polysemy.
     """
     # Create word vectors from given words/vocabulary
-    word_vectors = words_to_vectors(
-        words_vocabulary=words_vocabulary,
-        word_to_int=word_to_int,
-        word_embeddings=word_embeddings,
-    )
+    if words_vocabulary is not None:
+        word_vectors = words_to_vectors(
+            words_vocabulary=words_vocabulary,
+            word_to_int=word_to_int,
+            word_embeddings=word_embeddings,
+        )
+    else:
+        word_vectors = word_embeddings
 
-    # Normalize all word vectors to have L2-norm
-    word_vectors_norm = word_vectors / np.linalg.norm(word_vectors)
+    if word_embeddings_normalized is None:
+
+        # Normalize all word vectors to have L2-norm
+        word_embeddings_normalized = word_vectors / np.linalg.norm(word_vectors)
 
     # Compute punctured neighbourhood
     target_word_punct_neigh = punctured_neighbourhood(
         target_word=target_word,
         word_to_int=word_to_int,
         word_embeddings=word_vectors,
-        word_embeddings_norm=word_vectors_norm,
+        word_embeddings_norm=word_embeddings_normalized,
         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists,
         neighbourhood_size=neighbourhood_size,
     )
 
     # Project word vectors in punctured neighbourhood to the unit sphere
     target_word_punct_neigh_sphere = np.zeros(target_word_punct_neigh.shape)
-    target_word_vector_w = word_vectors_norm[word_to_int[target_word]]
+    target_word_vector_w = word_embeddings_normalized[word_to_int[target_word]]
     for i, v in enumerate(target_word_punct_neigh):
         w_v_diff = v - target_word_vector_w
         target_word_punct_neigh_sphere[i] = w_v_diff / np.linalg.norm(w_v_diff)
