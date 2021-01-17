@@ -128,7 +128,8 @@ def tps(
 
     References
     ----------
-    .. [1] Alexander Jakubowski, Milica Gašić, & Marcus Zibrowi
+    .. [1] Alexander Jakubowski, Milica Gašić, & Marcus Zibrowius. (2020).
+       Topology of Word Embeddings: Singularities Reflect Polysemy.
     """
     # Create word vectors from given words/vocabulary
     word_vectors = words_to_vectors(
