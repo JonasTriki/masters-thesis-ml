@@ -88,6 +88,7 @@ def preprocess_topological_polysemy_data(raw_data_dir: str, output_dir: str) -> 
     if not isfile(semeval_2010_14_word_senses_filepath):
 
         # Scrape website for SemEval gold standard senses
+        print("Downloading SemEval 2010 task 14 website...")
         semeval_2010_14_york_datasets_source = get_cached_download_text_file(
             semeval_2010_14_york_datasets_url,
             target_dir=raw_data_dir,
