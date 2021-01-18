@@ -1,8 +1,9 @@
 import sys
 
 import numpy as np
-from gudhi.persistence_graphical_tools import \
-    plot_persistence_diagram as gd_plot_persistence_diagram
+from gudhi.persistence_graphical_tools import (
+    plot_persistence_diagram as gd_plot_persistence_diagram,
+)
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 from matplotlib import pyplot as plt
@@ -147,7 +148,9 @@ def tps(
     if word_embeddings_normalized is None:
 
         # Normalize all word vectors to have L2-norm
-        word_embeddings_normalized = word_vectors / np.linalg.norm(word_vectors)
+        word_embeddings_normalized = word_vectors / np.linalg.norm(
+            word_vectors, axis=1
+        ).reshape(-1, 1)
 
     # Compute punctured neighbourhood
     target_word_punct_neigh = punctured_neighbourhood(
