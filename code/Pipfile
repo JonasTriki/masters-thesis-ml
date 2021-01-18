@@ -48,6 +48,7 @@ cdbw = "*"
 wikiextractor = {git = "https://github.com/JonasTriki/wikiextractor.git", ref = "fix-compressed-file-write"}
 pot = "*"
 annoy = "*"
+scann = "*"
 
 [requires]
 python_version = "3.6"
