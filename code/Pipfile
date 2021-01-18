@@ -47,6 +47,7 @@ tensorflow = "*"
 cdbw = "*"
 wikiextractor = {git = "https://github.com/JonasTriki/wikiextractor.git", ref = "fix-compressed-file-write"}
 pot = "*"
+annoy = "*"
 
 [requires]
 python_version = "3.6"
