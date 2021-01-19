@@ -20,8 +20,7 @@ from word_embeddings.tokenizer import Tokenizer
 from word_embeddings.train_utils import (
     create_model_checkpoint_filepath,
     create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath,
-)
+    create_model_train_logs_filepath)
 from word_embeddings.word2vec_model import Word2VecSGNSModel
 
 
@@ -321,14 +320,22 @@ class Word2vec:
         if intermediate_embedding_weights_saves > 0:
 
             # Save words to file for later reference
-            if verbose == 1:
-                print("Saving words to file...")
             words_filepath = os.path.join(
                 output_dir,
                 f"{self._model_name}_{dataset_name}_words.txt",
             )
             self.save_words(words_filepath)
-            print("Done!")
+            if verbose == 1:
+                print("Saved words to file!")
+
+            # Save word counts
+            word_counts_filepath = os.path.join(
+                output_dir,
+                f"{self._model_name}_{dataset_name}_word_counts.txt",
+            )
+            self.save_word_counts(word_counts_filepath)
+            if verbose == 1:
+                print("Saved word counts to file!")
 
             # Set up thresholds for saving intermediate embedding weights
             intermediate_saving_thresholds = 1 / intermediate_embedding_weights_saves
@@ -541,6 +548,22 @@ class Word2vec:
         # Save to file
         with open(target_filepath, "w") as file:
             file.write(words_lines)
+
+    def save_word_counts(self, target_filepath: str) -> None:
+        """
+        Saves word counts used during training to file, one number in each line.
+
+        Parameters
+        ----------
+        target_filepath : str
+            Where to save the word counts to.
+        """
+        # Create string with one word in each line
+        word_counts_lines = "\n".join(self._tokenizer.word_counts)
+
+        # Save to file
+        with open(target_filepath, "w") as file:
+            file.write(word_counts_lines)
 
     def save_model_training_conf(self, target_filepath: str, n_epochs: int) -> None:
         """
