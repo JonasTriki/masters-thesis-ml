@@ -37,7 +37,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--annoy_index_n_trees",
-        type=str,
+        type=int,
         default="",
         help="Number of trees to pass to Annoy's build method. More trees => higher precision",
     )
@@ -84,7 +84,7 @@ def build_approx_nearest_neighbours_index(
     vocab_size = last_embedding_weights.shape[0]
     embedding_dim = last_embedding_weights.shape[1]
 
-    # Normalize embeddings
+    # Normalize word embeddings
     last_embedding_weights_normalized = last_embedding_weights / np.linalg.norm(
         last_embedding_weights, axis=1
     ).reshape(-1, 1)
