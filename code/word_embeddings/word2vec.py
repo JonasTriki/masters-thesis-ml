@@ -559,12 +559,15 @@ class Word2vec:
         target_filepath : str
             Where to save the word counts to.
         """
-        # Create string with one word in each line
-        word_counts_lines = "\n".join(self._tokenizer.word_counts)
-
-        # Save to file
-        with open(target_filepath, "w") as file:
-            file.write(word_counts_lines)
+        # Write each word count to its own line
+        with open(
+            target_filepath,
+            "w",
+        ) as file:
+            for i, word_count in enumerate(self._tokenizer.word_counts):
+                if i > 0:
+                    file.write("\n")
+                file.write(str(word_count))
 
     def save_model_training_conf(self, target_filepath: str, n_epochs: int) -> None:
         """
