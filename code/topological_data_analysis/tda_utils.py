@@ -1,5 +1,6 @@
 import sys
 
+import annoy
 import numpy as np
 from gudhi.persistence_graphical_tools import (
     plot_persistence_diagram as gd_plot_persistence_diagram,
@@ -46,9 +47,10 @@ def punctured_neighbourhood(
     target_word: str,
     word_to_int: dict,
     word_embeddings: np.ndarray,
-    word_embeddings_pairwise_dists: np.ndarray,
     word_embeddings_norm: np.ndarray,
     neighbourhood_size: int,
+    word_embeddings_pairwise_dists: np.ndarray,
+    annoy_index: annoy.AnnoyIndex,
 ) -> np.ndarray:
     """
     Finds a punctured neighbourhood around a target word using
@@ -62,12 +64,16 @@ def punctured_neighbourhood(
         Dictionary mapping from word to its integer representation.
     word_embeddings : np.ndarray
         Word embeddings
-    word_embeddings_pairwise_dists : np.ndarray
-        Pairwise distances between word embeddings
     word_embeddings_norm : np.ndarray
         Normalized word embeddings
     neighbourhood_size : int
         Neighbourhood size (n)
+    word_embeddings_pairwise_dists : np.ndarray
+        Pairwise distances between word embeddings
+    annoy_index : annoy.AnnoyIndex
+        Annoy index built on the word embeddings (defaults to None).
+        If specified, the approximate nearest neighbour index is used to find
+        punctured neighbourhoods.
 
     Returns
     -------
@@ -77,15 +83,20 @@ def punctured_neighbourhood(
     """
     # Find neighbouring words (excluding the target word itself)
     target_word_int = word_to_int[target_word]
-    if word_embeddings_pairwise_dists is None:
-        neighbourhood_distances = cosine_vector_to_matrix_distance(
-            x=word_embeddings[target_word_int], y=word_embeddings
-        )
+    if annoy_index is not None:
+        neighbourhood_sorted_indices = annoy_index.get_nns_by_item(
+            i=target_word_int, n=neighbourhood_size + 1
+        )[1:]
     else:
-        neighbourhood_distances = word_embeddings_pairwise_dists[target_word_int]
-    neighbourhood_sorted_indices = np.argsort(neighbourhood_distances)[
-        1 : neighbourhood_size + 1
-    ]
+        if word_embeddings_pairwise_dists is not None:
+            neighbourhood_distances = word_embeddings_pairwise_dists[target_word_int]
+        else:
+            neighbourhood_distances = cosine_vector_to_matrix_distance(
+                x=word_embeddings[target_word_int], y=word_embeddings
+            )
+        neighbourhood_sorted_indices = np.argsort(neighbourhood_distances)[
+            1 : neighbourhood_size + 1
+        ]
     neighbouring_word_embeddings = word_embeddings_norm[neighbourhood_sorted_indices]
     return neighbouring_word_embeddings
 
@@ -98,6 +109,7 @@ def tps(
     neighbourhood_size: int,
     word_embeddings_normalized: np.ndarray = None,
     word_embeddings_pairwise_dists: np.ndarray = None,
+    annoy_index: annoy.AnnoyIndex = None,
     sanity_check: bool = False,
 ) -> float:
     """
@@ -122,6 +134,10 @@ def tps(
     word_embeddings_pairwise_dists : np.ndarray, optional
         Numpy matrix containing pairwise distances between word embeddings
         (defaults to None).
+    annoy_index : annoy.AnnoyIndex, optional
+        Annoy index built on the word embeddings (defaults to None).
+        If specified, the approximate nearest neighbour index is used to find
+        punctured neighbourhoods.
     sanity_check : bool, optional
         Whether or not to run sanity checks (defaults to False).
 
@@ -158,8 +174,9 @@ def tps(
         word_to_int=word_to_int,
         word_embeddings=word_vectors,
         word_embeddings_norm=word_embeddings_normalized,
-        word_embeddings_pairwise_dists=word_embeddings_pairwise_dists,
         neighbourhood_size=neighbourhood_size,
+        word_embeddings_pairwise_dists=word_embeddings_pairwise_dists,
+        annoy_index=annoy_index,
     )
 
     # Project word vectors in punctured neighbourhood to the unit sphere
