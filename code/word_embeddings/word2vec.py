@@ -659,7 +659,9 @@ def load_model_training_output(
     with open(
         checkpoint_filepaths_dict["train_word_counts_filepath"], "r"
     ) as word_counts_file:
-        word_counts = np.array(word_counts_file.read().split("\n"))
+        word_counts = np.array(
+            [int(word_count) for word_count in word_counts_file.read().split("\n")]
+        )
 
     # Get array of words and word_to_int lookup dictionary
     with open(checkpoint_filepaths_dict["train_words_filepath"], "r") as words_file:
