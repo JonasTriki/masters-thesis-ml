@@ -20,7 +20,8 @@ from word_embeddings.tokenizer import Tokenizer
 from word_embeddings.train_utils import (
     create_model_checkpoint_filepath,
     create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath)
+    create_model_train_logs_filepath,
+)
 from word_embeddings.word2vec_model import Word2VecSGNSModel
 
 
@@ -652,12 +653,14 @@ def load_model_training_output(
     ).astype(np.float64)
 
     # Get word counts from tokenizer of word2vec model
-    word2vec_model = load_model(checkpoint_filepaths_dict["model_filepaths"][-1])
-    word_counts = word2vec_model.tokenizer.word_counts
+    with open(
+        checkpoint_filepaths_dict["train_word_counts_filepath"], "r"
+    ) as word_counts_file:
+        word_counts = np.array(word_counts_file.read().split("\n"))
 
     # Get array of words and word_to_int lookup dictionary
-    with open(checkpoint_filepaths_dict["train_words_filepath"], "r") as file:
-        words = np.array(file.read().split("\n"))
+    with open(checkpoint_filepaths_dict["train_words_filepath"], "r") as words_file:
+        words = np.array(words_file.read().split("\n"))
     word_to_int = {word: i for i, word in enumerate(words)}
 
     return {
