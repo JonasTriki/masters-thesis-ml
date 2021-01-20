@@ -1,10 +1,10 @@
 import sys
+from typing import Union
 
 import annoy
 import numpy as np
-from gudhi.persistence_graphical_tools import (
-    plot_persistence_diagram as gd_plot_persistence_diagram,
-)
+from gudhi.persistence_graphical_tools import \
+    plot_persistence_diagram as gd_plot_persistence_diagram
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 from matplotlib import pyplot as plt
@@ -111,7 +111,8 @@ def tps(
     word_embeddings_pairwise_dists: np.ndarray = None,
     annoy_index: annoy.AnnoyIndex = None,
     sanity_check: bool = False,
-) -> float:
+    return_persistence_diagram: bool = False,
+) -> Union[float, tuple]:
     """
     Computes the topological polysemy (TPS) [1] of a word with respect
     to some word embeddings and neighbourhood size.
@@ -140,11 +141,16 @@ def tps(
         punctured neighbourhoods.
     sanity_check : bool, optional
         Whether or not to run sanity checks (defaults to False).
+    return_persistence_diagram : bool, optional
+        Whether or not to return persistence diagram (defaults to False).
 
     Returns
     -------
-    tps : float
+    result : float or tuple
         TPS of `target_word` w.r.t. word_embeddings and neighbourhood_size.
+        If return_persistence_diagram is set to true, then a tuple is returned
+        with the TPS as the first value and the zero degree persistence diagram
+        as the second value.
 
     References
     ----------
@@ -206,4 +212,7 @@ def tps(
         X=zero_degree_diagram_points, Y=empty_degree_diagram_points
     )
 
-    return wasserstein_norm
+    if return_persistence_diagram:
+        return wasserstein_norm, barcodes
+    else:
+        return wasserstein_norm
