@@ -11,5 +11,6 @@
     }
   },
   "python.linting.mypyEnabled": true,
-  "python.dataScience.jupyterServerURI": "local"
+  "python.dataScience.jupyterServerURI": "local",
+  "python.pythonPath": ".local/share/virtualenvs/project-OdyMjCZJ/bin/python"
 }
