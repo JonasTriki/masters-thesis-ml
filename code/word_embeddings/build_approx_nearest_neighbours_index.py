@@ -36,6 +36,12 @@ def parse_args() -> argparse.Namespace:
         help="Name of the dataset used to train the model",
     )
     parser.add_argument(
+        "--vocab_size",
+        type=int,
+        default=-1,
+        help="Size of the vocabulary to create an index of (most common words), -1 denotes all words",
+    )
+    parser.add_argument(
         "--annoy_index_n_trees",
         type=int,
         default="",
@@ -47,6 +53,12 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Output directory to save processed data",
     )
+    parser.add_argument(
+        "--output_filepath_suffix",
+        type=str,
+        default="annoy_index",
+        help="Suffix to use for the output filepath (defaults to annoy_index)",
+    )
     return parser.parse_args()
 
 
@@ -54,8 +66,10 @@ def build_approx_nearest_neighbours_index(
     model_training_output_dir: str,
     model_name: str,
     dataset_name: str,
+    vocab_size: int,
     annoy_index_n_trees: int,
     output_dir: str,
+    output_filepath_suffix: str,
 ) -> None:
     """
     Builds an approximate nearest neighbours index on the word embeddings
@@ -69,10 +83,15 @@ def build_approx_nearest_neighbours_index(
         Name of the trained model.
     dataset_name : str
         Name of the dataset the model is trained on.
+    vocab_size : int
+        Size of the vocabulary to create an index of (most common words),
+        -1 denotes all words.
     annoy_index_n_trees : int
         Number of trees to pass to Annoys build method. More trees => higher precision.
     output_dir : str
         Output directory.
+    output_filepath_suffix : str
+        Suffix to use for the output filepath (defaults to annoy_index).
     """
     # Load output from training word2vec
     w2v_training_output = load_model_training_output(
@@ -81,12 +100,16 @@ def build_approx_nearest_neighbours_index(
         dataset_name=dataset_name,
     )
     last_embedding_weights = w2v_training_output["last_embedding_weights"]
-    vocab_size = last_embedding_weights.shape[0]
     embedding_dim = last_embedding_weights.shape[1]
 
     # Normalize word embeddings
-    last_embedding_weights_normalized = last_embedding_weights / np.linalg.norm(
-        last_embedding_weights, axis=1
+    if vocab_size == -1:
+        vocab_size = last_embedding_weights.shape[0]
+        last_embedding_weights_in_vocab = last_embedding_weights
+    else:
+        last_embedding_weights_in_vocab = last_embedding_weights[:vocab_size]
+    last_embedding_weights_normalized = last_embedding_weights_in_vocab / np.linalg.norm(
+        last_embedding_weights_in_vocab, axis=1
     ).reshape(-1, 1)
 
     # Add word embeddings to index and build it
@@ -103,7 +126,7 @@ def build_approx_nearest_neighbours_index(
     print("Saving to file...")
     makedirs(output_dir)
     output_ann_index_filepath = join(
-        output_dir, f"{model_name}_{dataset_name}_annoy_index.ann"
+        output_dir, f"{model_name}_{dataset_name}_{output_filepath_suffix}.ann"
     )
     ann_index.save(output_ann_index_filepath)
     print("Done!")
@@ -115,6 +138,8 @@ if __name__ == "__main__":
         model_training_output_dir=args.model_training_output_dir,
         model_name=args.model_name,
         dataset_name=args.dataset_name,
+        vocab_size=args.vocab_size,
         annoy_index_n_trees=args.annoy_index_n_trees,
         output_dir=args.output_dir,
+        output_filepath_suffix=args.output_filepath_suffix,
     )
