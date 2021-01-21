@@ -124,7 +124,7 @@ def build_approx_nearest_neighbours_index(
     print("Done!")
 
     print("Saving to file...")
-    makedirs(output_dir)
+    makedirs(output_dir, exist_ok=True)
     output_ann_index_filepath = join(
         output_dir, f"{model_name}_{dataset_name}_{output_filepath_suffix}.ann"
     )
