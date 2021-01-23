@@ -17,4 +17,5 @@ python train_word2vec.py \
 --max_window_size 5 \
 --num_negative_samples 5 \
 --sampling_factor 0.00001 \
---unigram_exponent_negative_sampling 0.75
+--unigram_exponent_negative_sampling 0.75 \
+--dynamic_gpu_memory
