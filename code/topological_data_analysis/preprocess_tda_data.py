@@ -2,19 +2,22 @@ import argparse
 import sys
 import tarfile
 import xml.etree.ElementTree as ET
-from collections import Counter
+from html import unescape
+from multiprocessing import Pool, cpu_count
 from os import listdir, makedirs
 from os.path import isdir, isfile, join
+from typing import Tuple
 
 import joblib
 from bs4 import BeautifulSoup
-from nltk import sent_tokenize, word_tokenize
-from nltk.corpus import wordnet as wn
+from nltk import sent_tokenize
 from tqdm import tqdm
 
 sys.path.append("..")
 
-from utils import download_from_url, get_cached_download_text_file
+from text_preprocessing_utils import preprocess_text
+from utils import (batch_list_gen, download_from_url,
+                   get_cached_download_text_file)
 
 
 def parse_args() -> argparse.Namespace:
@@ -78,11 +81,8 @@ def preprocess_topological_polysemy_data(raw_data_dir: str, output_dir: str) -> 
     semeval_2010_14_word_senses_filepath = join(
         output_dir, "semeval_2010_14_word_senses.joblib"
     )
-    semeval_2010_14_vocabulary_filepath = join(
-        output_dir, "semeval_2010_14_vocabulary.joblib"
-    )
-    semeval_2010_14_wordnet_senses_filepath = join(
-        output_dir, "semeval_2010_14_wordnet_senses.joblib"
+    semeval_2010_14_training_data_sentences_dir = join(
+        output_dir, "semeval_2010_14_training_data"
     )
 
     if not isfile(semeval_2010_14_word_senses_filepath):
@@ -137,47 +137,93 @@ def preprocess_topological_polysemy_data(raw_data_dir: str, output_dir: str) -> 
             tar_file.extractall(semeval_2010_14_raw_data_dir)
         print("Done!")
 
-    if not isfile(semeval_2010_14_vocabulary_filepath):
+    if not isdir(semeval_2010_14_training_data_sentences_dir):
+        makedirs(semeval_2010_14_training_data_sentences_dir)
 
-        # Build vocabulary of SemEval 2010 task 14 train data
-        semeval_2010_14_counter = Counter()
-        for semeval_2010_14_dir in [semeval_2010_14_nouns_dir, semeval_2010_14_verbs_dir]:
-            print(f"Iterating over {semeval_2010_14_dir}...")
-            semeval_2010_14_dir_filepaths = [
-                join(semeval_2010_14_dir, fn) for fn in listdir(semeval_2010_14_dir)
-            ]
-            for filepath in tqdm(semeval_2010_14_dir_filepaths):
-                xml_tree = ET.parse(filepath)
-                xml_root = xml_tree.getroot()
-                for child in xml_root:
-                    for sentence in sent_tokenize(child.text):
-                        if sentence.endswith("."):
-                            sentence = sentence[: len(sentence) - 1]
-                        words_in_sentence = [
-                            word.lower() for word in word_tokenize(sentence)
-                        ]
-                        semeval_2010_14_counter.update(words_in_sentence)
+        # Default to all CPUs and set minimum sentence word counter to 5.
+        num_output_files = cpu_count()
+        min_sent_word_count = 5
 
-        # Save vocabulary
-        joblib.dump(semeval_2010_14_counter, semeval_2010_14_vocabulary_filepath)
-    else:
-        semeval_2010_14_counter = joblib.load(semeval_2010_14_vocabulary_filepath)
-
-    if not isfile(semeval_2010_14_wordnet_senses_filepath):
-
-        # Save WordNet synsets that are both in the SemEval 2010 task 14
-        # vocabulary as well as WordNet.
-        semeval_2010_14_words_in_wordnet = {}
-        print("Iterating over SemEval 2010 task 14 vocabulary finding WordNet synsets...")
-        for word in tqdm(semeval_2010_14_counter):
-            num_synsets_word = len(wn.synsets(word))
-            if num_synsets_word > 0:
-                semeval_2010_14_words_in_wordnet[word] = num_synsets_word
-
-        # Save senses
-        joblib.dump(
-            semeval_2010_14_words_in_wordnet, semeval_2010_14_wordnet_senses_filepath
+        # Prepare arguments for multiprocessing
+        num_output_files_str_len = len(str(num_output_files))
+        semeval_2010_14_dirs = [semeval_2010_14_nouns_dir, semeval_2010_14_verbs_dir]
+        semeval_2010_14_dir_filepaths = [
+            join(semeval_dir, fn)
+            for semeval_dir in semeval_2010_14_dirs
+            for fn in listdir(semeval_dir)
+        ]
+        num_xml_files_per_output_file = int(
+            len(semeval_2010_14_dir_filepaths) // num_output_files
         )
+        process_wiki_files_args = [
+            (semeval_filepath, min_sent_word_count)
+            for semeval_filepath in semeval_2010_14_dir_filepaths
+        ]
+
+        print("Processing SemEval-2010 task 14 training data for word2vec...")
+        with Pool() as pool:
+            for i, mp_args in zip(
+                range(num_output_files),
+                batch_list_gen(process_wiki_files_args, num_xml_files_per_output_file),
+            ):
+                output_filename = f"semeval_2010_task_14-{str(i + 1).zfill(num_output_files_str_len)}.txt"
+                output_filepath = join(
+                    semeval_2010_14_training_data_sentences_dir, output_filename
+                )
+                print(f"Writing to {output_filename}...")
+                with open(output_filepath, "w", encoding="utf8") as output_semeval_file:
+                    for j, result in enumerate(
+                        tqdm(
+                            pool.imap_unordered(
+                                preprocess_semeval_2010_task_14_training_xml_file,
+                                mp_args,
+                            ),
+                            total=num_xml_files_per_output_file,
+                        )
+                    ):
+                        if j > 0:
+                            output_semeval_file.write("\n")
+                        output_semeval_file.write(result)
+        print("Done!")
+
+
+def preprocess_semeval_2010_task_14_training_xml_file(args: Tuple[str, int]) -> str:
+    """
+    Preprocesses a single XML training data file from
+    SemEval-2010 task 14.
+
+    Parameters
+    ----------
+    args : tuple of str and int
+        Tuple containing filepath to .xml training data and minimum sentence
+        word count as int
+
+    Returns
+    -------
+    output_sentences : str
+        Processed SemEval-2010 task 14 training data sentences.
+    """
+    semeval_filepath, min_sent_word_count = args
+
+    xml_tree = ET.parse(semeval_filepath)
+    xml_root = xml_tree.getroot()
+    j = 0
+    output_sentences = ""
+    for child in xml_root:
+        clear_text = unescape(child.text)
+        for sentence in sent_tokenize(clear_text):
+            if sentence.endswith("."):
+                sentence = sentence[: len(sentence) - 1]
+            processed_sentence_words = preprocess_text(sentence)
+            if len(processed_sentence_words) < min_sent_word_count:
+                continue
+            processed_sentence = " ".join(processed_sentence_words)
+
+            if j > 0:
+                output_sentences += "\n"
+            output_sentences += processed_sentence
+            j += 1
+    return output_sentences
 
 
 def preprocess_tda_data(raw_data_dir: str, output_dir: str) -> None:

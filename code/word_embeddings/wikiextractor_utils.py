@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 sys.path.append("..")
 from text_preprocessing_utils import preprocess_text
-from utils import get_all_filepaths_recursively
+from utils import batch_list_gen, get_all_filepaths_recursively
 
 nltk.download("punkt")
 
@@ -89,27 +89,6 @@ def process_wiki_file(args: Tuple[str, str, int]):
             wiki_dump_content += processed_text
 
         return wiki_dump_content
-
-
-def batch_list_gen(lst: List, batch_size: int) -> Generator[List, None, None]:
-    """
-    Creates a generator for batching list into chunks of `batch_size`.
-
-    Parameters
-    ----------
-    lst : List
-        List of elements.
-    batch_size : int
-        Size of batches.
-
-    Yields
-    ------
-    sub_lst : List
-        Batches sublist of `lst`.
-    """
-    lst_len = len(lst)
-    for i in range(0, lst_len, batch_size):
-        yield lst[i : min(i + batch_size, lst_len)]
 
 
 def wikiextractor_outputs_to_file(

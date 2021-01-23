@@ -79,6 +79,27 @@ def get_cached_download_text_file(
     return file_content
 
 
+def batch_list_gen(lst: List, batch_size: int) -> Generator[List, None, None]:
+    """
+    Creates a generator for batching list into chunks of `batch_size`.
+
+    Parameters
+    ----------
+    lst : List
+        List of elements.
+    batch_size : int
+        Size of batches.
+
+    Yields
+    ------
+    sub_lst : List
+        Batches sublist of `lst`.
+    """
+    lst_len = len(lst)
+    for i in range(0, lst_len, batch_size):
+        yield lst[i : min(i + batch_size, lst_len)]
+
+
 def text_file_into_texts(filepath: str) -> List[str]:
     """
     Reads a text file from disk and splits it into texts delimited by new line.
