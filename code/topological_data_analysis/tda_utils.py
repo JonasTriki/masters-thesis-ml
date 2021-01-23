@@ -3,16 +3,16 @@ from typing import Union
 
 import annoy
 import numpy as np
-from gudhi.persistence_graphical_tools import (
-    plot_persistence_diagram as gd_plot_persistence_diagram,
-)
+from gudhi.persistence_graphical_tools import \
+    plot_persistence_diagram as gd_plot_persistence_diagram
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 from matplotlib import pyplot as plt
 
 sys.path.append("..")
 
-from utils import cosine_vector_to_matrix_distance, words_to_vectors
+from utils import (cosine_vector_to_matrix_distance, pairwise_cosine_distances,
+                   words_to_vectors)
 
 
 def plot_persistence_diagram(
@@ -124,7 +124,7 @@ def tps(
         Target word (w)
     word_embeddings : np.ndarray
         Word embeddings
-    words_vocabulary : list, optional
+    words_vocabulary : list
         List of either words (str) or word integer representations (int), signalizing
         what part of the vocabulary we want to use. Set to none to use whole vocabulary.
     word_to_int : dict of str and int
@@ -217,3 +217,119 @@ def tps(
         return wasserstein_norm, barcodes
     else:
         return wasserstein_norm
+
+
+def geometric_anomaly_detection(
+    word_embeddings: np.ndarray,
+    words_vocabulary: list,
+    word_to_int: dict,
+    r: float,
+    s: float,
+    word_embeddings_pairwise_dists: np.ndarray = None,
+    annoy_index: annoy.AnnoyIndex = None,
+) -> dict:
+    """
+    Computes geometric anomaly detection Procedure 1 from [1].
+
+    Parameters
+    ----------
+    word_embeddings : np.ndarray
+        Word embeddings
+    words_vocabulary : list, optional
+        List of either words (str) or word integer representations (int), signalizing
+        what part of the vocabulary we want to use. Set to None to use whole vocabulary.
+    word_to_int : dict of str and int
+        Dictionary mapping from word to its integer representation.
+    r : float
+        Lower pairwise distance parameter.
+    s : float
+        Upper pairwise distance parameter.
+    word_embeddings_pairwise_dists : np.ndarray, optional
+        Numpy matrix containing pairwise distances between word embeddings
+    annoy_index : annoy.AnnoyIndex, optional
+        Annoy index built on the word embeddings (defaults to None).
+        If specified, the approximate nearest neighbour index is used to compute
+        distance between two word vectors.
+
+    Returns
+    -------
+    result : dict
+        Result as a dict, containing three subsets P_man (k-manifold points),
+        P_bnd (boundary points) and P_int (desired intersection points).
+
+    References
+    ----------
+    .. [1] Bernadette J Stolz, Jared Tanner, Heather A Harrington, & Vidit Nanda.
+       (2019). Geometric anomaly detection in data.
+    """
+    # Create word vectors from given words/vocabulary
+    if words_vocabulary is not None:
+        word_vectors = words_to_vectors(
+            words_vocabulary=words_vocabulary,
+            word_to_int=word_to_int,
+            word_embeddings=word_embeddings,
+        )
+    else:
+        word_vectors = word_embeddings
+    n, k = word_vectors.shape
+
+    # Create lambda function for computing distance between word vectors efficiently.
+    if word_embeddings_pairwise_dists is not None:
+        word_vector_distance = lambda word_i, word_j: word_embeddings_pairwise_dists[
+            word_i, word_j
+        ]
+    elif annoy_index is not None:
+        word_vector_distance = lambda word_i, word_j: annoy_index.get_distance(
+            word_i, word_j
+        )
+    else:
+        word_vector_distance = lambda word_i, word_j: np.linalg.norm(
+            word_vectors[word_i] - word_vectors[word_j]
+        )
+
+    # Initialize result
+    P_man = []
+    P_bnd = []
+    P_int = []
+
+    target_barcode_dim = k - 1
+    high_low_pairwise_distance_diff = s - r
+    for i, y in enumerate(range(n)):
+
+        # Find A_y ⊂ word_vectors containing all word vectors in word_vectors
+        # which satisfy r ≤ ||x − y|| ≤ s.
+        A_y_indices = np.array(
+            [j for j in range(n) if r <= word_vector_distance(i, j) <= s]
+        )
+        print(f"A_y_indices: {A_y_indices}")
+        A_y = word_vectors[A_y_indices]
+
+        # Compute (k-1) Vietoris-Rips barcode of A_y
+        rips_complex = RipsComplex(points=A_y)
+        simplex_tree = rips_complex.create_simplex_tree(max_dimension=target_barcode_dim)
+        A_y_barcodes = simplex_tree.persistence()
+
+        # Calculate number of intervals in A_y_barcodes of length > (s - r).
+        N_y = 0
+        for _, (birth, death) in A_y_barcodes:
+            life_time = death - birth
+            if life_time > high_low_pairwise_distance_diff:
+                N_y += 1
+        print(f"N_y: {N_y}")
+
+        # Add result
+        if N_y > 0:
+            P_bnd.append(i)
+        elif N_y == 0:
+            P_man.append(i)
+        else:
+            P_int.append(i)
+
+        # TODO: Temp
+        break
+
+    return {
+        "P_man": P_man,
+        "P_bnd": P_bnd,
+        "P_int": P_int,
+    }
