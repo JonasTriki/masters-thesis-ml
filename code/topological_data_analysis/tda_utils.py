@@ -227,6 +227,7 @@ def geometric_anomaly_detection(
     s: float,
     word_embeddings_pairwise_dists: np.ndarray = None,
     annoy_index: annoy.AnnoyIndex = None,
+    sanity_check: bool = False,
 ) -> dict:
     """
     Computes geometric anomaly detection Procedure 1 from [1].
@@ -250,6 +251,8 @@ def geometric_anomaly_detection(
         Annoy index built on the word embeddings (defaults to None).
         If specified, the approximate nearest neighbour index is used to compute
         distance between two word vectors.
+    sanity_check : bool, optional
+        Whether or not to print sanity checks (defaults to False).
 
     Returns
     -------
@@ -301,7 +304,10 @@ def geometric_anomaly_detection(
         A_y_indices = np.array(
             [j for j in range(n) if r <= word_vector_distance(i, j) <= s]
         )
-        print(f"A_y_indices: {A_y_indices}")
+        if sanity_check:
+            print(f"A_y_indices: {A_y_indices}")
+        if len(A_y_indices) == 0:
+            continue
         A_y = word_vectors[A_y_indices]
 
         # Compute (k-1) Vietoris-Rips barcode of A_y
@@ -312,21 +318,21 @@ def geometric_anomaly_detection(
         # Calculate number of intervals in A_y_barcodes of length > (s - r).
         N_y = 0
         for _, (birth, death) in A_y_barcodes:
+            if death == np.inf:
+                continue
             life_time = death - birth
             if life_time > high_low_pairwise_distance_diff:
                 N_y += 1
-        print(f"N_y: {N_y}")
+        if sanity_check:
+            print(f"N_y: {N_y}")
 
         # Add result
-        if N_y > 0:
+        if N_y == 0:
             P_bnd.append(i)
-        elif N_y == 0:
+        elif N_y == 1:
             P_man.append(i)
         else:
             P_int.append(i)
-
-        # TODO: Temp
-        break
 
     return {
         "P_man": P_man,
