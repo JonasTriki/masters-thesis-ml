@@ -2,9 +2,8 @@ import re
 import sys
 from os import makedirs
 from os.path import join
-from typing import Callable, Union
+from typing import Union
 
-import joblib
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
