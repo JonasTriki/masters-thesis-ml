@@ -8,6 +8,7 @@
 **/*/.idea
 **/*/__pycache__
 **/*/.ipynb_checkpoints
+**/*/.mypy_cache
 code/**/data/*
 code/**/raw_data/*
 code/**/nltk_data/*

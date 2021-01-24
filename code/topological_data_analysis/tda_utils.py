@@ -3,16 +3,19 @@ from typing import Union
 
 import annoy
 import numpy as np
-from gudhi.persistence_graphical_tools import \
-    plot_persistence_diagram as gd_plot_persistence_diagram
+from gudhi.persistence_graphical_tools import (
+    plot_persistence_diagram as gd_plot_persistence_diagram,
+)
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 from matplotlib import pyplot as plt
+from ripser import ripser
+from sklearn.metrics import euclidean_distances
+from tqdm import tqdm
 
 sys.path.append("..")
 
-from utils import (cosine_vector_to_matrix_distance, pairwise_cosine_distances,
-                   words_to_vectors)
+from utils import cosine_vector_to_matrix_distance, words_to_vectors
 
 
 def plot_persistence_diagram(
@@ -223,11 +226,11 @@ def geometric_anomaly_detection(
     word_embeddings: np.ndarray,
     words_vocabulary: list,
     word_to_int: dict,
-    r: float,
-    s: float,
+    annulus_small_radius: float,
+    annulus_large_radius: float,
+    target_barcode_dim: int,
     word_embeddings_pairwise_dists: np.ndarray = None,
     annoy_index: annoy.AnnoyIndex = None,
-    sanity_check: bool = False,
 ) -> dict:
     """
     Computes geometric anomaly detection Procedure 1 from [1].
@@ -241,18 +244,18 @@ def geometric_anomaly_detection(
         what part of the vocabulary we want to use. Set to None to use whole vocabulary.
     word_to_int : dict of str and int
         Dictionary mapping from word to its integer representation.
-    r : float
-        Lower pairwise distance parameter.
-    s : float
-        Upper pairwise distance parameter.
+    annulus_small_radius : float
+        Small radius parameter (r) for annulus.
+    annulus_large_radius : float
+        Large radius parameter (s) for annulus.
+    target_barcode_dim : int
+        Target barcode dimensionality (k - 1).
     word_embeddings_pairwise_dists : np.ndarray, optional
         Numpy matrix containing pairwise distances between word embeddings
     annoy_index : annoy.AnnoyIndex, optional
         Annoy index built on the word embeddings (defaults to None).
         If specified, the approximate nearest neighbour index is used to compute
         distance between two word vectors.
-    sanity_check : bool, optional
-        Whether or not to print sanity checks (defaults to False).
 
     Returns
     -------
@@ -274,7 +277,7 @@ def geometric_anomaly_detection(
         )
     else:
         word_vectors = word_embeddings
-    n, k = word_vectors.shape
+    n = len(word_vectors)
 
     # Create lambda function for computing distance between word vectors efficiently.
     if word_embeddings_pairwise_dists is not None:
@@ -295,36 +298,42 @@ def geometric_anomaly_detection(
     P_bnd = []
     P_int = []
 
-    target_barcode_dim = k - 1
-    high_low_pairwise_distance_diff = s - r
-    for i, y in enumerate(range(n)):
+    high_low_pairwise_distance_diff = annulus_large_radius - annulus_small_radius
+    for i in tqdm(range(n)):
 
         # Find A_y ⊂ word_vectors containing all word vectors in word_vectors
         # which satisfy r ≤ ||x − y|| ≤ s.
         A_y_indices = np.array(
-            [j for j in range(n) if r <= word_vector_distance(i, j) <= s]
+            [
+                j
+                for j in range(n)
+                if annulus_small_radius
+                <= word_vector_distance(i, j)
+                <= annulus_large_radius
+            ]
         )
-        if sanity_check:
-            print(f"A_y_indices: {A_y_indices}")
         if len(A_y_indices) == 0:
+            P_bnd.append(i)
             continue
-        A_y = word_vectors[A_y_indices]
 
         # Compute (k-1) Vietoris-Rips barcode of A_y
-        rips_complex = RipsComplex(points=A_y)
-        simplex_tree = rips_complex.create_simplex_tree(max_dimension=target_barcode_dim)
-        A_y_barcodes = simplex_tree.persistence()
+        A_y = word_vectors[A_y_indices]
+        rips_complex = ripser(
+            X=euclidean_distances(A_y),
+            maxdim=target_barcode_dim,
+            distance_matrix=True,
+        )
+        diagrams = [diagram for diagram in rips_complex["dgms"] if len(diagram) > 0]
 
         # Calculate number of intervals in A_y_barcodes of length > (s - r).
-        N_y = 0
-        for _, (birth, death) in A_y_barcodes:
-            if death == np.inf:
-                continue
-            life_time = death - birth
-            if life_time > high_low_pairwise_distance_diff:
-                N_y += 1
-        if sanity_check:
-            print(f"N_y: {N_y}")
+        N_y = sum(
+            [
+                1
+                for birth_death_pairs in diagrams
+                for birth, death in birth_death_pairs
+                if (death - birth) > high_low_pairwise_distance_diff
+            ]
+        )
 
         # Add result
         if N_y == 0:
