@@ -49,6 +49,7 @@ wikiextractor = {git = "https://github.com/JonasTriki/wikiextractor.git", ref = 
 pot = "*"
 annoy = "*"
 ripser = "*"
+fasttext = "*"
 
 [requires]
 python_version = "3.6"
