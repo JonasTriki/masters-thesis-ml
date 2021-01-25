@@ -140,9 +140,8 @@ def preprocess_topological_polysemy_data(raw_data_dir: str, output_dir: str) -> 
     if not isdir(semeval_2010_14_training_data_sentences_dir):
         makedirs(semeval_2010_14_training_data_sentences_dir)
 
-        # Default to all CPUs and set minimum sentence word counter to 5.
+        # Default to all CPUs
         num_output_files = cpu_count()
-        min_sent_word_count = 5
 
         # Prepare arguments for multiprocessing
         num_output_files_str_len = len(str(num_output_files))
@@ -155,16 +154,14 @@ def preprocess_topological_polysemy_data(raw_data_dir: str, output_dir: str) -> 
         num_xml_files_per_output_file = int(
             len(semeval_2010_14_dir_filepaths) // num_output_files
         )
-        process_wiki_files_args = [
-            (semeval_filepath, min_sent_word_count)
-            for semeval_filepath in semeval_2010_14_dir_filepaths
-        ]
 
         print("Processing SemEval-2010 task 14 training data for word2vec...")
         with Pool() as pool:
             for i, mp_args in zip(
                 range(num_output_files),
-                batch_list_gen(process_wiki_files_args, num_xml_files_per_output_file),
+                batch_list_gen(
+                    semeval_2010_14_dir_filepaths, num_xml_files_per_output_file
+                ),
             ):
                 output_filename = f"semeval_2010_task_14-{str(i + 1).zfill(num_output_files_str_len)}.txt"
                 output_filepath = join(
@@ -187,42 +184,43 @@ def preprocess_topological_polysemy_data(raw_data_dir: str, output_dir: str) -> 
         print("Done!")
 
 
-def preprocess_semeval_2010_task_14_training_xml_file(args: Tuple[str, int]) -> str:
+def preprocess_semeval_2010_task_14_training_xml_file(semeval_filepath: str) -> str:
     """
     Preprocesses a single XML training data file from
     SemEval-2010 task 14.
 
     Parameters
     ----------
-    args : tuple of str and int
-        Tuple containing filepath to .xml training data and minimum sentence
-        word count as int
+    semeval_filepath : str
+        Filepath to .xml training data
 
     Returns
     -------
     output_sentences : str
         Processed SemEval-2010 task 14 training data sentences.
     """
-    semeval_filepath, min_sent_word_count = args
-
     xml_tree = ET.parse(semeval_filepath)
     xml_root = xml_tree.getroot()
     j = 0
     output_sentences = ""
     for child in xml_root:
         clear_text = unescape(child.text)
-        for sentence in sent_tokenize(clear_text):
-            if sentence.endswith("."):
-                sentence = sentence[: len(sentence) - 1]
-            processed_sentence_words = preprocess_text(sentence)
-            if len(processed_sentence_words) < min_sent_word_count:
-                continue
-            processed_sentence = " ".join(processed_sentence_words)
 
-            if j > 0:
-                output_sentences += "\n"
-            output_sentences += processed_sentence
-            j += 1
+        # Only replace punctuation and cast sentence to lowercase.
+        clean_text_words = preprocess_text(
+            text=clear_text,
+            should_replace_contractions=False,
+            should_remove_digits=False,
+            should_replace_numbers=False,
+            should_remove_stopwords=False,
+        )
+        clean_text = " ".join(clean_text_words)
+
+        if j > 0:
+            output_sentences += "\n"
+        output_sentences += clean_text
+        j += 1
+
     return output_sentences
 
 

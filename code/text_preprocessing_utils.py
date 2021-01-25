@@ -6,6 +6,7 @@ https://gist.github.com/MrEliptik/b3f16179aa2f530781ef8ca9a16499af
 
 import re
 from string import digits
+from typing import List
 
 import contractions
 import nltk
@@ -216,7 +217,9 @@ def replace_all_numbers(words: list, language: str) -> list:
     return words
 
 
-def text_to_words(text: str, language: str = "english") -> list:
+def text_to_words(
+    text: str, should_replace_contractions: bool = True, language: str = "english"
+) -> List[str]:
     """
     Converts text into a list of words. Removes URLs and replaces contractions
     from the original text, before tokenizing into words.
@@ -225,6 +228,8 @@ def text_to_words(text: str, language: str = "english") -> list:
     ----------
     text : str
         Text to process.
+    should_replace_contractions: bool
+        Whether or not to replace contractions (defaults to True).
     language : str
         Language (defaults to "english").
 
@@ -234,7 +239,7 @@ def text_to_words(text: str, language: str = "english") -> list:
         List of words from the original text.
     """
     # text = remove_urls(text)
-    if language == "english":
+    if should_replace_contractions and language == "english":
 
         # We remove the period character from the text before replacing
         # contractions as a hotfix to the current Github issue:
@@ -251,7 +256,7 @@ def text_to_words(text: str, language: str = "english") -> list:
 
 
 def preprocess_words(
-    words: list,
+    words: List[str],
     language: str = "english",
     should_remove_digits: bool = False,
     should_replace_numbers: bool = True,
@@ -298,10 +303,11 @@ def preprocess_words(
 def preprocess_text(
     text: str,
     language: str = "english",
+    should_replace_contractions: bool = True,
     should_remove_digits: bool = False,
     should_replace_numbers: bool = True,
     should_remove_stopwords: bool = False,
-) -> list:
+) -> List[str]:
     """
     Preprocesses text using a series of techniques:
     - Removes URLs
@@ -319,6 +325,8 @@ def preprocess_text(
         Text to preprocess.
     language : str
         Language (defaults to "english")
+    should_replace_contractions : bool
+        Whether or not to replace contractions (defaults to True).
     should_remove_digits : bool
         Whether or not to remove digits from text (defaults to False).
     should_replace_numbers : bool
@@ -333,7 +341,11 @@ def preprocess_text(
         Preprocessed text split into a list of words.
     """
     # Convert to list of words
-    words = text_to_words(text, language)
+    words = text_to_words(
+        text=text,
+        language=language,
+        should_replace_contractions=should_replace_contractions,
+    )
 
     # Process words
     words = preprocess_words(
