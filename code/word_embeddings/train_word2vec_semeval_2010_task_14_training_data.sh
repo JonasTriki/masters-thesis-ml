@@ -4,7 +4,6 @@ python train_word2vec.py \
 --dataset_name semeval_2010_task_14 \
 --output_dir ../output/word2vec_training \
 --save_to_tokenizer_filepath data/semeval_2010_task_14.tokenizer \
---intermediate_embedding_weights_saves 10 \
 --train_logs_to_file \
 --tensorboard_logs_dir tensorboard_logs \
 --max_vocab_size -1 \
