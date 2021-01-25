@@ -3,9 +3,8 @@ from typing import Union
 
 import annoy
 import numpy as np
-from gudhi.persistence_graphical_tools import (
-    plot_persistence_diagram as gd_plot_persistence_diagram,
-)
+from gudhi.persistence_graphical_tools import \
+    plot_persistence_diagram as gd_plot_persistence_diagram
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 from matplotlib import pyplot as plt
@@ -226,9 +225,9 @@ def geometric_anomaly_detection(
     word_embeddings: np.ndarray,
     words_vocabulary: list,
     word_to_int: dict,
-    annulus_small_radius: float,
-    annulus_large_radius: float,
-    target_barcode_dim: int,
+    annulus_inner_radius: float,
+    annulus_outer_radius: float,
+    manifold_dimension: int,
     word_embeddings_pairwise_dists: np.ndarray = None,
     annoy_index: annoy.AnnoyIndex = None,
 ) -> dict:
@@ -244,12 +243,12 @@ def geometric_anomaly_detection(
         what part of the vocabulary we want to use. Set to None to use whole vocabulary.
     word_to_int : dict of str and int
         Dictionary mapping from word to its integer representation.
-    annulus_small_radius : float
-        Small radius parameter (r) for annulus.
-    annulus_large_radius : float
-        Large radius parameter (s) for annulus.
-    target_barcode_dim : int
-        Target barcode dimensionality (k - 1).
+    annulus_inner_radius : float
+        Inner radius parameter (r) for annulus.
+    annulus_outer_radius : float
+        Outer radius parameter (s) for annulus.
+    manifold_dimension : int
+        Manifold dimension to detect intersections with (k).
     word_embeddings_pairwise_dists : np.ndarray, optional
         Numpy matrix containing pairwise distances between word embeddings
     annoy_index : annoy.AnnoyIndex, optional
@@ -294,11 +293,11 @@ def geometric_anomaly_detection(
         )
 
     # Initialize result
-    P_man = []
     P_bnd = []
+    P_man = []
     P_int = []
 
-    high_low_pairwise_distance_diff = annulus_large_radius - annulus_small_radius
+    persistence_threshold = abs(annulus_outer_radius - annulus_inner_radius)
     for i in tqdm(range(n)):
 
         # Find A_y ⊂ word_vectors containing all word vectors in word_vectors
@@ -307,9 +306,9 @@ def geometric_anomaly_detection(
             [
                 j
                 for j in range(n)
-                if annulus_small_radius
-                <= word_vector_distance(i, j)
-                <= annulus_large_radius
+                if annulus_inner_radius
+                <= word_vector_distance(j, i)
+                <= annulus_outer_radius
             ]
         )
         if len(A_y_indices) == 0:
@@ -320,10 +319,10 @@ def geometric_anomaly_detection(
         A_y = word_vectors[A_y_indices]
         rips_complex = ripser(
             X=euclidean_distances(A_y),
-            maxdim=target_barcode_dim,
+            maxdim=manifold_dimension - 1,
             distance_matrix=True,
         )
-        diagrams = [diagram for diagram in rips_complex["dgms"] if len(diagram) > 0]
+        diagrams = rips_complex["dgms"]
 
         # Calculate number of intervals in A_y_barcodes of length > (s - r).
         N_y = sum(
@@ -331,7 +330,7 @@ def geometric_anomaly_detection(
                 1
                 for birth_death_pairs in diagrams
                 for birth, death in birth_death_pairs
-                if (death - birth) > high_low_pairwise_distance_diff
+                if (death - birth) > persistence_threshold
             ]
         )
 
@@ -344,7 +343,7 @@ def geometric_anomaly_detection(
             P_int.append(i)
 
     return {
-        "P_man": P_man,
         "P_bnd": P_bnd,
+        "P_man": P_man,
         "P_int": P_int,
     }
