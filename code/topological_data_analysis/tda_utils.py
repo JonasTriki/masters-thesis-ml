@@ -298,6 +298,7 @@ def geometric_anomaly_detection(
     P_int = []
 
     persistence_threshold = abs(annulus_outer_radius - annulus_inner_radius)
+    target_homology_dim = manifold_dimension - 1
     for i in tqdm(range(n)):
 
         # Find A_y ⊂ word_vectors containing all word vectors in word_vectors
@@ -319,20 +320,17 @@ def geometric_anomaly_detection(
         A_y = word_vectors[A_y_indices]
         rips_complex = ripser(
             X=euclidean_distances(A_y),
-            maxdim=manifold_dimension - 1,
+            maxdim=target_homology_dim,
             distance_matrix=True,
         )
         diagrams = rips_complex["dgms"]
 
-        # Calculate number of intervals in A_y_barcodes of length > (s - r).
-        N_y = sum(
-            [
-                1
-                for birth_death_pairs in diagrams
-                for birth, death in birth_death_pairs
-                if (death - birth) > persistence_threshold
-            ]
-        )
+        # Calculate number of intervals in A_y_barcodes of length
+        # (death - birth) > (annulus_outer_radius - annulus_inner_radius).
+        N_y = 0
+        for birth, death in diagrams[target_homology_dim]:
+            if (death - birth) > persistence_threshold:
+                N_y += 1
 
         # Add result
         if N_y == 0:
