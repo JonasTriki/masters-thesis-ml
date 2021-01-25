@@ -317,26 +317,26 @@ class Word2vec:
 
             return skip_gram_loss, decaying_learning_rate
 
+        # Save words to file for later reference
+        words_filepath = os.path.join(
+            output_dir,
+            f"{self._model_name}_{dataset_name}_words.txt",
+        )
+        self.save_words(words_filepath)
+        if verbose == 1:
+            print("Saved words to file!")
+
+        # Save word counts
+        word_counts_filepath = os.path.join(
+            output_dir,
+            f"{self._model_name}_{dataset_name}_word_counts.txt",
+        )
+        self.save_word_counts(word_counts_filepath)
+        if verbose == 1:
+            print("Saved word counts to file!")
+
         intermediate_saving_thresholds: Optional[float] = None
         if intermediate_embedding_weights_saves > 0:
-
-            # Save words to file for later reference
-            words_filepath = os.path.join(
-                output_dir,
-                f"{self._model_name}_{dataset_name}_words.txt",
-            )
-            self.save_words(words_filepath)
-            if verbose == 1:
-                print("Saved words to file!")
-
-            # Save word counts
-            word_counts_filepath = os.path.join(
-                output_dir,
-                f"{self._model_name}_{dataset_name}_word_counts.txt",
-            )
-            self.save_word_counts(word_counts_filepath)
-            if verbose == 1:
-                print("Saved word counts to file!")
 
             # Set up thresholds for saving intermediate embedding weights
             intermediate_saving_thresholds = 1 / intermediate_embedding_weights_saves
