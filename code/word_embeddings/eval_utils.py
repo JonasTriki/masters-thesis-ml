@@ -420,7 +420,7 @@ def load_analogies_test_dataset(
 
 def evaluate_model_word_analogies(
     analogies_filepath: str,
-    word_embeddings_filepath: str,
+    word_embeddings: np.ndarray,
     word_to_int: dict,
     words: np.ndarray,
     vocab_size: int = -1,
@@ -434,8 +434,8 @@ def evaluate_model_word_analogies(
     ----------
     analogies_filepath : str
         Filepath of the analogies test dataset file.
-    word_embeddings_filepath : str
-        Filepath of the word embeddings.
+    word_embeddings : np.ndarray
+        Word embeddings
     word_to_int : dict mapping from str to int
         Dictionary for mapping a word to its integer representation
     words : np.ndarray
@@ -459,9 +459,6 @@ def evaluate_model_word_analogies(
 
     # Load analogies word pairs from file
     analogies = load_analogies_test_dataset(analogies_filepath, word_to_int, vocab_size)
-
-    # Load embeddings
-    word_embeddings = np.load(word_embeddings_filepath, mmap_mode="r").astype(np.float64)
 
     # Perform evaluation
     analogies_accuracies = {}

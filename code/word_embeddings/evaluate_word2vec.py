@@ -7,6 +7,7 @@ from os.path import join
 import joblib
 import numpy as np
 from eval_utils import evaluate_model_word_analogies
+from word2vec import load_model_training_output
 
 sys.path.append("..")
 from utils import get_model_checkpoint_filepaths
@@ -121,22 +122,15 @@ def evaluate_word2vec(
     output_dir : str
         Output directory to save evaluation results.
     """
-    # Get filepaths of the model output
-    checkpoint_filepaths_dict = get_model_checkpoint_filepaths(
-        output_dir=model_dir,
+    # Load output from training word2vec
+    w2v_training_output = load_model_training_output(
+        model_training_output_dir=model_dir,
         model_name=model_name,
         dataset_name=dataset_name,
     )
-
-    # Get target embedding weights of last model
-    last_embedding_weights_filepath = checkpoint_filepaths_dict[
-        "intermediate_embedding_weight_filepaths"
-    ][-1]
-
-    # Load words and create word to int lookup dict
-    with open(checkpoint_filepaths_dict["train_words_filepath"], "r") as file:
-        words = np.array(file.read().split("\n"))
-    word_to_int = {word: i for i, word in enumerate(words)}
+    last_embedding_weights = w2v_training_output["last_embedding_weights"]
+    words = w2v_training_output["words"]
+    word_to_int = w2v_training_output["word_to_int"]
 
     # Append date/time to output directory.
     output_dir = join(output_dir, datetime.now().strftime("%d-%b-%Y_%H-%M-%S"))
@@ -146,7 +140,7 @@ def evaluate_word2vec(
     print("--- Evaluating SSWR ---")
     sswr_accuracies = evaluate_model_word_analogies(
         analogies_filepath=sswr_dataset_filepath,
-        word_embeddings_filepath=last_embedding_weights_filepath,
+        word_embeddings=last_embedding_weights,
         word_to_int=word_to_int,
         words=words,
         vocab_size=vocab_size,
@@ -159,7 +153,7 @@ def evaluate_word2vec(
     print("--- Evaluating MSR ---")
     msr_accuracies = evaluate_model_word_analogies(
         analogies_filepath=msr_dataset_filepath,
-        word_embeddings_filepath=last_embedding_weights_filepath,
+        word_embeddings=last_embedding_weights,
         word_to_int=word_to_int,
         words=words,
         vocab_size=vocab_size,
