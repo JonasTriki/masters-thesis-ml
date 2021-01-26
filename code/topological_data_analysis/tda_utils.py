@@ -3,8 +3,9 @@ from typing import Union
 
 import annoy
 import numpy as np
-from gudhi.persistence_graphical_tools import \
-    plot_persistence_diagram as gd_plot_persistence_diagram
+from gudhi.persistence_graphical_tools import (
+    plot_persistence_diagram as gd_plot_persistence_diagram,
+)
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 from matplotlib import pyplot as plt
@@ -230,6 +231,7 @@ def geometric_anomaly_detection(
     manifold_dimension: int,
     word_embeddings_pairwise_dists: np.ndarray = None,
     annoy_index: annoy.AnnoyIndex = None,
+    tqdm_enabled: bool = False,
 ) -> dict:
     """
     Computes geometric anomaly detection Procedure 1 from [1].
@@ -255,6 +257,8 @@ def geometric_anomaly_detection(
         Annoy index built on the word embeddings (defaults to None).
         If specified, the approximate nearest neighbour index is used to compute
         distance between two word vectors.
+    tqdm_enabled : bool, optional
+        Whether or not to show the progress using tqdm (defaults to False).
 
     Returns
     -------
@@ -299,7 +303,7 @@ def geometric_anomaly_detection(
 
     persistence_threshold = abs(annulus_outer_radius - annulus_inner_radius)
     target_homology_dim = manifold_dimension - 1
-    for i in tqdm(range(n)):
+    for i in tqdm(range(n), disable=not tqdm_enabled):
 
         # Find A_y ⊂ word_vectors containing all word vectors in word_vectors
         # which satisfy r ≤ ||x − y|| ≤ s.
