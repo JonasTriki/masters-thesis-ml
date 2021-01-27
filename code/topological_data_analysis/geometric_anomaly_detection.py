@@ -243,11 +243,58 @@ class GeometricAnomalyDetection:
             tqdm_enabled=tqdm_enabled,
         )
 
+    @staticmethod
+    def grid_search_prepare_words_within_radii(
+        word_ints: list,
+        num_radii_per_parameter: int,
+        word_vector_distance: Callable[[int, int], float],
+        radii_space: np.array,
+    ) -> dict:
+        """
+        Prepares dictionary with words within each radii for grid search.
+
+        Parameters
+        ----------
+        word_ints : list
+            List word integer representations, signalizing what part of the
+            vocabulary we want to use.
+        num_radii_per_parameter : int
+            Number of inner/outer radii to search over.
+        word_vector_distance : callable
+            Callable which takes in two indices i and j and returns the distance
+            between word vector i and j.
+        radii_space : np.array
+            Radii space
+
+        Returns
+        -------
+        word_ints_within_radii : dict
+            Dictionary containing word ints within reach radii for grid search
+        """
+        # Prepare words within radii dictionary
+        word_ints_within_radii = {}
+        for i in word_ints:
+            word_ints_within_radii[i] = []
+            for _ in range(num_radii_per_parameter):
+                word_ints_within_radii[i].append([])
+
+        # Precompute words within radii to speed up search
+        print("Compute words within radii...")
+        for i in tqdm(word_ints):
+            for j in word_ints[i + 1 :]:
+                dist = word_vector_distance(i, j)
+                for k, radius in enumerate(radii_space):
+                    if dist <= radius:
+                        word_ints_within_radii[i][k].append(j)
+                        word_ints_within_radii[j][k].append(i)
+        return word_ints_within_radii
+
     def grid_search_radii(
         self,
         word_ints: list,
         manifold_dimension: int,
         num_radii_per_parameter: int,
+        word_ints_within_radii: dict = None,
         max_pairwise_distance: float = -1,
         word_embeddings_pairwise_dists: np.ndarray = None,
         annoy_index: annoy.AnnoyIndex = None,
@@ -266,6 +313,8 @@ class GeometricAnomalyDetection:
             Manifold dimension to detect intersections with (k).
         num_radii_per_parameter : int
             Number of inner/outer radii to search over.
+        word_ints_within_radii : dict
+            Dictionary mapping from word integer to word integers for each radius index.
         max_pairwise_distance : float
             Maximum pairwise distance between word embeddings. Must
             be specified if word_embeddings_pairwise_dists is None.
@@ -295,13 +344,6 @@ class GeometricAnomalyDetection:
             start=0, stop=max_pairwise_distance, num=num_radii_per_parameter + 1
         )[1:]
 
-        # Prepare words within radii dictionary
-        word_ints_within_radii = {}
-        for i in word_ints:
-            word_ints_within_radii[i] = []
-            for _ in range(num_radii_per_parameter):
-                word_ints_within_radii[i].append([])
-
         if word_embeddings_pairwise_dists is not None:
             word_vector_distance = lambda word_i, word_j: word_embeddings_pairwise_dists[
                 word_i, word_j
@@ -315,15 +357,14 @@ class GeometricAnomalyDetection:
                 self._word_embeddings[word_i] - self._word_embeddings[word_j]
             )
 
-        # Precompute words within radii to speed up search
-        print("Compute words within radii...")
-        for i in tqdm(word_ints):
-            for j in word_ints[i + 1 :]:
-                dist = word_vector_distance(i, j)
-                for k, radius in enumerate(radii_space):
-                    if dist < radius:
-                        word_ints_within_radii[i][k].append(j)
-                        word_ints_within_radii[j][k].append(i)
+        # Precompute word ints within radii if not specified
+        if word_ints_within_radii is None:
+            word_ints_within_radii = self.grid_search_prepare_words_within_radii(
+                word_ints=word_ints,
+                num_radii_per_parameter=num_radii_per_parameter,
+                word_vector_distance=word_vector_distance,
+                radii_space=radii_space,
+            )
 
         # Grid-search best set of annulus radii to optimize number of P_man words
         annulus_idx_grid = []
