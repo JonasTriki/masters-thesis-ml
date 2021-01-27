@@ -313,6 +313,7 @@ class GeometricAnomalyDetection:
         word_ints: list,
         manifold_dimension: int,
         num_radii_per_parameter: int,
+        outer_inner_radii_max_diff: float = np.inf,
         word_ints_within_radii: dict = None,
         radii_space: np.array = None,
         max_pairwise_distance: float = -1,
@@ -333,6 +334,8 @@ class GeometricAnomalyDetection:
             Manifold dimension to detect intersections with (k).
         num_radii_per_parameter : int
             Number of inner/outer radii to search over.
+        outer_inner_radii_max_diff : float
+            Maximal difference between outer and inner radii (defaults to np.inf => unbounded).
         word_ints_within_radii : dict
             Dictionary mapping from word integer to word integers for each radius index.
         radii_space : np.array
@@ -384,14 +387,18 @@ class GeometricAnomalyDetection:
         annulus_idx_grid = []
         for inner_idx in range(num_radii_per_parameter):
             for outer_idx in range(inner_idx + 1, num_radii_per_parameter):
-                annulus_idx_grid.append((inner_idx, outer_idx))
+                if (
+                    radii_space[outer_idx] - radii_space[inner_idx]
+                    < outer_inner_radii_max_diff
+                ):
+                    annulus_idx_grid.append((inner_idx, outer_idx))
 
         print("Grid searching...")
         gad_results = []
         P_man_counts = []
         for inner_idx, outer_idx in tqdm(annulus_idx_grid):
             print(
-                f"Inner radius: {radii_space[inner_idx]}, outer radius: {radii_space[outer_idx]}"
+                f"Inner radius: {radii_space[inner_idx]:.3f}, outer radius: {radii_space[outer_idx]:.3f}"
             )
             gad_result = self._compute_gad(
                 manifold_dimension=manifold_dimension,
