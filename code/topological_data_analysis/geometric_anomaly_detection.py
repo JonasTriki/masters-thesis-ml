@@ -7,6 +7,72 @@ from sklearn.metrics import euclidean_distances
 from tqdm.auto import tqdm
 
 
+def grid_search_prepare_word_ints_within_radii(
+    word_ints: list,
+    num_radii_per_parameter: int,
+    word_vector_distance: Callable[[int, int], float],
+    max_pairwise_distance: float = -1,
+    word_embeddings_pairwise_dists: np.ndarray = None,
+) -> tuple:
+    """
+    Prepares dictionary with words within each radii for grid search in
+    GeometricAnomalyDetection class.
+
+    Parameters
+    ----------
+    word_ints : list
+        List word integer representations, signalizing what part of the
+        vocabulary we want to use.
+    num_radii_per_parameter : int
+        Number of inner/outer radii to search over.
+    word_vector_distance : callable
+        Callable which takes in two indices i and j and returns the distance
+        between word vector i and j.
+    max_pairwise_distance : float
+        Maximum pairwise distance between word embeddings. Must
+        be specified if word_embeddings_pairwise_dists is None.
+    word_embeddings_pairwise_dists : np.ndarray
+        Numpy matrix containing pairwise distances between word embeddings
+        (defaults to None).
+
+    Returns
+    -------
+    result : tuple
+        Tuple containing dictionary with word ints within reach radii for grid search
+        and radii space.
+    """
+    # Find largest pairwise distance between word embeddings
+    if max_pairwise_distance == -1:
+        if word_embeddings_pairwise_dists is not None:
+            max_pairwise_distance = np.max(word_embeddings_pairwise_dists)
+        else:
+            raise ValueError("Maximum pairwise distance must be specified.")
+
+    # Find values for radii to use during search
+    radii_space = np.linspace(
+        start=0, stop=max_pairwise_distance, num=num_radii_per_parameter + 1
+    )[1:]
+
+    # Prepare words within radii dictionary
+    word_ints_within_radii = {}
+    for i in word_ints:
+        word_ints_within_radii[i] = []
+        for _ in range(num_radii_per_parameter):
+            word_ints_within_radii[i].append([])
+
+    # Precompute words within radii to speed up search
+    print("Compute words within radii...")
+    for i in tqdm(word_ints):
+        for j in word_ints[i + 1 :]:
+            dist = word_vector_distance(i, j)
+            for k, radius in enumerate(radii_space):
+                if dist <= radius:
+                    word_ints_within_radii[i][k].append(j)
+                    word_ints_within_radii[j][k].append(i)
+
+    return word_ints_within_radii, radii_space
+
+
 class GeometricAnomalyDetection:
     """
     Class for computing geometric anomaly detection Procedure 1 from [1].
@@ -243,71 +309,6 @@ class GeometricAnomalyDetection:
             tqdm_enabled=tqdm_enabled,
         )
 
-    @staticmethod
-    def grid_search_prepare_word_ints_within_radii(
-        word_ints: list,
-        num_radii_per_parameter: int,
-        word_vector_distance: Callable[[int, int], float],
-        max_pairwise_distance: float = -1,
-        word_embeddings_pairwise_dists: np.ndarray = None,
-    ) -> tuple:
-        """
-        Prepares dictionary with words within each radii for grid search.
-
-        Parameters
-        ----------
-        word_ints : list
-            List word integer representations, signalizing what part of the
-            vocabulary we want to use.
-        num_radii_per_parameter : int
-            Number of inner/outer radii to search over.
-        word_vector_distance : callable
-            Callable which takes in two indices i and j and returns the distance
-            between word vector i and j.
-        max_pairwise_distance : float
-            Maximum pairwise distance between word embeddings. Must
-            be specified if word_embeddings_pairwise_dists is None.
-        word_embeddings_pairwise_dists : np.ndarray
-            Numpy matrix containing pairwise distances between word embeddings
-            (defaults to None).
-
-        Returns
-        -------
-        result : tuple
-            Tuple containing dictionary with word ints within reach radii for grid search
-            and radii space.
-        """
-        # Find largest pairwise distance between word embeddings
-        if max_pairwise_distance == -1:
-            if word_embeddings_pairwise_dists is not None:
-                max_pairwise_distance = np.max(word_embeddings_pairwise_dists)
-            else:
-                raise ValueError("Maximum pairwise distance must be specified.")
-
-        # Find values for radii to use during search
-        radii_space = np.linspace(
-            start=0, stop=max_pairwise_distance, num=num_radii_per_parameter + 1
-        )[1:]
-
-        # Prepare words within radii dictionary
-        word_ints_within_radii = {}
-        for i in word_ints:
-            word_ints_within_radii[i] = []
-            for _ in range(num_radii_per_parameter):
-                word_ints_within_radii[i].append([])
-
-        # Precompute words within radii to speed up search
-        print("Compute words within radii...")
-        for i in tqdm(word_ints):
-            for j in word_ints[i + 1 :]:
-                dist = word_vector_distance(i, j)
-                for k, radius in enumerate(radii_space):
-                    if dist <= radius:
-                        word_ints_within_radii[i][k].append(j)
-                        word_ints_within_radii[j][k].append(i)
-
-        return word_ints_within_radii, radii_space
-
     def grid_search_radii(
         self,
         word_ints: list,
@@ -375,7 +376,7 @@ class GeometricAnomalyDetection:
             (
                 word_ints_within_radii,
                 radii_space,
-            ) = self.grid_search_prepare_word_ints_within_radii(
+            ) = grid_search_prepare_word_ints_within_radii(
                 word_ints=word_ints,
                 num_radii_per_parameter=num_radii_per_parameter,
                 word_vector_distance=word_vector_distance,
