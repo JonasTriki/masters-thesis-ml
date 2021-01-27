@@ -6,11 +6,9 @@ from html import unescape
 from multiprocessing import Pool, cpu_count
 from os import listdir, makedirs
 from os.path import isdir, isfile, join
-from typing import Tuple
 
 import joblib
 from bs4 import BeautifulSoup
-from nltk import sent_tokenize
 from tqdm import tqdm
 
 sys.path.append("..")
