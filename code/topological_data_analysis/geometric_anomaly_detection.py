@@ -91,10 +91,7 @@ class GeometricAnomalyDetection:
             and annulus_outer_idx != -1
             and word_ints_within_radii is not None
         )
-        if (
-            not annulus_radius_specified
-            or not precomputed_word_ints_within_radii_specified
-        ):
+        if not (annulus_radius_specified or precomputed_word_ints_within_radii_specified):
             raise ValueError(
                 "Either annulus inner/outer radius or word ints within radii needs to be specified."
             )
@@ -244,7 +241,7 @@ class GeometricAnomalyDetection:
         max_pairwise_distance: float = -1,
         word_embeddings_pairwise_dists: np.ndarray = None,
         annoy_index: annoy.AnnoyIndex = None,
-    ):
+    ) -> tuple:
         """
         Performs grid search to find the best pair of inner/outer annulus radii.
         The objective of the grid search is to maximize the number of words categorized
@@ -269,6 +266,12 @@ class GeometricAnomalyDetection:
             Annoy index built on the word embeddings (defaults to None).
             If specified, the approximate nearest neighbour index is used to compute
             distance between word vectors.
+
+        Returns
+        -------
+        result : tuple
+            Triple containing best result index, results from geometric anomaly detection
+            and P_man counts in a list.
         """
         # Find largest pairwise distance between word embeddings
         if max_pairwise_distance == -1:
