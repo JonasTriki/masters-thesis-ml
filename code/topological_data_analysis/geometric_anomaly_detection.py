@@ -4,7 +4,7 @@ import annoy
 import numpy as np
 from ripser import ripser
 from sklearn.metrics import euclidean_distances
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 
 class GeometricAnomalyDetection:
@@ -40,6 +40,7 @@ class GeometricAnomalyDetection:
         annulus_inner_idx: int = -1,
         annulus_outer_idx: int = -1,
         word_ints_within_radii: dict = None,
+        radii_space: list = None,
         word_ints: list = None,
         tqdm_enabled: bool = False,
     ) -> dict:
@@ -65,6 +66,8 @@ class GeometricAnomalyDetection:
             Index for the inner annulus (s).
         word_ints_within_radii : dict
             Dictionary mapping from word integer to word integers for each radius index.
+        radii_space : list
+            List of radii used if annulus_inner_idx and annulus_outer_idx are specified.
         word_ints : list, optional
             List word integer representations, signalizing what part of the
             vocabulary we want to use. Set to None to use whole vocabulary.
@@ -90,6 +93,7 @@ class GeometricAnomalyDetection:
             annulus_inner_idx != -1
             and annulus_outer_idx != -1
             and word_ints_within_radii is not None
+            and radii_space is not None
         )
         if not (annulus_radius_specified or precomputed_word_ints_within_radii_specified):
             raise ValueError(
@@ -104,7 +108,13 @@ class GeometricAnomalyDetection:
         P_man = []
         P_int = []
 
-        persistence_threshold = abs(annulus_outer_radius - annulus_inner_radius)
+        if annulus_radius_specified:
+            persistence_threshold = abs(annulus_outer_radius - annulus_inner_radius)
+        else:
+            persistence_threshold = abs(
+                radii_space[annulus_outer_idx] - radii_space[annulus_inner_idx]
+            )
+
         target_homology_dim = manifold_dimension - 1
         for i in tqdm(word_ints, disable=not tqdm_enabled):
 
@@ -316,22 +326,30 @@ class GeometricAnomalyDetection:
                         word_ints_within_radii[j][k].append(i)
 
         # Grid-search best set of annulus radii to optimize number of P_man words
-        print("Grid-searching...")
-        gad_results = []
-        P_man_counts = []
+        annulus_idx_grid = []
         for inner_idx in range(num_radii_per_parameter):
             for outer_idx in range(inner_idx + 1, num_radii_per_parameter):
-                gad_result = self._compute_gad(
-                    manifold_dimension=manifold_dimension,
-                    word_vector_distance=word_vector_distance,
-                    annulus_inner_idx=inner_idx,
-                    annulus_outer_idx=outer_idx,
-                    word_ints_within_radii=word_ints_within_radii,
-                    word_ints=word_ints,
-                    tqdm_enabled=False,
-                )
-                P_man_counts.append(len(gad_result["P_man"]))
-                gad_results.append(gad_result)
+                annulus_idx_grid.append((inner_idx, outer_idx))
+
+        print("Grid searching...")
+        gad_results = []
+        P_man_counts = []
+        for inner_idx, outer_idx in tqdm(annulus_idx_grid):
+            print(
+                f"Inner radius: {radii_space[inner_idx]}, outer radius: {radii_space[outer_idx]}"
+            )
+            gad_result = self._compute_gad(
+                manifold_dimension=manifold_dimension,
+                word_vector_distance=word_vector_distance,
+                annulus_inner_idx=inner_idx,
+                annulus_outer_idx=outer_idx,
+                word_ints_within_radii=word_ints_within_radii,
+                radii_space=radii_space,
+                word_ints=word_ints,
+                tqdm_enabled=False,
+            )
+            P_man_counts.append(len(gad_result["P_man"]))
+            gad_results.append(gad_result)
 
         # Find best result
         best_gad_result_idx = np.argmax(P_man_counts)
