@@ -390,7 +390,7 @@ class GeometricAnomalyDetection:
             for outer_idx in range(inner_idx + 1, num_radii_per_parameter):
                 if (
                     radii_space[outer_idx] - radii_space[inner_idx]
-                    < outer_inner_radii_max_diff
+                    <= outer_inner_radii_max_diff
                 ):
                     annulus_idx_grid.append((inner_idx, outer_idx))
 

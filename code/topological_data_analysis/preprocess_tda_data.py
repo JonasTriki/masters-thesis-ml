@@ -14,8 +14,7 @@ from tqdm import tqdm
 sys.path.append("..")
 
 from text_preprocessing_utils import preprocess_text
-from utils import (batch_list_gen, download_from_url,
-                   get_cached_download_text_file)
+from utils import batch_list_gen, download_from_url, get_cached_download_text_file
 
 
 def parse_args() -> argparse.Namespace:
