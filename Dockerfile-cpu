@@ -27,9 +27,6 @@ RUN pip3 install --trusted-host pypi.python.org pipenv
 RUN pipenv lock -r > requirements.txt
 RUN pip3 install --trusted-host pypi.python.org -r requirements.txt --ignore-installed
 
-# Install Ripser++ with Python bindings
-RUN python inf399-uib-ripser-plus-plus/install_w_python_bindings.sh
-
 # Configure user
 RUN groupadd -g $gid $user
 RUN useradd -u $uid -g $gid $user
