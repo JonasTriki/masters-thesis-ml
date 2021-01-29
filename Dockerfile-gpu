@@ -19,7 +19,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV HOME=/project
 
 # Install needed programs from apt-get
-RUN apt-get update && apt-get install -y sudo screen git
+RUN apt-get update && apt-get install -y sudo screen git cmake
 
 # Install any needed packages from apt
 RUN pip3 install --trusted-host pypi.python.org --upgrade pip
