@@ -19,7 +19,3 @@ code/.vscode-server
 
 # Excel temporary
 ~$*.xls*
-
-# Ripser++
-code/inf399-uib-ripser-plus-plus/python/*
-!code/inf399-uib-ripser-plus-plus/python/working_directory

@@ -24,7 +24,3 @@ code/.vscode-server
 # Thesis files
 thesis
 outline
-
-# Ripser++
-code/inf399-uib-ripser-plus-plus/python/*
-!code/inf399-uib-ripser-plus-plus/python/working_directory
