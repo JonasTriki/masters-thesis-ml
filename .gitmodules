@@ -1,0 +1,3 @@
+[submodule "code/inf399-uib-ripser-plus-plus"]
+	path = code/inf399-uib-ripser-plus-plus
+	url = git@github.com:JonasTriki/inf399-uib-ripser-plus-plus.git
