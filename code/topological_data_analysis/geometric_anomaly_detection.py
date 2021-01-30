@@ -206,7 +206,7 @@ class GeometricAnomalyDetection:
                 word_ints_within_inner_radii = word_ints_within_radii[i][
                     annulus_inner_idx
                 ]
-                word_ints_within_outer_radii = word_ints_within_radii[i][g
+                word_ints_within_outer_radii = word_ints_within_radii[i][
                     annulus_outer_idx
                 ]
                 A_y_indices = np.setdiff1d(
