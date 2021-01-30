@@ -1,8 +1,9 @@
+import subprocess
+from os.path import join
 from typing import Callable
 
 import annoy
 import numpy as np
-import ripser_plusplus_python as rpp_py
 from ripser import ripser
 from sklearn.metrics import euclidean_distances
 from tqdm.auto import tqdm
@@ -218,10 +219,32 @@ class GeometricAnomalyDetection:
             A_y = self._word_embeddings[A_y_indices]
             A_y_pairwise_dists = euclidean_distances(A_y)
             if use_ripser_plus_plus:
-                rpp_py.run(
-                    f"--format distance --dim {target_homology_dim}", A_y_pairwise_dists
+
+                # Prepare Ripser++ arguments
+                A_y_pairwise_dists_bytes = A_y_pairwise_dists.to_bytes()
+
+                # Run Ripser++ and capture output
+                ripser_plus_plus_proc = subprocess.Popen(
+                    [
+                        "python",
+                        join(
+                            "..",
+                            "inf399-uib-ripser-plus-plus",
+                            "python",
+                            "working_directory",
+                            "run_ripser++.py",
+                        ),
+                        "--distance_matrix",
+                        A_y_pairwise_dists_bytes,
+                        "--dim",
+                        target_homology_dim,
+                    ],
+                    stdout=subprocess.PIPE,
                 )
-                # TODO: Get diagrams from Ripser++
+                ripser_plus_plus_output = ripser_plus_plus_proc.communicate()[0]
+                print(ripser_plus_plus_output)
+
+                # TODO: Parse diagrams from ripser_plus_plus_output.
             else:
                 rips_complex = ripser(
                     X=A_y_pairwise_dists,

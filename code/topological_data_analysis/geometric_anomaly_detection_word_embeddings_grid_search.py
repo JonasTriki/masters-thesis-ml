@@ -121,6 +121,7 @@ def geometric_anomaly_detection_grid_search(
     makedirs(output_dir, exist_ok=True)
 
     # Load output from training word2vec
+    print("Loading word2vec model...")
     w2v_training_output = load_model_training_output(
         model_training_output_dir=model_dir,
         model_name=model_name,
@@ -128,6 +129,7 @@ def geometric_anomaly_detection_grid_search(
     )
     last_embedding_weights = w2v_training_output["last_embedding_weights"]
     model_id = f"{model_name}_{dataset_name}"
+    print("Done!")
 
     # Normalize word embeddings
     last_embedding_weights_normalized = last_embedding_weights / np.linalg.norm(
@@ -151,9 +153,13 @@ def geometric_anomaly_detection_grid_search(
             ],
             word_embeddings_pairwise_dists=word_embeddings_pairwise_dists_grid_search,
         )
-        joblib.dump(words_within_radii_result, words_within_radii_result_filepath)
+        joblib.dump(
+            words_within_radii_result, words_within_radii_result_filepath, protocol=4
+        )
     else:
+        print("Loading word ints within radii data...")
         words_within_radii_result = joblib.load(words_within_radii_result_filepath)
+        print("Done!")
     word_ints_within_radii, radii_space = words_within_radii_result
 
     # Initialize GAD instance
