@@ -5,7 +5,6 @@ from os.path import isfile, join
 
 import joblib
 import numpy as np
-import ripser_plusplus_python as rpp_py
 from geometric_anomaly_detection import (
     GeometricAnomalyDetection,
     grid_search_prepare_word_ints_within_radii,
@@ -67,6 +66,12 @@ def parse_args() -> argparse.Namespace:
         help="Maximal difference between outer and inner radii for annulus",
     )
     parser.add_argument(
+        "--use_ripser_plus_plus",
+        default=False,
+        action="store_true",
+        help="Whether or not to use Ripser++, speeding up the grid search",
+    )
+    parser.add_argument(
         "--output_dir",
         type=str,
         default="",
@@ -83,6 +88,7 @@ def geometric_anomaly_detection_grid_search(
     manifold_dimension: int,
     num_radii_to_use: int,
     max_annulus_radii_diff: float,
+    use_ripser_plus_plus: bool,
     output_dir: str,
 ) -> None:
     """
@@ -106,6 +112,8 @@ def geometric_anomaly_detection_grid_search(
         (all for outer radius and (all - 1) for inner radius).
     max_annulus_radii_diff : float
         Maximal difference between outer and inner radii for annulus
+    use_ripser_plus_plus : bool
+        Whether or not to use Ripser++, speeding up the grid search
     output_dir : str
         Output directory to save data
     """
@@ -165,6 +173,7 @@ def geometric_anomaly_detection_grid_search(
         word_ints_within_radii=word_ints_within_radii,
         radii_space=radii_space,
         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists_grid_search,
+        use_ripser_plus_plus=use_ripser_plus_plus,
     )
     grid_search_result = {
         "best_gad_result_idx": best_gad_result_idx,
@@ -184,5 +193,6 @@ if __name__ == "__main__":
         manifold_dimension=args.manifold_dimension,
         num_radii_to_use=args.num_radii_to_use,
         max_annulus_radii_diff=args.max_annulus_radii_diff,
+        use_ripser_plus_plus=args.use_ripser_plus_plus,
         output_dir=args.output_dir,
     )

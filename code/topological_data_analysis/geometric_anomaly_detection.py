@@ -2,6 +2,7 @@ from typing import Callable
 
 import annoy
 import numpy as np
+import ripser_plusplus_python as rpp_py
 from ripser import ripser
 from sklearn.metrics import euclidean_distances
 from tqdm.auto import tqdm
@@ -109,6 +110,7 @@ class GeometricAnomalyDetection:
         radii_space: list = None,
         word_ints: list = None,
         tqdm_enabled: bool = False,
+        use_ripser_plus_plus: bool = False,
     ) -> dict:
         """
         Computes geometric anomaly detection Procedure 1 from [1]. Either
@@ -139,6 +141,8 @@ class GeometricAnomalyDetection:
             vocabulary we want to use. Set to None to use whole vocabulary.
         tqdm_enabled : bool, optional
             Whether or not to show the progress using tqdm (defaults to False).
+        use_ripser_plus_plus : bool, optional
+            Whether or not to use Ripser++, speeding up the computation
 
         Returns
         -------
@@ -212,12 +216,16 @@ class GeometricAnomalyDetection:
 
             # Compute (k-1) Vietoris-Rips barcode of A_y
             A_y = self._word_embeddings[A_y_indices]
-            rips_complex = ripser(
-                X=euclidean_distances(A_y),
-                maxdim=target_homology_dim,
-                distance_matrix=True,
-            )
-            diagrams = rips_complex["dgms"]
+            if use_ripser_plus_plus:
+                # TODO: Implement
+                pass
+            else:
+                rips_complex = ripser(
+                    X=euclidean_distances(A_y),
+                    maxdim=target_homology_dim,
+                    distance_matrix=True,
+                )
+                diagrams = rips_complex["dgms"]
 
             # Calculate number of intervals in A_y_barcodes of length
             # (death - birth) > (annulus_outer_radius - annulus_inner_radius).
@@ -320,6 +328,7 @@ class GeometricAnomalyDetection:
         max_pairwise_distance: float = -1,
         word_embeddings_pairwise_dists: np.ndarray = None,
         annoy_index: annoy.AnnoyIndex = None,
+        use_ripser_plus_plus: bool = False,
     ) -> tuple:
         """
         Performs grid search to find the best pair of inner/outer annulus radii.
@@ -351,6 +360,8 @@ class GeometricAnomalyDetection:
             Annoy index built on the word embeddings (defaults to None).
             If specified, the approximate nearest neighbour index is used to compute
             distance between word vectors.
+        use_ripser_plus_plus : bool
+            Whether or not to use Ripser++ to speed up the computation.
 
         Returns
         -------
@@ -410,6 +421,7 @@ class GeometricAnomalyDetection:
                 radii_space=radii_space,
                 word_ints=word_ints,
                 tqdm_enabled=False,
+                use_ripser_plus_plus=use_ripser_plus_plus,
             )
             P_man_counts.append(len(gad_result["P_man"]))
             gad_results.append(gad_result)
