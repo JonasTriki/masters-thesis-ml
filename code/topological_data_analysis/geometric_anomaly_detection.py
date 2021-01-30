@@ -5,6 +5,7 @@ from typing import Callable
 import annoy
 import numpy as np
 from ripser import ripser
+from ripser_utils import parse_ripser_plus_plus_output
 from sklearn.metrics import euclidean_distances
 from tqdm.auto import tqdm
 
@@ -221,7 +222,7 @@ class GeometricAnomalyDetection:
             if use_ripser_plus_plus:
 
                 # Prepare Ripser++ arguments
-                A_y_pairwise_dists_bytes = A_y_pairwise_dists.to_bytes()
+                A_y_pairwise_dists_bytes = A_y_pairwise_dists.tobytes()
 
                 # Run Ripser++ and capture output
                 ripser_plus_plus_proc = subprocess.Popen(
@@ -241,10 +242,11 @@ class GeometricAnomalyDetection:
                     ],
                     stdout=subprocess.PIPE,
                 )
-                ripser_plus_plus_output = ripser_plus_plus_proc.communicate()[0]
-                print(ripser_plus_plus_output)
-
-                # TODO: Parse diagrams from ripser_plus_plus_output.
+                ripser_plus_plus_output = ripser_plus_plus_proc.stdout.read().decode(
+                    "utf-8"
+                )  # ripser_plus_plus_proc.communicate()[0]
+                diagrams = parse_ripser_plus_plus_output(ripser_plus_plus_output)
+                print("# diagrams parsed: ", len(diagrams))
             else:
                 rips_complex = ripser(
                     X=A_y_pairwise_dists,
