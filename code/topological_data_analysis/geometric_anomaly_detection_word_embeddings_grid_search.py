@@ -6,9 +6,7 @@ from os.path import isfile, join
 import joblib
 import numpy as np
 from geometric_anomaly_detection import (
-    GeometricAnomalyDetection,
-    grid_search_prepare_word_ints_within_radii,
-)
+    GeometricAnomalyDetection, grid_search_prepare_word_ints_within_radii)
 from sklearn.metrics import euclidean_distances
 
 sys.path.append("..")
@@ -143,24 +141,24 @@ def geometric_anomaly_detection_grid_search(
     )
 
     # Precompute word ints within each radii
-    words_within_radii_result_filepath = join(output_dir, f"{model_id}_wwr.joblib")
-    if not isfile(words_within_radii_result_filepath):
-        words_within_radii_result = grid_search_prepare_word_ints_within_radii(
-            word_ints=vocabulary_word_ints,
-            num_radii_per_parameter=num_radii_to_use,
-            word_vector_distance=lambda i, j: word_embeddings_pairwise_dists_grid_search[
-                i, j
-            ],
-            word_embeddings_pairwise_dists=word_embeddings_pairwise_dists_grid_search,
-        )
-        joblib.dump(
-            words_within_radii_result, words_within_radii_result_filepath, protocol=4
-        )
-    else:
-        print("Loading word ints within radii data...")
-        words_within_radii_result = joblib.load(words_within_radii_result_filepath)
-        print("Done!")
-    word_ints_within_radii, radii_space = words_within_radii_result
+    # words_within_radii_result_filepath = join(output_dir, f"{model_id}_wwr.joblib")
+    # if not isfile(words_within_radii_result_filepath):
+    #     words_within_radii_result = grid_search_prepare_word_ints_within_radii(
+    #         word_ints=vocabulary_word_ints,
+    #         num_radii_per_parameter=num_radii_to_use,
+    #         word_vector_distance=lambda i, j: word_embeddings_pairwise_dists_grid_search[
+    #             i, j
+    #         ],
+    #         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists_grid_search,
+    #     )
+    #     joblib.dump(
+    #         words_within_radii_result, words_within_radii_result_filepath, protocol=4
+    #     )
+    # else:
+    #     print("Loading word ints within radii data...")
+    #     words_within_radii_result = joblib.load(words_within_radii_result_filepath)
+    #     print("Done!")
+    # word_ints_within_radii, radii_space = words_within_radii_result
 
     # Initialize GAD instance
     gad_instance = GeometricAnomalyDetection(
@@ -176,8 +174,8 @@ def geometric_anomaly_detection_grid_search(
         manifold_dimension=manifold_dimension,
         num_radii_per_parameter=num_radii_to_use,
         outer_inner_radii_max_diff=max_annulus_radii_diff,
-        word_ints_within_radii=word_ints_within_radii,
-        radii_space=radii_space,
+        # word_ints_within_radii=word_ints_within_radii,
+        # radii_space=radii_space,
         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists_grid_search,
         use_ripser_plus_plus=use_ripser_plus_plus,
     )
