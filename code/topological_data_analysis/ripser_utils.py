@@ -45,7 +45,7 @@ total GPU memory used: 0.00209715GB
 """
 
 
-def parse_ripser_plus_plus_output(rpp_output: str) -> list:
+def parse_ripser_plus_plus_output(rpp_output: str, dims: int) -> list:
     """
     Parses Vietoris-Rips diagrams from Ripser++ output into Numpy matrices.
 
@@ -53,31 +53,36 @@ def parse_ripser_plus_plus_output(rpp_output: str) -> list:
     ----------
     rpp_output : str
         Output from Ripser++
+    dims : int
+        Homology dimensionality
 
     Returns
     -------
     diagrams : list
         List of Vietoris-Rips diagrams (similar to Ripsers "dgms" output)
     """
-    dims = re.findall(r"persistence intervals in dim (\d+):\n", rpp_output)
     diagrams = []
-    for dim in dims:
-        output_dim_data = rpp_output.split(f"persistence intervals in dim {dim}:\n")[1]
-        output_dim_data_lines = output_dim_data.split("\n")
-        line_i = 0
-        dim_diagram = []
-        while output_dim_data_lines[line_i].startswith(" ["):
-            current_line = output_dim_data_lines[line_i]
-            birth_str, death_str = re.split(r" \[|,|\)|]", current_line)[1:3]
-            birth = float(birth_str)
-            if death_str == " ":
-                death = np.inf
-            else:
-                death = float(death_str)
-            dim_diagram.append([birth, death])
-            line_i += 1
-        dim_diagram = np.array(dim_diagram)
-        diagrams.append(dim_diagram)
+    for dim in range(dims + 1):
+        dim_header = re.findall(fr"persistence intervals in dim {dim}:\n", rpp_output)
+        if len(dim_header) == 1:
+            output_dim_data = rpp_output.split(dim_header[0])[1]
+            output_dim_data_lines = output_dim_data.split("\n")
+            line_i = 0
+            dim_diagram = []
+            while output_dim_data_lines[line_i].startswith(" ["):
+                current_line = output_dim_data_lines[line_i]
+                birth_str, death_str = re.split(r" \[|,|\)|]", current_line)[1:3]
+                birth = float(birth_str)
+                if death_str == " ":
+                    death = np.inf
+                else:
+                    death = float(death_str)
+                dim_diagram.append([birth, death])
+                line_i += 1
+            dim_diagram = np.array(dim_diagram)
+            diagrams.append(dim_diagram)
+        else:
+            diagrams.append([])
 
     return diagrams
 
@@ -85,4 +90,4 @@ def parse_ripser_plus_plus_output(rpp_output: str) -> list:
 if __name__ == "__main__":
 
     # Testing
-    parse_ripser_plus_plus_output(rpp_output=test_output)
+    parse_ripser_plus_plus_output(rpp_output=test_output, dims=2)

@@ -242,17 +242,18 @@ class GeometricAnomalyDetection:
                         target_homology_dim_str,
                     ],
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    shell=True,
+                    stderr=subprocess.STDOUT,
                 )
                 ripser_plus_plus_output = ""
-                for line in ripser_plus_plus_proc.stderr:
-                    ripser_plus_plus_output += f"{line}\n"
+                for line in ripser_plus_plus_proc.stdout:
+                    ripser_plus_plus_output += line.decode("utf-8")
 
                 print("------")
                 print(ripser_plus_plus_output)
                 print("------")
-                diagrams = parse_ripser_plus_plus_output(ripser_plus_plus_output)
+                diagrams = parse_ripser_plus_plus_output(
+                    rpp_output=ripser_plus_plus_output, dims=target_homology_dim
+                )
                 print(f"# diagrams parsed --> {len(diagrams)}")
                 print(diagrams)
                 print("------")
