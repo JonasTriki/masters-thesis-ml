@@ -242,12 +242,18 @@ class GeometricAnomalyDetection:
                         target_homology_dim_str,
                     ],
                     stdout=subprocess.PIPE,
+                    shell=True,
                 )
                 ripser_plus_plus_output = ripser_plus_plus_proc.stdout.read().decode(
                     "utf-8"
-                )  # ripser_plus_plus_proc.communicate()[0]
+                )
+                print("------")
+                print(ripser_plus_plus_output)
+                print("------")
                 diagrams = parse_ripser_plus_plus_output(ripser_plus_plus_output)
                 print(f"# diagrams parsed --> {len(diagrams)}")
+                print(diagrams)
+                print("------")
             else:
                 rips_complex = ripser(
                     X=A_y_pairwise_dists,
