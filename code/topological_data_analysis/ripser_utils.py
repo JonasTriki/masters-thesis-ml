@@ -61,8 +61,6 @@ def parse_ripser_plus_plus_output(rpp_output: str, dims: int) -> list:
     diagrams : list
         List of Vietoris-Rips diagrams (similar to Ripsers "dgms" output)
     """
-    print("-- start output --")
-    print(rpp_output)
     diagrams = []
     for dim in range(dims + 1):
         dim_header = re.findall(fr"persistence intervals in dim {dim}:\n", rpp_output)
@@ -85,7 +83,6 @@ def parse_ripser_plus_plus_output(rpp_output: str, dims: int) -> list:
             diagrams.append(dim_diagram)
         else:
             diagrams.append([])
-    print("-- end output --")
     return diagrams
 
 
