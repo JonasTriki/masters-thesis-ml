@@ -206,7 +206,7 @@ class GeometricAnomalyDetection:
                 word_ints_within_inner_radii = word_ints_within_radii[i][
                     annulus_inner_idx
                 ]
-                word_ints_within_outer_radii = word_ints_within_radii[i][
+                word_ints_within_outer_radii = word_ints_within_radii[i][g
                     annulus_outer_idx
                 ]
                 A_y_indices = np.setdiff1d(
@@ -222,7 +222,7 @@ class GeometricAnomalyDetection:
             if use_ripser_plus_plus:
 
                 # Prepare Ripser++ arguments
-                A_y_pairwise_dists_bytes = A_y_pairwise_dists.tobytes()
+                A_y_pairwise_dists_list_str = str(A_y_pairwise_dists.tolist())
 
                 # Run Ripser++ and capture output
                 ripser_plus_plus_proc = subprocess.Popen(
@@ -236,7 +236,7 @@ class GeometricAnomalyDetection:
                             "run_ripser++.py",
                         ),
                         "--distance_matrix",
-                        A_y_pairwise_dists_bytes,
+                        A_y_pairwise_dists_list_str,
                         "--dim",
                         target_homology_dim,
                     ],
