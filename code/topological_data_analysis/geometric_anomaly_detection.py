@@ -242,6 +242,7 @@ class GeometricAnomalyDetection:
                         target_homology_dim_str,
                     ],
                     stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                     shell=True,
                 )
                 ripser_plus_plus_output = ripser_plus_plus_proc.stdout.read().decode(
