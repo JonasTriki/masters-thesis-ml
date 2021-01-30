@@ -4,6 +4,7 @@
 .local
 .keras
 .bash_history
+.python_history
 **/*/*.logs
 **/*/.idea
 **/*/__pycache__
