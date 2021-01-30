@@ -226,7 +226,7 @@ class GeometricAnomalyDetection:
                 target_homology_dim_str = str(target_homology_dim)
 
                 # Run Ripser++ and capture output
-                ripser_plus_plus_proc = subprocess.Popen(
+                ripser_plus_plus_proc = subprocess.run(
                     [
                         "python",
                         join(
@@ -243,11 +243,10 @@ class GeometricAnomalyDetection:
                     ],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
+                    capture_output=True,
                     shell=True,
                 )
-                ripser_plus_plus_output = ripser_plus_plus_proc.stdout.read().decode(
-                    "utf-8"
-                )
+                ripser_plus_plus_output = ripser_plus_plus_proc.stdout.decode("utf-8")
                 print("------")
                 print(ripser_plus_plus_output)
                 print("------")
