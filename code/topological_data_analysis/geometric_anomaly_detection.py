@@ -216,12 +216,15 @@ class GeometricAnomalyDetection:
 
             # Compute (k-1) Vietoris-Rips barcode of A_y
             A_y = self._word_embeddings[A_y_indices]
+            A_y_pairwise_dists = euclidean_distances(A_y)
             if use_ripser_plus_plus:
-                # TODO: Implement
-                pass
+                rpp_py.run(
+                    f"--format distance --dim {target_homology_dim}", A_y_pairwise_dists
+                )
+                # TODO: Get diagrams from Ripser++
             else:
                 rips_complex = ripser(
-                    X=euclidean_distances(A_y),
+                    X=A_y_pairwise_dists,
                     maxdim=target_homology_dim,
                     distance_matrix=True,
                 )
