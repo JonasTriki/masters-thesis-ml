@@ -241,7 +241,7 @@ class GeometricAnomalyDetection:
         # Prepare data for multiprocessing
         word_embeddings_shape = (len(word_ints), self._word_embeddings.shape[1])
         word_embeddings_raw = Array(
-            float, word_embeddings_shape[0] * word_embeddings_shape[1]
+            "d", word_embeddings_shape[0] * word_embeddings_shape[1], lock=False
         )
         word_embeddings_raw_np = np.frombuffer(word_embeddings_raw).reshape(
             word_embeddings_shape
