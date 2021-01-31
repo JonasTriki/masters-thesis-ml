@@ -573,8 +573,8 @@ class GeometricAnomalyDetection:
         Returns
         -------
         result : tuple
-            Triple containing best result index, results from geometric anomaly detection
-            and P_man counts in a list.
+            Tuple containing best result index, P_man counts in a list, results
+            from geometric anomaly detection and annulus radii grid.
         """
         if max_pairwise_distance == -1:
             if word_embeddings_pairwise_dists is not None:
@@ -588,26 +588,24 @@ class GeometricAnomalyDetection:
         )[1:]
 
         # Grid-search best set of annulus radii to optimize number of P_man words
-        annulus_idx_grid = []
+        annulus_radii_grid = []
         for inner_idx in range(num_radii_per_parameter):
             for outer_idx in range(inner_idx + 1, num_radii_per_parameter):
-                if (
-                    radii_space[outer_idx] - radii_space[inner_idx]
-                    <= outer_inner_radii_max_diff
-                ):
-                    annulus_idx_grid.append((inner_idx, outer_idx))
+                inner_radius = radii_space[inner_idx]
+                outer_radius = radii_space[outer_idx]
+
+                if outer_radius - inner_radius <= outer_inner_radii_max_diff:
+                    annulus_radii_grid.append((inner_radius, outer_radius))
 
         print("Grid searching...")
         gad_results = []
         P_man_counts = []
-        for inner_idx, outer_idx in tqdm(annulus_idx_grid):
-            print(
-                f"Inner radius: {radii_space[inner_idx]:.3f}, outer radius: {radii_space[outer_idx]:.3f}"
-            )
+        for inner_radius, outer_radius in tqdm(annulus_radii_grid):
+            print(f"Inner radius: {inner_radius:.3f}, outer radius: {outer_radius:.3f}")
             gad_result = self._compute_gad_mp(
                 manifold_dimension=manifold_dimension,
-                annulus_inner_radius=radii_space[inner_idx],
-                annulus_outer_radius=radii_space[outer_idx],
+                annulus_inner_radius=inner_radius,
+                annulus_outer_radius=outer_radius,
                 annoy_index_filepath=annoy_index_filepath,
                 word_ints=word_ints,
             )
@@ -617,4 +615,4 @@ class GeometricAnomalyDetection:
         # Find best result
         best_gad_result_idx = np.argmax(P_man_counts)
 
-        return best_gad_result_idx, gad_results, P_man_counts
+        return best_gad_result_idx, P_man_counts, gad_results, annulus_radii_grid

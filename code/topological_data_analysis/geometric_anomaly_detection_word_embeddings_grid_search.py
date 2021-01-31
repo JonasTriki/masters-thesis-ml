@@ -144,10 +144,12 @@ def geometric_anomaly_detection_grid_search(
     )
 
     # Do grid search
-    grid_search_result_filepath = join(
-        output_dir, f"{model_id}_grid_search_result.joblib"
-    )
-    best_gad_result_idx, gad_results, P_man_counts = gad_instance.grid_search_radii(
+    (
+        best_gad_result_idx,
+        P_man_counts,
+        gad_results,
+        annulus_radii_grid,
+    ) = gad_instance.grid_search_radii(
         word_ints=vocabulary_word_ints,
         manifold_dimension=manifold_dimension,
         num_radii_per_parameter=num_radii_to_use,
@@ -157,9 +159,13 @@ def geometric_anomaly_detection_grid_search(
     )
     grid_search_result = {
         "best_gad_result_idx": best_gad_result_idx,
-        "gad_results": gad_results,
         "P_man_counts": P_man_counts,
+        "gad_results": gad_results,
+        "annulus_radii_grid": annulus_radii_grid,
     }
+    grid_search_result_filepath = join(
+        output_dir, f"{model_id}_grid_search_result.joblib"
+    )
     joblib.dump(grid_search_result, grid_search_result_filepath)
 
 
