@@ -198,93 +198,6 @@ class GeometricAnomalyDetection:
         """
         self._word_embeddings = word_embeddings
 
-    def _compute_gad_mp(
-        self,
-        manifold_dimension: int,
-        annulus_inner_radius: float,
-        annulus_outer_radius: float,
-        annoy_index_filepath: str,
-        word_ints: list = None,
-    ) -> dict:
-        """
-        Computes geometric anomaly detection Procedure 1 from [1] using
-        multiprocessing.
-
-        Parameters
-        ----------
-        manifold_dimension : int
-            Manifold dimension to detect intersections with (k).
-        annulus_inner_radius : float
-            Inner radius parameter (r) for annulus.
-        annulus_outer_radius : float
-            Outer radius parameter (s) for annulus.
-        annoy_index_filepath : str
-            Filepath of Annoy index
-        word_ints : list, optional
-            List word integer representations, signalizing what part of the
-            vocabulary we want to use. Set to None to use whole vocabulary.
-
-        Returns
-        -------
-        result : dict
-            Result as a dict, containing three subsets P_man (k-manifold points),
-            P_bnd (boundary points) and P_int (desired intersection points).
-
-        References
-        ----------
-        .. [1] Bernadette J Stolz, Jared Tanner, Heather A Harrington, & Vidit Nanda.
-           (2019). Geometric anomaly detection in data.
-        """
-        if word_ints is None:
-            word_ints = np.arange(len(self._word_embeddings))
-
-        # Prepare data for multiprocessing
-        word_embeddings_shape = (len(word_ints), self._word_embeddings.shape[1])
-        word_embeddings_raw = Array(
-            "d", word_embeddings_shape[0] * word_embeddings_shape[1], lock=False
-        )
-        word_embeddings_raw_np = np.frombuffer(word_embeddings_raw).reshape(
-            word_embeddings_shape
-        )
-        np.copyto(word_embeddings_raw_np, self._word_embeddings[word_ints])
-
-        # Prepare arguments for multiprocessing
-        num_word_ints_per_process = int(word_embeddings_shape[0] // cpu_count())
-        grid_search_args = [
-            (
-                word_int_chunk,
-                annulus_inner_radius,
-                annulus_outer_radius,
-                annoy_index_filepath,
-                manifold_dimension - 1,
-            )
-            for word_int_chunk in batch_list_gen(word_ints, num_word_ints_per_process)
-        ]
-
-        # Initialize result
-        P_bnd = []
-        P_man = []
-        P_int = []
-
-        # Run MP
-        with Pool(
-            initializer=compute_gad_mp_init,
-            initargs=(word_embeddings_raw, word_embeddings_shape),
-        ) as pool:
-            for result in tqdm(
-                pool.imap_unordered(compute_gad_multiprocessing, grid_search_args),
-                total=num_word_ints_per_process,
-            ):
-                P_bnd.extend(result["P_bnd"])
-                P_man.extend(result["P_man"])
-                P_int.extend(result["P_int"])
-
-        return {
-            "P_bnd": P_bnd,
-            "P_man": P_man,
-            "P_int": P_int,
-        }
-
     def _compute_gad(
         self,
         manifold_dimension: int,
@@ -533,6 +446,94 @@ class GeometricAnomalyDetection:
             word_ints=word_ints,
             tqdm_enabled=tqdm_enabled,
         )
+
+    def _compute_gad_mp(
+        self,
+        manifold_dimension: int,
+        annulus_inner_radius: float,
+        annulus_outer_radius: float,
+        annoy_index_filepath: str,
+        word_ints: list = None,
+    ) -> dict:
+        """
+        Computes geometric anomaly detection Procedure 1 from [1] using
+        multiprocessing.
+
+        Parameters
+        ----------
+        manifold_dimension : int
+            Manifold dimension to detect intersections with (k).
+        annulus_inner_radius : float
+            Inner radius parameter (r) for annulus.
+        annulus_outer_radius : float
+            Outer radius parameter (s) for annulus.
+        annoy_index_filepath : str
+            Filepath of Annoy index
+        word_ints : list, optional
+            List word integer representations, signalizing what part of the
+            vocabulary we want to use. Set to None to use whole vocabulary.
+
+        Returns
+        -------
+        result : dict
+            Result as a dict, containing three subsets P_man (k-manifold points),
+            P_bnd (boundary points) and P_int (desired intersection points).
+
+        References
+        ----------
+        .. [1] Bernadette J Stolz, Jared Tanner, Heather A Harrington, & Vidit Nanda.
+           (2019). Geometric anomaly detection in data.
+        """
+        if word_ints is None:
+            word_ints = np.arange(len(self._word_embeddings))
+
+        # Prepare data for multiprocessing
+        word_embeddings_shape = (len(word_ints), self._word_embeddings.shape[1])
+        word_embeddings_raw = Array(
+            "d", word_embeddings_shape[0] * word_embeddings_shape[1], lock=False
+        )
+        word_embeddings_raw_np = np.frombuffer(word_embeddings_raw).reshape(
+            word_embeddings_shape
+        )
+        np.copyto(word_embeddings_raw_np, self._word_embeddings[word_ints])
+
+        # Prepare arguments for multiprocessing
+        num_cpus = cpu_count()
+        num_word_ints_per_process = int(word_embeddings_shape[0] // num_cpus)
+        grid_search_args = [
+            (
+                word_int_chunk,
+                annulus_inner_radius,
+                annulus_outer_radius,
+                annoy_index_filepath,
+                manifold_dimension - 1,
+            )
+            for word_int_chunk in batch_list_gen(word_ints, num_word_ints_per_process)
+        ]
+
+        # Initialize result
+        P_bnd = []
+        P_man = []
+        P_int = []
+
+        # Run MP
+        with Pool(
+            initializer=compute_gad_mp_init,
+            initargs=(word_embeddings_raw, word_embeddings_shape),
+        ) as pool:
+            for result in tqdm(
+                pool.imap_unordered(compute_gad_multiprocessing, grid_search_args),
+                total=num_cpus,
+            ):
+                P_bnd.extend(result["P_bnd"])
+                P_man.extend(result["P_man"])
+                P_int.extend(result["P_int"])
+
+        return {
+            "P_bnd": P_bnd,
+            "P_man": P_man,
+            "P_int": P_int,
+        }
 
     def grid_search_radii(
         self,
