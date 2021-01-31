@@ -1,4 +1,5 @@
 import subprocess
+from multiprocessing import Array, Pool, cpu_count
 from os.path import join
 from typing import Callable
 
@@ -8,6 +9,8 @@ from ripser import ripser
 from ripser_utils import parse_ripser_plus_plus_output
 from sklearn.metrics import euclidean_distances
 from tqdm.auto import tqdm
+
+from utils import batch_list_gen
 
 
 def grid_search_prepare_word_ints_within_radii(
@@ -76,6 +79,98 @@ def grid_search_prepare_word_ints_within_radii(
     return word_ints_within_radii, radii_space
 
 
+# Multiprocessing variable dict for grid-search
+mp_var_dict = {}
+
+
+def compute_gad_mp_init(word_embeddings: Array, word_embeddings_shape: tuple) -> None:
+    mp_var_dict["word_embeddings"] = word_embeddings
+    mp_var_dict["word_embeddings_shape"] = word_embeddings_shape
+
+
+def compute_gad_multiprocessing(args: tuple) -> dict:
+    """
+
+    Parameters
+    ----------
+    args : tuple
+
+    Returns
+    -------
+    result : dict
+    """
+    # Parse args
+    (
+        word_ints,
+        annulus_inner_radius,
+        annulus_outer_radius,
+        annoy_index_filepath,
+        target_homology_dim,
+    ) = args
+    persistence_threshold = abs(annulus_outer_radius - annulus_inner_radius)
+
+    # Load word embeddings from var dict
+    word_embeddings = np.frombuffer(mp_var_dict["word_embeddings"]).reshape(
+        mp_var_dict["word_embeddings_shape"]
+    )
+
+    annoy_index = annoy.AnnoyIndex(f=word_embeddings.shape[1], metric="euclidean")
+    annoy_index.load(fn=annoy_index_filepath, prefault=True)
+
+    # Initialize result
+    P_bnd = []
+    P_man = []
+    P_int = []
+
+    for i in word_ints:
+
+        # Find A_y ⊂ word_vectors containing all word vectors in word_vectors
+        # which satisfy r ≤ ||x − y|| ≤ s.
+        A_y_indices = np.array(
+            [
+                j
+                for j in word_ints
+                if annulus_inner_radius
+                <= annoy_index.get_distance(j, i)
+                <= annulus_outer_radius
+            ]
+        )
+        if len(A_y_indices) == 0:
+            P_bnd.append(i)
+            continue
+
+        # Compute (k-1) Vietoris-Rips barcode of A_y
+        A_y = word_embeddings[A_y_indices]
+        A_y_pairwise_dists = euclidean_distances(A_y)
+        rips_complex = ripser(
+            X=A_y_pairwise_dists,
+            maxdim=target_homology_dim,
+            distance_matrix=True,
+        )
+        diagrams = rips_complex["dgms"]
+
+        # Calculate number of intervals in A_y_barcodes of length
+        # (death - birth) > (annulus_outer_radius - annulus_inner_radius).
+        N_y = 0
+        for birth, death in diagrams[target_homology_dim]:
+            if (death - birth) > persistence_threshold:
+                N_y += 1
+
+        # Add result
+        if N_y == 0:
+            P_bnd.append(i)
+        elif N_y == 1:
+            P_man.append(i)
+        else:
+            P_int.append(i)
+
+    return {
+        "P_bnd": P_bnd,
+        "P_man": P_man,
+        "P_int": P_int,
+    }
+
+
 class GeometricAnomalyDetection:
     """
     Class for computing geometric anomaly detection Procedure 1 from [1].
@@ -99,6 +194,93 @@ class GeometricAnomalyDetection:
             Word embeddings
         """
         self._word_embeddings = word_embeddings
+
+    def _compute_gad_mp(
+        self,
+        manifold_dimension: int,
+        annulus_inner_radius: float,
+        annulus_outer_radius: float,
+        annoy_index_filepath: str,
+        word_ints: list = None,
+    ) -> dict:
+        """
+        Computes geometric anomaly detection Procedure 1 from [1] using
+        multiprocessing.
+
+        Parameters
+        ----------
+        manifold_dimension : int
+            Manifold dimension to detect intersections with (k).
+        annulus_inner_radius : float
+            Inner radius parameter (r) for annulus.
+        annulus_outer_radius : float
+            Outer radius parameter (s) for annulus.
+        annoy_index_filepath : str
+            Filepath of Annoy index
+        word_ints : list, optional
+            List word integer representations, signalizing what part of the
+            vocabulary we want to use. Set to None to use whole vocabulary.
+
+        Returns
+        -------
+        result : dict
+            Result as a dict, containing three subsets P_man (k-manifold points),
+            P_bnd (boundary points) and P_int (desired intersection points).
+
+        References
+        ----------
+        .. [1] Bernadette J Stolz, Jared Tanner, Heather A Harrington, & Vidit Nanda.
+           (2019). Geometric anomaly detection in data.
+        """
+        if word_ints is None:
+            word_ints = np.arange(len(self._word_embeddings))
+
+        # Prepare data for multiprocessing
+        word_embeddings_shape = (len(word_ints), self._word_embeddings.shape[1])
+        word_embeddings_raw = Array(
+            float, word_embeddings_shape[0] * word_embeddings_shape[1]
+        )
+        word_embeddings_raw_np = np.frombuffer(word_embeddings_raw).reshape(
+            word_embeddings_shape
+        )
+        np.copyto(word_embeddings_raw_np, self._word_embeddings[word_ints])
+
+        # Prepare arguments for multiprocessing
+        num_word_ints_per_process = int(word_embeddings_shape[0] // cpu_count())
+        grid_search_args = [
+            (
+                word_int_chunk,
+                annulus_inner_radius,
+                annulus_outer_radius,
+                annoy_index_filepath,
+                manifold_dimension - 1,
+            )
+            for word_int_chunk in batch_list_gen(word_ints, num_word_ints_per_process)
+        ]
+
+        # Initialize result
+        P_bnd = []
+        P_man = []
+        P_int = []
+
+        # Run MP
+        with Pool(
+            initializer=compute_gad_mp_init,
+            initargs=(word_embeddings_raw, word_embeddings_shape),
+        ) as pool:
+            for result in tqdm(
+                pool.imap_unordered(compute_gad_multiprocessing, grid_search_args),
+                total=num_word_ints_per_process,
+            ):
+                P_bnd.extend(result["P_bnd"])
+                P_man.extend(result["P_man"])
+                P_int.extend(result["P_int"])
+
+        return {
+            "P_bnd": P_bnd,
+            "P_man": P_man,
+            "P_int": P_int,
+        }
 
     def _compute_gad(
         self,
@@ -354,13 +536,10 @@ class GeometricAnomalyDetection:
         word_ints: list,
         manifold_dimension: int,
         num_radii_per_parameter: int,
+        annoy_index_filepath: str,
         outer_inner_radii_max_diff: float = np.inf,
-        word_ints_within_radii: dict = None,
-        radii_space: np.array = None,
         max_pairwise_distance: float = -1,
         word_embeddings_pairwise_dists: np.ndarray = None,
-        annoy_index: annoy.AnnoyIndex = None,
-        use_ripser_plus_plus: bool = False,
     ) -> tuple:
         """
         Performs grid search to find the best pair of inner/outer annulus radii.
@@ -376,24 +555,16 @@ class GeometricAnomalyDetection:
             Manifold dimension to detect intersections with (k).
         num_radii_per_parameter : int
             Number of inner/outer radii to search over.
+        annoy_index_filepath : str
+            Filepath of Annoy index built on the word embeddings
         outer_inner_radii_max_diff : float
             Maximal difference between outer and inner radii (defaults to np.inf => unbounded).
-        word_ints_within_radii : dict
-            Dictionary mapping from word integer to word integers for each radius index.
-        radii_space : np.array
-            Radii space (defaults to None).
         max_pairwise_distance : float
             Maximum pairwise distance between word embeddings. Must
             be specified if word_embeddings_pairwise_dists is None.
         word_embeddings_pairwise_dists : np.ndarray, optional
             Numpy matrix containing pairwise distances between word embeddings
             (defaults to None).
-        annoy_index : annoy.AnnoyIndex, optional
-            Annoy index built on the word embeddings (defaults to None).
-            If specified, the approximate nearest neighbour index is used to compute
-            distance between word vectors.
-        use_ripser_plus_plus : bool
-            Whether or not to use Ripser++ to speed up the computation.
 
         Returns
         -------
@@ -401,31 +572,16 @@ class GeometricAnomalyDetection:
             Triple containing best result index, results from geometric anomaly detection
             and P_man counts in a list.
         """
-        if word_embeddings_pairwise_dists is not None:
-            word_vector_distance = lambda word_i, word_j: word_embeddings_pairwise_dists[
-                word_i, word_j
-            ]
-        elif annoy_index is not None:
-            word_vector_distance = lambda word_i, word_j: annoy_index.get_distance(
-                word_i, word_j
-            )
-        else:
-            word_vector_distance = lambda word_i, word_j: np.linalg.norm(
-                self._word_embeddings[word_i] - self._word_embeddings[word_j]
-            )
+        if max_pairwise_distance == -1:
+            if word_embeddings_pairwise_dists is not None:
+                max_pairwise_distance = np.max(word_embeddings_pairwise_dists)
+            else:
+                raise ValueError("Maximum pairwise distance must be specified.")
 
-        # Precompute word ints within radii if not specified
-        if word_ints_within_radii is None and radii_space is None:
-            (
-                word_ints_within_radii,
-                radii_space,
-            ) = grid_search_prepare_word_ints_within_radii(
-                word_ints=word_ints,
-                num_radii_per_parameter=num_radii_per_parameter,
-                word_vector_distance=word_vector_distance,
-                max_pairwise_distance=max_pairwise_distance,
-                word_embeddings_pairwise_dists=word_embeddings_pairwise_dists,
-            )
+        # Find values for radii to use during search
+        radii_space = np.linspace(
+            start=0, stop=max_pairwise_distance, num=num_radii_per_parameter + 1
+        )[1:]
 
         # Grid-search best set of annulus radii to optimize number of P_man words
         annulus_idx_grid = []
@@ -444,16 +600,12 @@ class GeometricAnomalyDetection:
             print(
                 f"Inner radius: {radii_space[inner_idx]:.3f}, outer radius: {radii_space[outer_idx]:.3f}"
             )
-            gad_result = self._compute_gad(
+            gad_result = self._compute_gad_mp(
                 manifold_dimension=manifold_dimension,
-                word_vector_distance=word_vector_distance,
-                annulus_inner_idx=inner_idx,
-                annulus_outer_idx=outer_idx,
-                word_ints_within_radii=word_ints_within_radii,
-                radii_space=radii_space,
+                annulus_inner_radius=radii_space[inner_idx],
+                annulus_outer_radius=radii_space[outer_idx],
+                annoy_index_filepath=annoy_index_filepath,
                 word_ints=word_ints,
-                tqdm_enabled=False,
-                use_ripser_plus_plus=use_ripser_plus_plus,
             )
             P_man_counts.append(len(gad_result["P_man"]))
             gad_results.append(gad_result)

@@ -1,12 +1,11 @@
 import argparse
 import sys
 from os import makedirs
-from os.path import isfile, join
+from os.path import join
 
 import joblib
 import numpy as np
-from geometric_anomaly_detection import (
-    GeometricAnomalyDetection, grid_search_prepare_word_ints_within_radii)
+from geometric_anomaly_detection import GeometricAnomalyDetection
 from sklearn.metrics import euclidean_distances
 
 sys.path.append("..")
@@ -48,6 +47,11 @@ def parse_args() -> argparse.Namespace:
         help="Size of the vocabulary to use",
     )
     parser.add_argument(
+        "--annoy_index_filepath",
+        type=str,
+        help="Filepath of Annoy index fit on word embeddings",
+    )
+    parser.add_argument(
         "--manifold_dimension",
         type=int,
         help="Manifold dimension to be passed to geometric anomaly detection algorithm",
@@ -64,12 +68,6 @@ def parse_args() -> argparse.Namespace:
         help="Maximal difference between outer and inner radii for annulus",
     )
     parser.add_argument(
-        "--use_ripser_plus_plus",
-        default=False,
-        action="store_true",
-        help="Whether or not to use Ripser++, speeding up the grid search",
-    )
-    parser.add_argument(
         "--output_dir",
         type=str,
         default="",
@@ -82,11 +80,11 @@ def geometric_anomaly_detection_grid_search(
     model_dir: str,
     model_name: str,
     dataset_name: str,
+    annoy_index_filepath: str,
     vocab_size: int,
     manifold_dimension: int,
     num_radii_to_use: int,
     max_annulus_radii_diff: float,
-    use_ripser_plus_plus: bool,
     output_dir: str,
 ) -> None:
     """
@@ -103,6 +101,8 @@ def geometric_anomaly_detection_grid_search(
         Name of the dataset the model is trained on.
     vocab_size : int
         Size of the vocabulary to use.
+    annoy_index_filepath : str
+        Filepath of Annoy index fit on word embeddings.
     manifold_dimension : int
         Manifold dimension to be passed to geometric anomaly detection algorithm.
     num_radii_to_use : int
@@ -110,8 +110,6 @@ def geometric_anomaly_detection_grid_search(
         (all for outer radius and (all - 1) for inner radius).
     max_annulus_radii_diff : float
         Maximal difference between outer and inner radii for annulus
-    use_ripser_plus_plus : bool
-        Whether or not to use Ripser++, speeding up the grid search
     output_dir : str
         Output directory to save data
     """
@@ -140,26 +138,6 @@ def geometric_anomaly_detection_grid_search(
         last_embedding_weights_normalized[vocabulary_word_ints]
     )
 
-    # Precompute word ints within each radii
-    # words_within_radii_result_filepath = join(output_dir, f"{model_id}_wwr.joblib")
-    # if not isfile(words_within_radii_result_filepath):
-    #     words_within_radii_result = grid_search_prepare_word_ints_within_radii(
-    #         word_ints=vocabulary_word_ints,
-    #         num_radii_per_parameter=num_radii_to_use,
-    #         word_vector_distance=lambda i, j: word_embeddings_pairwise_dists_grid_search[
-    #             i, j
-    #         ],
-    #         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists_grid_search,
-    #     )
-    #     joblib.dump(
-    #         words_within_radii_result, words_within_radii_result_filepath, protocol=4
-    #     )
-    # else:
-    #     print("Loading word ints within radii data...")
-    #     words_within_radii_result = joblib.load(words_within_radii_result_filepath)
-    #     print("Done!")
-    # word_ints_within_radii, radii_space = words_within_radii_result
-
     # Initialize GAD instance
     gad_instance = GeometricAnomalyDetection(
         word_embeddings=last_embedding_weights_normalized
@@ -173,11 +151,9 @@ def geometric_anomaly_detection_grid_search(
         word_ints=vocabulary_word_ints,
         manifold_dimension=manifold_dimension,
         num_radii_per_parameter=num_radii_to_use,
+        annoy_index_filepath=annoy_index_filepath,
         outer_inner_radii_max_diff=max_annulus_radii_diff,
-        # word_ints_within_radii=word_ints_within_radii,
-        # radii_space=radii_space,
         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists_grid_search,
-        use_ripser_plus_plus=use_ripser_plus_plus,
     )
     grid_search_result = {
         "best_gad_result_idx": best_gad_result_idx,
@@ -193,10 +169,10 @@ if __name__ == "__main__":
         model_dir=args.model_dir,
         model_name=args.model_name,
         dataset_name=args.dataset_name,
+        annoy_index_filepath=args.annoy_index_filepath,
         vocab_size=args.vocab_size,
         manifold_dimension=args.manifold_dimension,
         num_radii_to_use=args.num_radii_to_use,
         max_annulus_radii_diff=args.max_annulus_radii_diff,
-        use_ripser_plus_plus=args.use_ripser_plus_plus,
         output_dir=args.output_dir,
     )
