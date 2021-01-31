@@ -118,7 +118,7 @@ def compute_gad_multiprocessing(args: tuple) -> dict:
     )
 
     annoy_index = annoy.AnnoyIndex(f=word_embeddings.shape[1], metric="euclidean")
-    annoy_index.load(fn=annoy_index_filepath, prefault=True)
+    annoy_index.load(fn=annoy_index_filepath)
 
     # Initialize result
     P_bnd = []
