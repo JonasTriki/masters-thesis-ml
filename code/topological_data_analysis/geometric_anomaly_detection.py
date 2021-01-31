@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from multiprocessing import Array, Pool, cpu_count
 from os.path import join
 from typing import Callable
@@ -9,6 +10,8 @@ from ripser import ripser
 from ripser_utils import parse_ripser_plus_plus_output
 from sklearn.metrics import euclidean_distances
 from tqdm.auto import tqdm
+
+sys.path.append("..")
 
 from utils import batch_list_gen
 
