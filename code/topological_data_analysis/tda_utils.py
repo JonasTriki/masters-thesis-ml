@@ -3,8 +3,9 @@ from typing import Union
 
 import annoy
 import numpy as np
-from gudhi.persistence_graphical_tools import \
-    plot_persistence_diagram as gd_plot_persistence_diagram
+from gudhi.persistence_graphical_tools import (
+    plot_persistence_diagram as gd_plot_persistence_diagram,
+)
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 from matplotlib import pyplot as plt
@@ -254,17 +255,17 @@ def generate_points_in_spheres(
     np.random.seed(random_state)
 
     # Generate points in spheres
-    sphere_means_in_space_dim = (
+    sphere_means_in_space_dim = [
         np.repeat(mean, sphere_dimensionality) for mean in sphere_means
-    )
+    ]
     total_num_points = 2 * num_points
     if space_dimensionality is not None:
-        sphere_means_in_space_dim = (
+        sphere_means_in_space_dim = [
             np.concatenate(
                 (sphere_mean, np.zeros(space_dimensionality - sphere_dimensionality))
             )
             for sphere_mean in sphere_means_in_space_dim
-        )
+        ]
 
         sphere_points = np.zeros((total_num_points, space_dimensionality))
     else:
