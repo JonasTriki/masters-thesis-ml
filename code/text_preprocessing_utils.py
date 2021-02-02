@@ -245,7 +245,10 @@ def text_to_words(
         # contractions as a hotfix to the current Github issue:
         # https://github.com/kootenpv/contractions/issues/25
         if text.endswith("."):
-            text = replace_contractions(text[:-1]) + "."
+            try:
+                text = replace_contractions(text[:-1]) + "."
+            except IndexError:
+                print(f"Contractions error for: '{text[:-1]}'")
         else:
             text = replace_contractions(text)
 
