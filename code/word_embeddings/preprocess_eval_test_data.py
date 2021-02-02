@@ -36,49 +36,49 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def parse_question_words(questions_words_content: str) -> dict:
+def parse_questions_X(questions_X_content: str) -> dict:
     """
-    Parses a "questions-words.txt" file into a section-separated dictionary
-    for looking up word pairs from each section.
+    Parses a "questions-X.txt" (where X is 'words' or 'phrases') file into a
+    section-separated dictionary for looking up word pairs from each section.
 
     Parameters
     ----------
-    questions_words_content: str
-        Raw content of the "questions-words.txt" file
+    questions_X_content: str
+        Raw content of the "questions-X.txt" (where X is 'words' or 'phrases') file
 
     Returns
     -------
-    questions_words: dict
+    questions_X: dict
         Dictionary mapping from section to a list of word pairs
     """
-    # Parse question words pairs for each section
-    questions_words_sections = re.findall(r"(: .+)", questions_words_content)
-    questions_words_delimiters = "|".join(questions_words_sections)
+    # Parse questions 'X' pairs for each section
+    questions_X_sections = re.findall(r"(: .+)", questions_X_content)
+    questions_X_delimiters = "|".join(questions_X_sections)
 
-    # Split question words content into list
-    questions_words_content_splits = []
-    for content_split in re.split(questions_words_delimiters, questions_words_content):
+    # Split questions 'X' content into list
+    questions_X_content_splits = []
+    for content_split in re.split(questions_X_delimiters, questions_X_content):
         if len(content_split) == 0:
             continue
 
         content_split_lines = content_split[1 : len(content_split) - 1].split("\n")
 
-        questions_words_split_content: list = []
+        questions_X_split_content: list = []
         for word_line in content_split_lines:
 
             # Split string of words into tuple of lower-case words and append to list
             words = word_line.split()
             words = tuple([word.lower() for word in words])
-            questions_words_split_content.append(words)
-        questions_words_content_splits.append(questions_words_split_content)
+            questions_X_split_content.append(words)
+        questions_X_content_splits.append(questions_X_split_content)
 
-    # Construct dictionary with question-word entries
-    questions_words = {
-        questions_words_sections[i][2:]: questions_words_content_splits[i]
-        for i in range(len(questions_words_sections))
+    # Construct dictionary with question-X entries
+    questions_X = {
+        questions_X_sections[i][2:]: questions_X_content_splits[i]
+        for i in range(len(questions_X_sections))
     }
 
-    return questions_words
+    return questions_X
 
 
 def preprocess_questions_words(raw_data_dir: str, output_dir: str) -> None:
@@ -102,7 +102,7 @@ def preprocess_questions_words(raw_data_dir: str, output_dir: str) -> None:
     questions_words_txt = get_cached_download_text_file(txt_url, raw_data_dir, filename)
 
     # Parse the raw content
-    questions_words_dict = parse_question_words(questions_words_txt)
+    questions_words_dict = parse_questions_X(questions_words_txt)
     print("Done!")
 
     # Save questions-words dict to file
@@ -190,6 +190,38 @@ def preprocess_msr(raw_data_dir: str, output_dir: str) -> None:
     print("Done!")
 
 
+def preprocess_questions_phrases(raw_data_dir: str, output_dir: str) -> None:
+    """
+    Downloads and preprocess test data for evaluating a word2vec model
+    on the Phrase Analogy Dataset (PAD) from Mikolov et al.
+    (https://arxiv.org/pdf/1310.4546.pdf).
+
+    Parameters
+    ----------
+    raw_data_dir : str
+        Path to the raw data directory (where files will be downloaded to).
+    output_dir : str
+        Output directory to save processed data.
+    """
+    print("Processing PAD...")
+
+    # Fetch questions-phrases.txt from Github
+    filename = "questions-phrases.txt"
+    txt_url = f"https://raw.githubusercontent.com/tmikolov/word2vec/20c129af10659f7c50e86e3be406df663beff438/{filename}"
+    questions_phrases_txt = get_cached_download_text_file(txt_url, raw_data_dir, filename)
+
+    # Parse the raw content
+    questions_phrases_dict = parse_questions_X(questions_phrases_txt)
+    print("Done!")
+
+    # Save questions-words dict to file
+    dest_filename = "pad.joblib"
+    questions_phrases_filepath = join(output_dir, dest_filename)
+    print("Saving to file...")
+    joblib.dump(questions_phrases_dict, questions_phrases_filepath)
+    print("Done!")
+
+
 def preprocess_eval_test_data(raw_data_dir: str, output_dir: str) -> None:
     """
     Downloads and preprocess test data for evaluating a word2vec model.
@@ -208,6 +240,7 @@ def preprocess_eval_test_data(raw_data_dir: str, output_dir: str) -> None:
     # Prepare test data sets
     preprocess_questions_words(raw_data_dir, output_dir)
     preprocess_msr(raw_data_dir, output_dir)
+    preprocess_questions_phrases(raw_data_dir, output_dir)
 
 
 if __name__ == "__main__":
