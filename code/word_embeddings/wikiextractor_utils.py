@@ -49,7 +49,7 @@ def process_wiki_doc_text(doc_text: str, language: str, min_sent_word_count: int
         if len(processed_sent_words) < min_sent_word_count:
             continue
 
-        if i > 0:
+        if i > 0 and len(processed_text) > 0:
             processed_text += "\n"
         processed_text += " ".join(processed_sent_words)
 
@@ -86,7 +86,7 @@ def process_wiki_file(args: Tuple[str, str, int]):
                 continue
 
             # Append to result
-            if i > 0:
+            if i > 0 and len(wiki_dump_content) > 0:
                 wiki_dump_content += "\n"
             wiki_dump_content += processed_text
 
