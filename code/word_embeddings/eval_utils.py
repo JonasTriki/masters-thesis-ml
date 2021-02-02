@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional, Tuple, Union
 
+import annoy
 import joblib
 import numpy as np
 import pandas as pd
@@ -39,6 +40,7 @@ def similar_words(
     weights: np.ndarray,
     word_to_int: Dict[str, int],
     words: np.ndarray,
+    annoy_index: annoy.AnnoyIndex = None,
     top_n: int = 10,
     positive_words: List[str] = None,
     negative_words: List[str] = None,
@@ -57,6 +59,8 @@ def similar_words(
         Dictionary mapping from word to its integer representation.
     words : np.ndarray
         Numpy array containing words from the vocabulary.
+    annoy_index : annoy.AnnoyIndex, optional
+        Annoy index trained on word embeddings (defaults to None).
     top_n : int, optional
         Number of similar words (defaults to 10).
     positive_words : list of str, optional
@@ -67,7 +71,8 @@ def similar_words(
         Vocabulary size to use, e.g., only most common `vocab_size` words to taken
         into account (defaults to -1 meaning all words).
     return_similarity_score : bool, optional
-        Whether or not to return the cosine similarity score.
+        Whether or not to return the cosine similarity score (annoy_index
+        must be set to None to have an effect).
 
     Returns
     -------
@@ -103,15 +108,36 @@ def similar_words(
         word_to_int[word] for word in positive_words + negative_words
     ]
 
-    # Compute cosine similarity
-    cos_sims = fastdist.cosine_vector_to_matrix(query_word_vec, weights)
-    sorted_indices = cos_sims.argsort()[::-1]
-    sorted_indices = [idx for idx in sorted_indices if idx not in exclude_words_indices]
+    # Find closest words
+    if annoy_index is None:
+
+        # Use cosine similarity to find similar words
+        cos_sims = fastdist.cosine_vector_to_matrix(query_word_vec, weights)
+        sorted_indices = cos_sims.argsort()[::-1]
+        sorted_indices = [
+            idx for idx in sorted_indices if idx not in exclude_words_indices
+        ]
+    else:
+        sorted_indices_with_dists = annoy_index.get_nns_by_vector(
+            v=query_word_vec,
+            n=top_n
+            + len(
+                exclude_words_indices
+            ),  # Add number of excluded words to avoid empty result
+            include_distances=True,
+        )
+        sorted_indices = [
+            idx
+            for idx, _ in sorted_indices_with_dists
+            if idx not in exclude_words_indices
+        ]
+
+    # Filter top words/similarities
     top_words = words[sorted_indices][:top_n]
-    top_sims = cos_sims[sorted_indices][:top_n]
 
     # Create word similarity pairs
-    if return_similarity_score:
+    if return_similarity_score and annoy_index is None:
+        top_sims = cos_sims[sorted_indices][:top_n]
         result = list(zip(top_words, top_sims))
     else:
         result = top_words
@@ -424,6 +450,7 @@ def evaluate_model_word_analogies(
     word_to_int: dict,
     words: np.ndarray,
     vocab_size: int = -1,
+    annoy_index: annoy.AnnoyIndex = None,
     top_n: int = 1,
     verbose: int = 1,
 ) -> dict:
@@ -442,6 +469,8 @@ def evaluate_model_word_analogies(
         Numpy array of words from the vocabulary.
     vocab_size : int, optional
         Vocabulary size to use (defaults to -1 meaning all words).
+    annoy_index : annoy.AnnoyIndex, optional
+        Annoy index trained on word embeddings (defaults to None).
     top_n : int, optional
         Number of words to look at for computing accuracy. If the predicted word is in the
         `top_n` most similar words, it is flagged as a correct prediction. Defaults to
@@ -476,6 +505,7 @@ def evaluate_model_word_analogies(
                 weights=word_embeddings,
                 words=words,
                 word_to_int=word_to_int,
+                annoy_index=annoy_index,
                 vocab_size=vocab_size,
                 top_n=top_n,
                 return_similarity_score=False,
