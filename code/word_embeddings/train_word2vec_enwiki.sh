@@ -1,9 +1,9 @@
 #!/bin/bash
 python train_word2vec.py \
---text_data_dir data/enwiki-20200901_phrases/epoch_2 \
+--text_data_dir data/enwiki-20210101_phrases/epoch_2 \
 --dataset_name enwiki \
 --output_dir ../output/word2vec_training \
---tokenizer_filepath data/enwiki-20200901.tokenizer \
+--tokenizer_filepath data/enwiki-20210101.tokenizer \
 --intermediate_embedding_weights_saves 10 \
 --train_logs_to_file \
 --tensorboard_logs_dir tensorboard_logs \
@@ -18,7 +18,3 @@ python train_word2vec.py \
 --num_negative_samples 5 \
 --sampling_factor 0.00001 \
 --unigram_exponent_negative_sampling 0.75
-
-# --dynamic_gpu_memory \
-# --mixed_precision \
-# --cpu_only \

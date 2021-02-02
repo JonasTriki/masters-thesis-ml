@@ -1,9 +1,9 @@
 #!/bin/bash
 python train_word2vec.py \
---text_data_dir data/nowiki-20200901_phrases/epoch_2 \
+--text_data_dir data/nowiki-20210101_phrases/epoch_2 \
 --dataset_name nowiki \
 --output_dir ../output/word2vec_training \
---save_to_tokenizer_filepath data/nowiki-20200901.tokenizer \
+--save_to_tokenizer_filepath data/nowiki-20210101.tokenizer \
 --intermediate_embedding_weights_saves 10 \
 --train_logs_to_file \
 --tensorboard_logs_dir tensorboard_logs \
