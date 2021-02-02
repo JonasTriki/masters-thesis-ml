@@ -6,9 +6,8 @@ https://gist.github.com/MrEliptik/b3f16179aa2f530781ef8ca9a16499af
 
 import re
 from string import digits
-from typing import List
+from typing import List, Match
 
-import contractions
 import nltk
 from nltk import word_tokenize
 from nltk.corpus import stopwords
@@ -17,6 +16,11 @@ from nltk.corpus import stopwords
 nltk.download("punkt")
 
 from num2words import num2words
+
+from contractions_utils import contractions_dict
+
+# Convert keys to lowercase
+contractions_dict = {key.lower(): val for key, val in contractions_dict.items()}
 
 
 def remove_urls(text: str) -> str:
@@ -60,9 +64,9 @@ def remove_stopwords(words: list, language: str):
     return new_words
 
 
-def replace_contractions(text: str, slang: bool = False) -> str:
+def replace_contractions(text: str) -> str:
     """
-    Replace contractions in string of text
+    Replace contractions in string of text.
 
     Parameters
     ----------
@@ -73,15 +77,41 @@ def replace_contractions(text: str, slang: bool = False) -> str:
         - isn't --> is not
         - don't --> do not
         - I'll --> I will
-    slang : bool, optional
-        Whether or not to include slang contractions (defaults to False).
 
     Returns
     -------
     new_text : str
         New text without contractions.
     """
-    return contractions.fix(text, slang=slang)
+
+    def replace_contraction_matches(contraction_match: Match):
+        """
+        Replaces contraction matches (used as argument to re.sub).
+
+        Parameters
+        ----------
+        contraction_match : re.Match
+            Contraction regex match.
+
+        Returns
+        -------
+        match_result : str
+            Fixed string (mapping from contraction match).
+        """
+        match = contraction_match.group(0)
+        return contractions_dict.get(match.lower())
+
+    # Create regex for matching contraction keys
+    contractions_keys_re = "|".join(contractions_dict.keys())
+    contractions_re = re.compile(
+        f"({contractions_keys_re})",
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    # Replace all contraction occurrences.
+    new_text = contractions_re.sub(replace_contraction_matches, text)
+
+    return new_text
 
 
 def to_lowercase(words: list) -> list:
