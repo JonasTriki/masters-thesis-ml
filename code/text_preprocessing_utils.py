@@ -270,17 +270,7 @@ def text_to_words(
     """
     # text = remove_urls(text)
     if should_replace_contractions and language == "english":
-
-        # We remove the period character from the text before replacing
-        # contractions as a hotfix to the current Github issue:
-        # https://github.com/kootenpv/contractions/issues/25
-        if text.endswith("."):
-            try:
-                text = replace_contractions(text[:-1]) + "."
-            except IndexError:
-                print(f"Contractions error for: '{text[:-1]}'")
-        else:
-            text = replace_contractions(text)
+        text = replace_contractions(text)
 
     # Tokenize text (convert into words)
     words = word_tokenize(text, language)
