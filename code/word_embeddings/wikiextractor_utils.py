@@ -82,6 +82,8 @@ def process_wiki_file(args: Tuple[str, str, int]):
             processed_text = process_wiki_doc_text(
                 doc.text, language, min_sent_word_count
             )
+            if len(processed_text) == 0:
+                continue
 
             # Append to result
             if i > 0:
