@@ -2,7 +2,7 @@
 In this master thesis, we will use several general machine learning methods in conjunction with each other. In this chapter we will introduce and explain these methods.
 
 \section{Artificial Neural Networks (ANNs)}
-In this section we will explain artificial neural networks (ANNs). In particular, we will focus on the multilayer perceptron (MLP) (\textbf{TODO: Do not write MLP, use multilayered network}). We refer to \cite[Chapter 1]{Aggarwal18} and \cite{rong2016word2vec} when describing ANNs.
+In this section we will explain artificial neural networks (ANN). In particular, we will focus on multilayered neural networks (MLNN). We refer to \cite[Chapter 1]{Aggarwal18} and \cite{rong2016word2vec} when describing ANNs.
 
 \begin{definition}
 An artificial neuron (or unit) is a function which receives one or more inputs and a bias, and then sums them to produce an output, as illustrated in \cref{fig:artificial_neuron}; $\left\{ x_1, \ldots, x_K \right\}$ are the input values, $x_0$ is the bias, $\left\{ w_0, \ldots, w_K \right\}$ are the weights and $y$ is a scalar output. We denote $f$ as the activation function.
@@ -86,13 +86,13 @@ where $f_{\layer{h}{i}}$ is a user-specified activation function, $W_{\layer{h}{
 The hidden layer tries to learn a latent representation of the input data $x$. We will explain how the neural network learns the latent representation when introducing optimizers in \cref{sec:optimizers-ann}. Assuming that we have some $N$-dimensional latent representation of the data, we would like to connect it to the final layer in the neural network, namely the output layer.
 
 \subsection{Output layer}
-The last layer in the ANN is the output layer $\layer{y}{j} = \left\{ y_1, y_2, \ldots, y_M \right\}$ and is connected to the last hidden layer. Similar to the hidden layer, we connect each unit in the last hidden layer to each unit in the output layer, as illustrated in \cref{fig:mlp-one-hidden}.
+The last layer in the ANN is the output layer $\layer{y}{j} = \left\{ y_1, y_2, \ldots, y_M \right\}$ and is connected to the last hidden layer. Similar to the hidden layer, we connect each unit in the last hidden layer to each unit in the output layer, as illustrated in \cref{fig:mlnn-one-hidden}.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=8cm]{thesis/figures/multi-layer-neural-network-one-hidden-rong-2014.png}
-    \caption{Multilayered perceptron (MLP) with one hidden layer, as illustrated by \cite[Figure 6]{rong2016word2vec}.}
-    \label{fig:mlp-one-hidden}
+    \caption{Multilayered neural network (MLNN) with one hidden layer, as illustrated by \cite[Figure 6]{rong2016word2vec}.}
+    \label{fig:mlnn-one-hidden}
 \end{figure}
 
 More formally, we define the output layer $\layer{y}{j}$ using a $M \times N$ weight matrix $W_{\layer{y}{j}}$, an $M$-dimensional bias vector $b_{\layer{y}{j}}$ and an activation function $f_{\layer{y}{j}}$, as seen in \cref{eqn:output-layer-ann}.
@@ -102,7 +102,7 @@ More formally, we define the output layer $\layer{y}{j}$ using a $M \times N$ we
     \layer{y}{j} &= f_{\layer{y}{j}}(W_{\layer{y}{j}} \cdot \layer{h}{i} + b_{\layer{y}{j}})
 \end{align}
 
-We have now covered the different layers in an MLP, but have yet to cover the different choices of activation function $f$ in the neural network and how the MLP learns.
+We have now covered the different layers in an MLNN, but have yet to cover the different choices of activation function $f$ in the neural network and how the MLNN learns.
 
 \subsection{Activation functions}
 \label{sec:activation-functions-ann}
@@ -116,19 +116,23 @@ The simplest type of activation is the identity function, as seen in \cref{eqn:i
 
 The identity function is commonly used when we want to pass on the values from one layer to another without modifying the value itself, as we have already seen in \cref{sec:ann-input-layer}.
 
-Other choices of activation functions include  sigmoid, tanh, Rectified Linear Unit (ReLU) and Softmax, as illustrated in \cref{fig:activation-functions}.
+Other choices of activation functions include  sigmoid, tanh, Rectified Linear Unit (ReLU) and softmax, as illustrated in \cref{fig:activation-functions}.
 \begin{align}
+    \label{eqn:sigmoid-function}
     f(x) &= \frac{1}{1 + \exp{ \left( -x \right) }} \thickspace \text{(sigmoid function)} \\
+    \label{eqn:tanh-function}
     f(x) &= \frac{\exp{ \left( 2x \right) } - 1}{\exp{ \left( 2x \right) } + 1} \thickspace \text{(tanh function)} \\
+    \label{eqn:relu-function}
     f(x) &= \max{\left\{ x, 0 \right\}} \thickspace \text{(ReLU function)} \\
-    f(x_i) &= \frac{\exp \left( x_i \right)}{\sumlim{j=0}{K} \exp \left( x_j \right)} \thickspace \text{, $i \in \left\{ 1, \ldots, K \right\}$ (Softmax function)} \label{eqn:softmax-activation-function}
+    \label{eqn:softmax-function}
+    f(x_i) &= \frac{\exp \left( x_i \right)}{\sumlim{j=1}{K} \exp \left( x_j \right)} \thickspace \text{, $i \in \left\{ 1, \ldots, K \right\}$ (softmax function)}
 \end{align}
-where $K$ is the number of output values for the Softmax layer.
+where $K$ is the number of output values for the softmax layer.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=13cm]{thesis/figures/activation-functions-aggarwal-2018.png}
-    \caption{Various activation functions, as illustrated by \cite[Figure 1.8]{Aggarwal18}. \textbf{TODO:} Replace with own .tex plot}
+    \input{thesis/figures/common-activation-functions.tex}
+    \caption{Various activation functions}
     \label{fig:activation-functions}
 \end{figure}
 
@@ -140,37 +144,154 @@ The sigmoid and tanh activation functions were typically used in the early devel
 
 In recent years, the ReLU activation function has become more popular, partly due to its computational simplicity. In fact, both the sigmoid and tanh activation function suffers from vanishing gradients (i.e. gradients become zero, leading to very little learning) and ReLU is used as a substitute to overcome this problem. This does not mean, however, that the ReLU activation function can be used without problems, as it can "die out" since it is non-differentiable at 0. We will come back to this problem when introducing the gradient descent optimizer in \cref{sec:optimizers-ann}.
 
-So far we have only discussed activation functions where we have a single output value. If we were to do a classification with $K$ outputs, one typically uses the Softmax activation function. The Softmax activation function is defined in \cref{eqn:softmax-activation-function} and can be thought of the probabilities of the $K$ outputs.
+So far we have only discussed activation functions where we have a single output value. If we were to do a classification with $K$ outputs, one typically uses the softmax activation function. The softmax activation function is defined in \cref{eqn:softmax-function} and can be thought of the probabilities of the $K$ outputs.
 
 \subsection{Loss functions}
 \label{sec:loss-functions-ann}
-TODO
-\begin{itemize}
-    \item MSE
-    \item Binary cross-entropy
-    \item Categorical cross-entropy
-\end{itemize}
+So far we have seen how we can connect the different layers in an ANN. In short terms, we are given some input data, send it through some hidden layer and at last get the predicted output values from the output layer. We denote the predicted output values as $\hat{y}$. In this setting, we can assume that we have the true output labels, denoted as $y$. The loss function measures how much the predicted values $\hat{y}$ deviate from the true values $y$, and as such, the goal is to minimize this value. The output layer can have one or many outputs, and depending on the configuration of the network, the loss function changes as well. We separate the output types of an ANN into two categories, namely the regression and classification outputs.
+
+In a regression type output, we usually predict some real-value quantity, such as height, weight or distance. For such problems, it is common to use the mean squared-error (MSE) loss. MSE is calculated as the mean of the squared differences between the predicted and true values, as seen in \cref{eqn:mse}.
+\begin{align}
+    \label{eqn:mse}
+    MSE(\hat{y}, y) = \frac{1}{N} \sumlim{i=1}{N} {\left( y_i - \hat{y_i} \right)}^2
+\end{align}
+where $N$ is the length of $y$ and $\hat{y}$.
+
+For classification type outputs, we want to classify whether or not some input data belongs to two (binary, e.g., on or off, blue or red) or more classes (categorical, e.g., different types of animals). In a binary classification type output, the sigmoid activation function in conjunction with the binary cross-entropy (BCE) loss function is used. The binary cross-entropy loss function is defined in \cref{eqn:binary-cross-entropy}.
+\begin{align}
+    \label{eqn:binary-cross-entropy}
+    BCE(\hat{y}, y) = -\left( y \cdot \log{\left( \hat{y} \right)} + (1 - y) \cdot \log{\left( 1 - \hat{y} \right)} \right)
+\end{align}
+As opposed to the binary cross-entropy function, the categorical cross-entropy (CCE) function is used to compute the loss for multi-class classification output. It is common to see the usage of the softmax activation function being used at the output layer to create a multi-class probability distribution. Furthermore, we define the CCE loss function in \cref{eqn:categorical-cross-entropy} and observe that is is simply a generalization of the BCE loss function for multiple classes.
+\begin{align}
+    \label{eqn:categorical-cross-entropy}
+    CCE(\hat{y}, y) = -\sumlim{c=1}{C} y_c \cdot \log{\left( \hat{y_c} \right)}
+\end{align}
+where $C$ is the number of classes in the multi-class classification output.
 
 \subsection{Optimizers}
 \label{sec:optimizers-ann}
-TODO
-\begin{itemize}
-    \item Gradient descent
-    \item Stochastic gradient descent (SGD)
-    \item Mini-batch gradient descent
-    \item Mention other variants of gradient descent as well (Momentum, Adam, etc.)
-\end{itemize}
+In this subsection, we will discuss how an ANN is able to effectively make predictions from input data by learning its internal weights iteratively. In particular, we will look at the gradient descent algorithm and how ANNs exploit it to efficiently perform training.
+
+So far, we have discussed what we call the forward pass (or phase). A forward pass is simply the journey of the input data to the output layers where we in each step compute the output values at each layer and local derivatives using the current set of weights. Once we are at the output layer, the forward pass is complete and the backward pass commences. Recall that the objective of the neural network is to minimize the loss function. To do so, we compute the derivative of the loss function with respect to the weights in the input layer, using the chain rule from calculus. The derivative of the loss function tells the neural network which direction it should move each weight in to minimize the loss (i.e. in the negative direction of the derivative).
+
+To give an example of forward and backward passes in an ANN, consider the example in \cref{fig:neural-network-example-backprop}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=11cm]{thesis/figures/neural-network-example-backprop-aggarwal-2018.png}
+    \caption{Neural network with one input node, one hidden layer with two nodes and a single output layer (as illustrated by \cite[Figure 1.13]{Aggarwal18}).}
+    \label{fig:neural-network-example-backprop}
+\end{figure}
+
+In this example, we are given a network with one input node (neuron), a hidden layer with two nodes and a single output layer with one node. The input to the network is denoted as $w$ and is the product of the input data and the weights in the input layer. The activation functions of the network are denoted as $f$, $g$ and $h$. Moreover, the results of the activation functions are denoted as $y$, $z$, $p$, $q$, and the function $K$ combines the result of $p$ and $q$ resulting in the output value $o$. We assume that the weights of the hidden layer is applied to the previous layer's output values during $g$ and $h$ and the weights of the output layer is applied at $K$. The forward pass in this network is pretty straight forward; we start the input node, pass the data on to $g$ and $h$ and combine the results in the output layer. Now, for the backwards pass we first need to compute the loss at the output node using a loss function $L$. Furthermore, we compute the derivative of $L$ with respect to the input value, $w$ in this case. More formally, we need to compute
+\begin{align}
+    \parder{L}{w}
+    &= \parder{L}{o} \cdot \parder{o}{w} \\
+    &= \parder{L}{o} \cdot \left[
+    \parder{o}{p} \cdot \parder{p}{w} +
+    \parder{o}{q} \cdot \parder{q}{w}
+    \right] \text{(chain rule)} \\
+    &= \parder{L}{o} \cdot \left[
+    \parder{o}{p} \cdot \parder{p}{y} \cdot \parder{y}{w} + 
+    \parder{o}{q} \cdot \parder{q}{z} \cdot \parder{z}{w}
+    \right] \text{(chain rule)} \\
+    &= \parder{L}{o} \cdot \left[
+    \undertext{\parder{K(p, q)}{p} \cdot g'(y) \cdot f'(w)}{Path on top} + 
+    \undertext{\parder{K(p, q)}{q} \cdot h'(z) \cdot f'(w)}{Path on bottom}
+    \right]
+\end{align}
+
+With this example in mind, we have illustrated how the derivatives are being calculated for a small neural network. There exists, effective and more general frameworks to derive the derivative of the loss with respect to the input values, but we will leave those details out and kindly refer the reader to \cite[Chapter 1.3]{Aggarwal18} for more details.
+
+We have now gone over the forward and backward passes, which are the first two steps of the so called backpropagation algorithm. The remaining step of the algorithm is now to use the computed derivatives to update the weights of the ANN. To do this, we use the gradient descent (GD) algorithm. The main idea of gradient descent is to update the weights iteratively by moving them in the opposite direction of the gradient (i.e. the steepest descent), and by doing so, we will hopefully reach some local minimum leading better to fitting weights for the input-output data. In standard gradient descent, we perform its steps in the following manner
+\begin{align}
+    W \Leftarrow W - \alpha \cdot \parder{L}{W}
+\end{align}
+where $W = \left( w_1, w_2, \ldots, w_d \right)$ is the matrix consisting of the $d$ weights of an ANN. The learning rate $\alpha$ is a hyperparameter and determines how much learning we want to do in each step. The learning rate is usually set to a relatively low value, in the order of $10^{-2}$ to $10^{-5}$.
+
+Even though gradient descent works great for small applications, once we scale the number of parameters (weights) in the ANN to the more extremes (e.g. in the order of millions), it becomes impractical to compute for the entire training data at once. Furthermore, we observe that a loss function $L$ usually can be written as a sum of the loss of the individual training data points (denoted $L_i$ for $i$th training point), as shown in \cref{eqn:loss-function-sum-individual}.
+\begin{align}
+    \label{eqn:loss-function-sum-individual}
+    L = \sumlim{i=1}{n} L_i
+\end{align}
+Using the observation that we are able to write the loss function as the sum in \cref{eqn:loss-function-sum-individual}, we introduce the stochastic gradient descent (SGD) method. Instead of performing gradient descent on the whole input data, SGD instead performs gradient descent for each input data separately, as shown in \cref{eqn:sgd}. We call it stochastic, because a random sample of the training data is chosen for each iteration.
+\begin{align}
+    \label{eqn:sgd}
+    W \Leftarrow W - \alpha \cdot \parder{L_i}{W}
+\end{align}
+where $n$ is the number of input data points and $L_i$ represents the loss the $i$th input. An advantage SGD has over GD, is that it runs a lot faster, at the expense of greater loss. Thankfully, there exists a variant of SGD which seeks to find a balance between speed and loss, namely the mini-batch stochastic gradient descent. In mini-batch stochastic gradient descent, one uses a batch $B=\enclc{j_1, \ldots, j_m}$ of input training data indices when computing the weight updating, as shown in \cref{eqn:mbsgd}.
+\begin{align}
+    \label{eqn:mbsgd}
+    W \Leftarrow W - \alpha \cdot \sumlim{j \in B}{} \parder{L_j}{W}
+\end{align}
+Mini-batch stochastic gradient descent often finds the best trade-off between stability, speed and memory requirements. It should be noted, however, that the memory requirement increases with the use of mini-batches, due to the fact that we have to store bigger matrices in memory during training. One typically chooses batch sizes that are power of 2 (e.g. 32, 64, 128 or 256), since most modern hardware architectures are optimized for it.
+
+In addition to the different variants of gradient descent, there exist a bunch of other variants which can solve issues such as getting stuck in local minimas or speeding up the training process. We will not go into detail on all these strategies here, but kindly refer the reader to \cite[Chapter 3.5]{Aggarwal18} for more details.
 
 \section{Clustering techniques}
-TODO
+In a supervised machine learning setting, one usually has some data $X$ and associated labels $y$. The task then is to train a model to predict labels $y$ given data $X$. In an unsupervised setting, however, the labels $y$ might not be present. To predict the labels $y$, clustering techniques are usually applied.
 
-\subsection{K-means clustering}
-TODO
+Clustering is one of the most important techniques in unsupervised machine learning. Clustering algorithms divides some data $X$ into clusters (groups) such that the data in each cluster are similar in some sense. An example of this is clustering by distance (e.g. euclidean). If we cluster by distance, we want the distance between any two data points belonging to the same cluster to be small. This distance is also referred to as the intracluster distance. Unfortunately, it is not enough to only minimize the intracluster distance, we also have to ensure that distance between the clusters is as large as possible. To measure the distance the distance between two clusters we measure the distance between two data points belonging to different clusters. The distance between clusters is called intercluster distance. If a clustering algorithm is able to create clusters such that we have small intracluster distance and large intercluster distance, it indicates that the cluster algorithm is good for the data at hand. We note, however, that data can be very complex and it can be very hard to find good clusters.
+
+We will now go over some common clustering algorithms, explain how they work and discuss their strengths/weaknesses. In each of the clustering algorithms, we can assume that we are given some data $X = \enclc{x_1, x_2, \ldots, x_n} \in \R^{n \times d}$.
+
+\subsection{k-means clustering}
+The k-means clustering method \cite[Section 9.1]{bishop2006} is an unsupervised machine learning algorithm which is used to identify clusters in data. The algorithm uses an iterative approach to search for $k$ clusters, where $k$ is a pre-determined number of clusters (i.e. hyperparameter). There exists several variants of this algorithm and we will discuss two of them in later subsections (\cref{sec:mini-batch-k-means-clustering} and \cref{sec:k-medoids-clustering}). We will now explain the standard (and naïve) variant of the algorithm, which is usually referred to as Lloyd's algorithm.
+
+The standard k-means clustering algorithm works as follows. The first step is to determine the initial cluster means, or centroids. Since we want the algorithm to output $k$ clusters, we have to decide $k$ initial centroids. The simplest way to do this is to select $k$ random data points to be the initial $k$ centroids. The next step is to calculate the euclidean distance between each data point to the cluster centroids. We do so because we want to determine which cluster each data point belong to. Furthermore, we assign each data point to its closest cluster centroid and compute the mean of each cluster. The third and final step is to move the cluster centroid to the newly computed mean of each cluster. The second and third step is then repeated until the desired clustering is achieved.
+
+More formally, the goal of k-means clustering is to minimize the squared distance between the points in each cluster to its respective centroid. This is also referred to as the within-cluster sum of squares (WCSS). The objective is to find
+\begin{align}
+    \argmin_{C} \sumlim{i=1}{k} \sumlim{x \in C_i}{} \norm{x - \mu_i}^2
+\end{align}
+where $C = \enclc{C_1, C_2, \ldots, C_k}$ are the clusters of the data $X$, $k$ is the desired number of clusters and $\mu_i$ is the cluster centroid of cluster $C_i$.
+
+The main advantage of k-means clustering is its simplicity, both in implementation and interpreting the results. The algorithm also scales well to larger data sets and there is only one hyperparameter to tune (number of clusters $k$). As for the disadvantages, the algorithm is rather sensitive to the initialization of centroids in the first step. If we were to select very bad initial centroids, the convergence time of the algorithm increases greatly and we might not even get good clusters. We also have to choose the number of clusters manually, which is a downside if we have no additional knowledge of the data beforehand. In addition to this, the algorithm (as with any distance-based clustering algorithm) suffers from the curse of dimensionality (\cref{fig:curse-of-dimensionality}), i.e., the fact that when the dimensionality increases it becomes more and more difficult to distinguish between data points (all points converge to the same distance).
+
+\begin{figure}[H]
+    \centering
+    \input{thesis/figures/curse-of-dimensionality}
+    \caption{Curse of dimensionality: the distance between points in higher dimensional spaces become the same as the dimensionality increases, and thus, it is harder to differentiate between points using distance metrics. The blue line represents the density of the pairwise euclidean distances (divided by max distance to normalize x-axis). The red line is the mean distance.}
+    \label{fig:curse-of-dimensionality}
+\end{figure}
+
+\subsection{Mini-batch k-means clustering}
+\label{sec:mini-batch-k-means-clustering}
+The time it takes for K-means clustering to converge strongly depends on the number of data points $n$ and the desired number of clusters $k$. In order to reduce the computation time, mini-batch k-means clustering was introduced \cite{sculley2010}. The mini-batches are randomly sampled subsets of the training data for each training iteration (similar to the mini-batches in gradient descent). By using mini-batches, we drastically reduce the computational requirement required to converge to a local solution and, as noted by the authors in \cite{sculley2010}, the results of mini-batch k-means clustering tend to only be slightly worse than the standard algorithm.
+
+The algorithm is very similar to the standard k-means clustering algorithm and comprises two major steps. In the first step, we initialize $k$ cluster centroids and sample $B=\enclc{b_1, b_2, \ldots, b_m} \subset X$ points at random from the data set $X$, where $m$ is the mini-batch size. In the second step, we update the cluster centroids by gradually moving the centroids. For each sample $b$ in the mini-batch, the centroids are updated by taking the average of $b$ and the previous points assigned to the centroid. By doing so, the centroid is moved with a decreasing rate over time. The first and the second step is repeated until convergence is met.
+
+\subsection{K-medoids clustering}
+\label{sec:k-medoids-clustering}
+K-medoids clustering was introduced as an alternative to the standard K-means clustering algorithm \cites{Kaufman1990}[p. 427 - 428]{bishop2006}. K-medoids clustering uses data points for its cluster centroids and works with any dissimilarity measures, making it more interpretable and robust to outliers than K-means clustering. A medoid of a cluster is a data point where the average dissimilarity between the medoid itself and all other data points in the same cluster is being minimized \cite{Kaufman1990}.
+
+To solve the k-medoids problem efficiently, the Partitioning Around Medoids (PAM) algorithm is often used. Similar to the standard K-means clustering algorithm, PAM consists of two main stages called build and swap. In the build stage, we greedily select $k$ of the $n$ data points to be the initial cluster medoids, denoted $M = \enclc{m_1, m_2, \ldots, m_k} \subset X$. To select $M$ initially, we want to minimize the dissimilarity between the cluster medoids and associated points in the cluster. In other words, initially we set the first medoid $m_1$ to be the data point such that the dissimilarity between then medoid and all other data points is minimized. Then, for all proceeding medoids ($m_2, \ldots, m_k$), we look for medoids such that the dissimilarity between the additional medoid, the data points associated with the new medoid and all other medoids (and its associated data points) is minimized. This process is repeated until we have $k$ medoids. Following, the swap stage consists of iteratively swapping out the $k$ medoids with other data points from the data set, if it minimizes the overall dissimilarity. The algorithm terminates if by swapping the medoids with other data points we do not get lower dissimilarity.
+
+Even though K-medoids clustering seems to be the superior choice over K-means clustering, it suffers from the fact it is more computationally heavy to compute and thus is not always feasible to run for large data sets.
 
 \subsection{Gaussian mixture models (GMMs)}
-TODO
+\label{sec:gmm-clustering}
+Gaussian mixture models (GMMs) are probability distributions which consists of a mixture of multiple Gaussians \cite[Section 9.2]{bishop2006}. A Gaussian (also called normal) is a probability distribution which was several nice properties, such as mean as its mode and symmetry. In the context of cluster algorithms, GMMs can be used to cluster data points by using multivariate (i.e. of higher dimension) Gaussian distributions as cluster centroids. In particular, for each cluster centroid $c_i, 1 \leq i \leq k$, we define $\mu_i$ to be the cluster mean, $\Sigma_i$ to be the cluster covariances and $\pi_i$ to be the mixing coefficients. The cluster mean $\mu_i$ and covariances $\Sigma_i$ determines the localization and spread for each cluster, while the mixing coefficients $\pi_i$ determine how much we emphasize each cluster. In other words, by using Gaussian distributions, we get more freedom as to how the clusters are shaped and how much to prioritize them for each data point. To estimate the parameters $\theta = \enclc{\mu, \Sigma, \pi}$ of GMMs, the Expectation-Maximization (EM) algorithm is often used and is an iterative algorithm.
+
+The EM algorithm starts off my initializing its parameters $\mu$, $\Sigma$ and $\pi$. There exists several methods for initializing the parameters and it is common to first run K-means clustering on the data in order to obtain a suitable starting point. By running K-means clustering first, the parameters are computed by using statistics from the result of K-means. Furthermore, the EM algorithm consists of two main stages, namely expectation and maximization. In the expectation stage compute the responsibilities for each data point in $X$ using the current set of parameters. With responsibilities, we mean how much each Gaussian is responsible for explaining a single data point in $X$. Next, in the maximization step, the responsibilities from the expectation step is used to update the parameters such that the likelihood $\text{P}(X | \theta)$ is maximized. The likelihood $\text{P}(X | \theta)$ tells us how good the set of parameters $\theta$ fits our data $X$. The exact derivation and update rules for each parameter is left out and we refer the reader to \cites[Section 9.4]{bishop2006} for more details. Once a suitable threshold is met with respect to $\text{P}(X | \theta)$, the algorithm terminates and we have converged to a set or parameters $\hat{\theta}$. Using the final parameters, $\hat{\theta}$ we predict which Gaussian (i.e. cluster) each data point in $X$ is associated with.
 
 \subsection{Hierarchical clustering}
+Hierarchical clustering is a group of clustering algorithms which constructs clusters by recursively partitioning the data points of $X$ in top-down or bottom-up fashion \cite{Rokach2005}. These two methods are divided into what we call agglomerative- and divisive hierarchical clustering. Using agglomerative hierarchical clustering, each data point in $X$ starts off in their own cluster and are successively merged until all points are merged into a single cluster. In contrast to the agglomerative method, divisive hierarchical clustering starts off with all data points in $X$ in a single cluster. Then, the single cluster is divided into smaller clusters, until each point is in its own cluster. The output of an hierarchical clustering algorithm is a dendrogram, which represents the nested clustering structure. An example of a dendrogram is illustrated in (\textbf{TODO: Add figure}).
+
+To merge or divide clusters, we use some similarity measure in order to either merge similar data points (agglomerative) or divide dissimilar data points (divisive). Exactly which data points we choose to merge or divide depends on which criterion we want to optimize. There exist several different criterions one may choose to perform hierarchical clustering:
+\begin{itemize}
+    \item \textbf{Single-linkage clustering} --- combines two clusters that contain the closest pair (i.e. largest similarity) of elements that do not yet belong to the same cluster as each other.
+    \item \textbf{Complete-linkage clustering}  --- combines two clusters that contain the furthest pair (i.e. smallest similarity) of elements that do not yet belong to the same cluster as each other.
+    \item \textbf{Average-linkage clustering} --- combines two clusters such that the average pairwise distance within the newly created cluster is minimum.
+    \item \textbf{Ward-linkage clustering} --- combines two clusters such that the variance of the newly created cluster is minimum \cite{Ward1963}.
+\end{itemize}
+
+\textbf{TODO}: Write pros/cons of the different linkages
+(https://www.youtube.com/watch?v=VMyXc3SiEqs).
+
+\textbf{TODO}: Mention that agglomerative clustering is used over divisive, since it is more practical.
+
+\subsection{Spectral clustering}
 TODO
 
 \subsection{Hierarchical Density-Based Spatial Clustering of Applications with Noise (HDBSCAN)}
@@ -183,7 +304,4 @@ TODO
 TODO
 
 \subsection{Uniform Manifold Approximation and Projection (UMAP)}
-TODO
-
-\subsection{t-distributed stochastic neighbor embedding (t-SNE)}
 TODO

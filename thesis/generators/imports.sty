@@ -24,6 +24,25 @@
 \usepackage{amssymb}
 \usepackage{multirow}
 
+% -- Multiciting --
+\usepackage{cite}
+\makeatletter
+\newcommand{\citecomment}[2][]{\citen{#2}#1\citevar}
+\newcommand{\citeone}[1]{\citecomment{#1}}
+\newcommand{\citetwo}[2][]{\citecomment[,~#1]{#2}}
+\newcommand{\citevar}{\@ifnextchar\bgroup{;~\citeone}{\@ifnextchar[{;~\citetwo}{]}}}
+\newcommand{\citefirst}{\@ifnextchar\bgroup{\citeone}{\@ifnextchar[{\citetwo}{]}}}
+\newcommand{\cites}{[\citefirst}
+\makeatother
+
+% -- PGFPlots --
+% \documentclass{standalone}
+\usepackage{pgfplots}
+\DeclareUnicodeCharacter{2212}{−}
+\usepgfplotslibrary{groupplots,dateplot}
+\usetikzlibrary{patterns,shapes.arrows}
+\pgfplotsset{compat=newest}
+
 \renewcommand{\labelenumii}{\theenumii}
 \renewcommand{\theenumii}{\theenumi.\arabic{enumii}.}
 \renewcommand{\theequation}{\arabic{equation}}
@@ -33,6 +52,7 @@
 \usepackage{hyperref}
 \tolerance=1000
 \usepackage{amsmath}
+\usepackage{mathtools}
 \usepackage{titlesec}
 \usepackage{setspace}
 \onehalfspacing
@@ -99,3 +119,18 @@
 \newcommand{\sumlim}[2]{\sum\limits_{#1}^{#2}}
 % Transposed
 \newcommand{\trans}[1]{{#1}^\top}
+% Partial derivative
+\newcommand{\parder}[2]{\frac{\partial #1}{\partial #2}}
+% Undertext bracket
+\newcommand{\undertext}[2]{\underbrace{#1}_{\mathclap{\text{#2}}}}
+% Enclose in square brackets
+\newcommand{\enclb}[1]{\left[#1\right]}
+% Enclose in parenthesis
+\newcommand{\enclp}[1]{\left(#1\right)}
+% Enclose in curly brackets
+\newcommand{\enclc}[1]{\left\{#1\right\}}
+% Argmin
+\DeclareMathOperator*{\argmin}{arg\,min}
+% Norm
+\DeclarePairedDelimiterX{\norm}[1]{\lVert}{\rVert}{#1}
+%%%%%%%%%%%%%%%%%%%%%

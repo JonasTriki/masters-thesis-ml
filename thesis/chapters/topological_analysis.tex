@@ -1,2 +1,47 @@
-\chapter{Topological Analysis}
+\chapter{Topological Data Analysis}
+TODO
+
+\section{Concepts}
+TODO
+
+\subsection{Simplices}
+TODO
+
+\subsection{Simplicial complex}
+TODO
+
+\subsubsection{{\v C}ech complex}
+TODO
+
+\subsubsection{Vietoris–Rips complex}
+TODO
+
+\subsection{Cycles}
+TODO
+
+\subsection{Persistence diagram}
+TODO
+
+\subsection{Wasserstein distance}
+TODO
+
+\section{TDA of word embeddings}
+TODO
+
+\subsection{Topological polysemy}
+Determining the number of meanings for a given word is rather tricky. Consider the word \textit{solution}, which has multiple meanings. In some contexts, the word \textit{solution} is related to problems, while in other contexts it could be related to chemistry (mixture of two or more substances). We call such words polysemous, meaning that the word has multiple meanings which are related to one another. The problem of polysemous words also rises in word2vec, as we only have one word vector for each word in our vocabulary and it is rather difficult to measure the number of meanings for each word, only using its word vector. To tackle this problem, \cite{jakubowski2020topology} introduced a topological measure of polysemy. In their paper, they show that their topological measure of polysemy correlates well with the actual number of meanings of words. We will briefly explain the motivation behind their topological measure of polysemy, introduce the method and show results from their experimentation. Following, we will attempt to recreate their results using our word embeddings from \cref{sec:training-and-eval-our-word2vec-impl}.
+
+The motivation behind the topological measure of polysemy introduced in \cite{jakubowski2020topology} stams from the fact that the number of meanings for a given word $w$ should be reflected by the number of components of a punctured neighbourhood (i.e. neighbouring words excluding $w$) around $w$. Before computing the topological polysemy measure, we assume that we are given word embeddings $W \in \R^{|V| \times d}$, where $|V|$ is the number of words in the vocabulary and $d$ is the word embedding dimension. Topological polysemy is computed by fixing a target word $w$ and a neighbourhood size $n$. We denote the word vector of $w$ as $v_w \in \R^{d}$. We denote topological polysemy as $\text{TPS}_n(w)$. To compute $\text{TPS}_n(w)$, we first normalize the word embeddings $W$ such that each vector are of unit length. The normalized word embeddings are denoted $W_\text{norm}$ and the normalized word vector of the target word $w$ is denoted as $v_{w_{\text{norm}}}$. As a second step, the punctured neighbourhood $N_n(w)$ is computed, that is, the neighbouring $n$ word vectors (normalized) around $v_{w_{\text{norm}}}$, excluding $w$ itself. Furthermore, we project the word vectors of $N_n(w)$ to lie at the unit sphere, with $v_{w_{\text{norm}}}$ as the center. We denote this normalized punctured neighbourhood as $N'_n(w)$. In other words, we make the word vector of $w$ to be the origin of a $d$-dimensional sphere and project the neighbouring words of $w$ to lie around it. Next, we compute the zero degree persistence diagram of $N'_n(w)$, denoted as $PD_n(w)$. $\text{TPS}_n(w)$ is then the Wasserstein distance between $PD_n(w)$ and the empty persistence diagram, also known as the Wasserstein norm.
+
+To perform the experiments, \cite{jakubowski2020topology} trained a fastText model \cite{bojanowski2017enriching} on training data from the SemEval-2010 Task 14: Evaluation Setting for Word Sense Induction \& Disambiguation Systems \cite{manandhar-klapaftis-2009-semeval}. The training data from the SemEval task consists of several sentences related to 100 polysemous words (50 nouns and 50 verbs). The SemEval dataset also includes the number of true meanings (also called gold standard or GS) for each of the 100 polysemous words, as perceived by humans. To compute the $\text{TPS}_n(w)$, the authors use the 100 polysemous words, words from the SemEval training data which has a WordNet \cite{fellbaum1998} entry and all words in SemEval training data. Furthermore, the Pearson correlation coefficient (\textbf{TODO}: cite this) is computed between $\text{TPS}_n(w)$ and GS, the number of synsets for WordNet words and the word frequency as they appear in the SemEval training data, respectively. The authors show that there is a moderate correlation between $\text{TPS}_n(w)$ and GS at $n \in \enclc{40, 50, 60}$, a decreasing correlation between $\text{TPS}_n(w)$ and the number of synsets for WordNet words and no correlation between $\text{TPS}_n(w)$ and word frequencies.
+
+The authors of the paper computed $\text{TPS}_n(w)$ using word vectors from a fastText model trained on a relatively small data set. In addition to this, the moderate correlation between $\text{TPS}_n(w)$ and GS could be biased by the fact that the training data the fastText model is trained on is strongly related to the  100 polysemous words. For this reason, we would like to investigate the effect of training a word2vec model on (a) the same data set and (b) using the word embeddings from \cref{sec:training-and-eval-our-word2vec-impl}. Even though there are architectural differences between fastText and word2vec, we expect the correlation results to be similar.
+
+\subsubsection{Empirical results using word embeddings from word2vec}
+TODO: Add results using word embeddings from word2vec.
+
+\subsection{Geometric anomaly detection}
+TODO
+
+\subsubsection{Empirical results using word embeddings from word2vec}
 TODO

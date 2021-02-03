@@ -168,7 +168,7 @@ Similar to CBOW, the Skip-gram model uses the two matrices $W$ and $W'$ for mapp
 Mikolov et al. reported that the Skip-gram model performed better than the CBOW model overall \cite{mikolov2013a}. For this reason and due to the scope of the masters thesis, we will stick to using the Skip-gram model throughout the thesis.
 
 \subsection{Negative Sampling}
-In the Skip-gram model, we typically define $p(w_O | w_I)$ using the softmax function \cite{mikolov2013b} \textbf{TODO: Reference softmax function?}
+In the Skip-gram model, we typically define $p(w_O | w_I)$ using the softmax function (\cref{eqn:softmax-function}) \cite{mikolov2013b}
 \begin{align}
     p(w_O | w_I)
     &= \frac{\exp{ \left( \trans{v'_{w_O}} v_{w_I} \right) }} {\exp{ \sumlim{k=1}{|V|} \left( \trans{v'_{w_k}} v_{w_I} \right) }}
@@ -190,7 +190,7 @@ In negative sampling, we are only concerned with a subset of all the words in th
     \log \sigma \left( \trans{v'_{w_O}} v_{w_I} \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -\trans{v'_{w_i}} v_{w_I} \right)
     \label{eqn:negative-sampling-obj-func}
 \end{align}
-where $\sigma$ is the sigmoid function (\textbf{TODO: Reference sigmoid function}), and $v_t$ and $v'_t$ are the "input" and "output" vector representations of the word $w$. Note that the objective in \cref{eqn:negative-sampling-obj-func} can be seen as a special case of the negative cross-entropy loss function. Furthermore, we replace every $\log p(w_O | w_I)$ in the original Skip-gram objective function from \cref{eqn:skip-gram-objective-function-general} by the objective in \cref{eqn:negative-sampling-obj-func}, as seen in \cref{eqn:skip-gram-negative-sampling-objective}.
+where $\sigma$ is the sigmoid function (\cref{eqn:sigmoid-function}), and $v_t$ and $v'_t$ are the "input" and "output" vector representations of the word $w$. Note that the objective in \cref{eqn:negative-sampling-obj-func} can be seen as a special case of the negative cross-entropy loss function. Furthermore, we replace every $\log p(w_O | w_I)$ in the original Skip-gram objective function from \cref{eqn:skip-gram-objective-function-general} by the objective in \cref{eqn:negative-sampling-obj-func}, as seen in \cref{eqn:skip-gram-negative-sampling-objective}.
 \begin{align}
     \frac{1}{T} \sumlim{t=1}{T} \sumlim{w_O \in cw(w_I)}{} \log \sigma \left( \trans{v'_{w_O}} v_{w_I} \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -\trans{v'_{w_i}} v_{w_I} \right)
     \label{eqn:skip-gram-negative-sampling-objective}
@@ -222,27 +222,23 @@ Typically in the literature, word2vec is presented using the \cref{eqn:cbow-obje
 \end{figure}
 
 \subsubsection{Input layers}
-We have two input layers in our ANN; one for the target word $w_t$ and one for the context word $w_{t+j}$, $-R \leq j \leq R, j \neq 0$. The values to the input layers are typically one-hot encoded or represented using an integer corresponding to the index of the word in the vocabulary. For explanation purposes, we will use the one-hot encoded representation here, but in our code implementation, we use the latter one. We denote the one-hot encoded input values to the input layers to be $e_{w_t}$ and $e_{w_{t+j}}$ for the target and context input layers respectively.
+We have two input layers in our ANN; one for the target word $w_t$ and one for the context word $w_{t+j}$, $-R \leq j \leq R, j \neq 0$. The values to the input layers are typically one-hot encoded or represented using an integer corresponding to the index of the word in the vocabulary. For explanation purposes, we will use the one-hot encoded representation here, but in our code implementation, we use the latter one. We denote the input layers to be $\enclc{e_{w_t}}$ for the target word $w_t$ and $\enclc{e_{w_{t+j}}}$ for the context word $w_{t+j}$. Each of the input layers have $|V|$ values, where $|V|$ is the size of the word vocabulary.
 
 \subsubsection{Hidden layer}
-We have one hidden layer in our ANN. To calculate the result from the input layers to the hidden layer, we introduce two $|V| \times D$ weight matrices $W$ and $W'$, where $|V|$ is the vocabulary size and $D$ is the hidden embedding dimension. The $W$ matrix consists of weights related to the target word $w_t$ and can be though of as the "input to hidden" matrix. The $W'$ matrix consists of weights related to the context word, and unlike the $W$ matrix, it can be though of as the "hidden to output" matrix from the original introduction to negative sampling \cite{mikolov2013b}. Note that both $W$ and $W'$ are randomly initialized. Furthermore, we refer to $W$ and $W'$ as the target and context embedding matrix, respectively.
+We have one hidden layer for each input layer in our ANN. To calculate the result from the input layers to its hidden layer, we introduce two $D \times |V|$ weight matrices $W$ and $W'$, where $D$ is the hidden embedding dimension and $|V|$ is the vocabulary size. The $W$ matrix consists of weights related to the target word $w_t$ and can be though of as the "input to hidden" matrix. The $W'$ matrix consists of weights related to the context word, and unlike the $W$ matrix, it can be though of as the "hidden to output" matrix from the original introduction to negative sampling \cite{mikolov2013b}. Note that both $W$ and $W'$ are randomly initialized. Furthermore, we refer to $W$ and $W'$ as the target and context embedding matrix, respectively.
 
-To map from the input to the hidden layer, we simply multiply the transposed of an embedding matrix with its respective one-hot encoded input vector, resulting in a "look-up" of the embedding vector. To illustrate with an example, imagine if we had the one-hot encoded vector $e_{w_t} = \left( \begin{smallmatrix}
+To map from the input to the hidden layer, we use a linear activation function (i.e. $id(x) = x$) with no bias, leading to more efficient training of bigger datasets \cite{mikolov2013a}. In other words, we simply multiply the embedding matrix (either $W$ or $W'$) with its respective one-hot encoded input vector, resulting in a "look-up" of the embedding vector. To illustrate with an example, imagine if we had the one-hot encoded vector $e_{w_t} = \left( \begin{smallmatrix}
     1\\
     0\\
-\end{smallmatrix} \right)$ and the embedding matrix $W = \left( \begin{smallmatrix}
+\end{smallmatrix} \right)$ and the embedding matrix $W = \trans{\left( \begin{smallmatrix}
     1 & 2 & 3\\
     4 & 5 & 6\\
-\end{smallmatrix} \right)$. If the multiply the transpose of the embedding matrix with the one-hot encoded vector, i.e. $\trans{W} e_{w_t}$, we would get $\left( \begin{smallmatrix}
-    1\\
-    2\\
-    3\\
-\end{smallmatrix} \right)$, essentially performing a transposed "copy" operation.
-
-We let $v_{w_t} = \trans{W} e_{w_t}$ be the mapping for word $w_t$ and $v'_{w_t+j} = \trans{W'} e_{w_t{+j}}$ be the mapping for word $w_{t+j}$ from the inputs to the hidden layer. We refer the vectors $v_{w_t}$ and $v'_{w_{t+j}}$ to as the target and context embedding vectors, respectively. Note that when computing the embedding vectors, we do not apply any activation function (i.e. performing a linear transformation) nor any bias, leading to more efficient training of bigger datasets \cite{mikolov2013a}.
+\end{smallmatrix} \right)}$. If the multiply the embedding matrix with the one-hot encoded vector, i.e. $W \cdot e_{w_t}$, we would get $\trans{\left( \begin{smallmatrix}
+    1 & 2 & 3\\
+\end{smallmatrix} \right)}$, essentially performing a "copy" operation. We let $\enclc{v_{w_t}} = W \cdot \enclc{e_{w_t}}$ be the hidden layer for word $w_t$ and $\enclc{v'_{w_{t+j}}} = W' \cdot \enclc{e_{w_{t+j}}}$ be the hidden layer for word $w_{t+j}$. 
 
 \subsubsection{Output layer}
-Recall that when we are using negative sampling, we would like to ensure that words in the same context yield similar word vectors, and that words words that are not in the same context (i.e. a target word versus a word sampled from the noise distribution $P_n(w)$) to be dissimilar \cite{mikolov2013b}. From the objective of negative sampling from \cref{eqn:negative-sampling-obj-func}, we see that we use the sigmoid function on the dot product between the "input" and the "output" vectors $v$ and $v'$. When we take the dot product, we are essentially computing an unnormalized cosine similarity measure between the vectors. The idea is then to use this similarity measure and convert it into the range of $[0, 1]$ by using the sigmoid function. Following, we want similar vectors to have 1 as output from the sigmoid function and dissimilar vectors to have 0 as the output from the sigmoid function. When we compute the loss of the ANN, we generate $k$ samples from the noise distribution $P_n(w)$ such that we can use them for computing the loss of the network.
+Recall that when we are using negative sampling, we would like to ensure that words in the same context yield similar word vectors, and that words words that are not in the same context (i.e. a target word versus a word sampled from the noise distribution $P_n(w)$) to be dissimilar \cite{mikolov2013b}. From the objective of negative sampling from \cref{eqn:negative-sampling-obj-func}, we see that we use the sigmoid function on the dot product between the "input" and the "output" vectors $v$ and $v'$ (in our setting: $\enclc{v_{w_t}}$ and $\enclc{v'_{w_{t+j}}}$). When we take the dot product, we are essentially computing an unnormalized cosine similarity measure between the vectors. The idea is then to use this similarity measure and convert it into the range of $[0, 1]$ by using the sigmoid function. Following, we want similar vectors to have 1 as output from the sigmoid function and dissimilar vectors to have 0 as the output from the sigmoid function. When we compute the loss of the ANN, we generate $k$ samples from the noise distribution $P_n(w)$ such that we can use them for computing the loss of the network.
 
 For each positive target-context pair we have in our data, we create a single sigmoid output plus $k$ sigmoid outputs for each negatively sampled word from the noise distribution $P_n(w)$. Thus, we could argue that we have $(k + 1)$ outputs in our network. As one should note, however, we are only interested in the learned embedding matrix $W$ and its corresponding word vectors; we will not use the ANN for predicting whether a certain word is more or less likely to be within a words contextual neighborhood, thus, discarding the output of the network.
 
@@ -282,6 +278,15 @@ In typical machine learning projects, it is common to set aside some of the trai
 
 In the first paper introducing word2vec, they used two test data sets; the Semantic-Syntactic Word Relationship test set (SSWR) and the Microsoft Research Syntactic Analogies Dataset (MSR). SSWR was first introduced in \cite{mikolov2013a}, consists of 8869 semantic and 10675 syntactic questions and is widely used as a test dataset. The MSR dataset was first introduced in \cite{mikolov-etal-2013-linguistic} and consists of 8000 analogy questions. For the sake of simplicity, we will only use the SSWR and the MSR test data sets when evaluating the word2vec model on word analogy questions. It should be noted, however, that there are other common test data sets as well, such as the Bigger analogy test set (BATS) from \cite{gladkova-etal-2016-analogy}.
 
+\section{Other techniques for learning word embeddings}
+TODO
+
+\subsection{GloVe}
+TODO
+
+\subsection{fastText}
+TODO
+
 \section{Training and evaluating our word2vec implementation}
 \label{sec:training-and-eval-our-word2vec-impl}
 We train and evaluate our word2vec implementation to further deepen our understanding in how to implement it in practice and how it might perform versus other implementations of word2vec. As with training any machine learning model, one usually needs to prepare some data. In our case it is not any different, and before training our word2vec model, we will in this section first go over the data preprocessing choices we have made. Furthermore, we discuss the details of our own implementation of word2vec using the Skip-gram model and negative sampling. At last we cover the specific choices of hyperparameters and compare our empirical results to results from other models.
@@ -307,12 +312,19 @@ We then proceed by processing each Wikipedia article. In particular, we performe
     \item Each sentence is then appended to an output text file, separated using the newline character (i.e. \textbackslash n).
 \end{enumerate}
 
-\textbf{TODO}: Write about word2phrase.
+Following, we combined words that appear frequently together, such as "New York" or "programming languages", into a single word, separated by an underscore. This preprocessing procedure is explained in \cite[4 Learning Phrases]{mikolov2013b} and consists of a simple, yet efficient data-driven approach where we combine phrases together based on word counts, as shown in \cref{eqn:word2phrase-score}. This phrase-learning procedure is referred to as word2phrase, as specified by the original source code.
+\begin{align}
+    \label{eqn:word2phrase-score}
+    \text{score}(w_i, w_j) = \frac{\text{freq}(w_i, w_j) - \delta}{\text{freq}(w_i) \cdot \text{freq}(w_j)}
+\end{align}
+where $w_i$ and $w_j$ are bigrams, or two neighboring words, from the vocabulary, $freq()$ returns the how many times the word (or bigram) occurs in the vocabulary and $\delta$ is a hyperparameter used to prevent long phrases consisting of infrequent words. If the score in \cref{eqn:word2phrase-score} is above the $\delta$ threshold parameter, the bigram is accepted into the vocabulary and replaces all occurrences of the two words $w_i$ and $w_j$ where they are next to each other. We denote the threshold parameter as \textbf{threshold-word2phrase}. One usually runs a couple of passes through the text data to create trigrams, four-grams or even five-grams, depending on the application at hand, and is chosen as a hyperparameter as well. We denote the number of passes through the text as \textbf{num-epochs-word2phrase}. For each pass through the data, the $\delta$ hyperparameter is decreased, but \cite{mikolov2013b} does not state how they decrease it. By manual inspection of the source code of word2vec, we observed that they started with a threshold of 200, then decreased it to 100 for the second and final pass. With this in mind, we introduce a threshold decay parameter, denoted \textbf{threshold-decay-word2phrase}, which tells how much the threshold should be decreased for each pass.
 
 \subsection{Implementation specifics}
 To implement the word2vec model, we used Python and Tensorflow \cite{python3-2009, tensorflow2015-whitepaper}. In particular, we implemented the Skip-gram model using negative sampling. To do so, we split our implementation into three main Python classes. The first class is the \path{Tokenizer}. It is responsible for converting text into word indices in vocabulary (e.g. the word "hello" $\mapsto$ 42). The second class is the \path{Word2vecSGNSModel}, which inherits the \path{tf.keras.Model} class from Tensorflow\footnote{We created the model using subclassing, as specified in \href{https://www.tensorflow.org/guide/keras/custom_layers_and_models}{this guide from Tensorflow}.}, and is the model we use to train our ANN. The third and final main class is \path{Word2vec}. It performs training using the \path{Word2vecSGNSModel} and uses \path{Tokenizer} internally to convert words into integers.
 
 To load the data into the model, we use the \path{tf.data} API, as introduced in Tensorflow 2. The \path{tf.data} API allows us to create flexible and scalable data generators. As mentioned in \cref{sec:data-preprocessing}, we want to train our model on dumps from Wikipedia, i.e., several gigabytes of raw text data, and the \path{tf.data} API allows us to exactly this in a quick and efficient manner. In particular, we used the \path{tf.data.TextLineDataset} class to load multiple text files in parallel and set \path{num_parallel_calls} to \path{tf.data.experimental.AUTOTUNE} wherever we could, such that we parallelize the data generation process as much as possible. We also used \path{prefetch} to prepare the data on the CPU while training.
+
+We implemented word2phrase using Python. First, we counted the uni- and bigram word occurrences, and using them, we ran the word2phrase procedure as explained in \cref{sec:data-preprocessing} by accepting bigrams into the vocabulary if the score (from \cref{eqn:word2phrase-score}) is greater than the set threshold parameter.
 
 By implementing word2vec ourselves, we learned a few things we did not realize after reading the two original papers from Mikolov et al. \cite{mikolov2013a, mikolov2013b}
 \begin{itemize}
@@ -335,13 +347,16 @@ To train the word2vec model, we base our choices of hyperparameters to the diffe
     \textbf{max-vocab-size} & $\infty$ \\
     \rowcolor[HTML]{F5F5F5} \textbf{batch-size} & 256\\
     \textbf{num-epochs} & 5\\
-    \rowcolor[HTML]{F5F5F5} \textbf{learning-rate} & 0.025\\
-    \textbf{min-learning-rate} & 0.0000025\\
-    \rowcolor[HTML]{F5F5F5} \textbf{embedding-dim} & 300\\
-    \textbf{max-window-size} & 5\\
-    \rowcolor[HTML]{F5F5F5} \textbf{num-negative-samples} & 5\\
-    \textbf{sampling-factor} & 0.00001\\
-    \rowcolor[HTML]{F5F5F5} \textbf{unigram-exponent} & 0.75\\
+    \rowcolor[HTML]{F5F5F5} \textbf{num-epochs-word2phrase} & 2\\
+    \textbf{threshold-word2phrase} & 200\\
+    \rowcolor[HTML]{F5F5F5} \textbf{threshold-decay-word2phrase} & 0.5\\
+    \textbf{learning-rate} & 0.025\\
+    \rowcolor[HTML]{F5F5F5} \textbf{min-learning-rate} & 0.0000025\\
+    \textbf{embedding-dim} & 300\\
+    \rowcolor[HTML]{F5F5F5} \textbf{max-window-size} & 5\\
+    \textbf{num-negative-samples} & 5\\
+    \rowcolor[HTML]{F5F5F5} \textbf{sampling-factor} & 0.00001\\
+    \textbf{unigram-exponent} & 0.75\\
     \bottomrule
     \end{tabular}
     \caption{Hyperparameters used to train our word2vec model}
@@ -350,7 +365,9 @@ To train the word2vec model, we base our choices of hyperparameters to the diffe
 
 Similar to \cite{mikolov2013b}, we set the minimum word count to 5, i.e., we discard words that occur less than 5 times in the data we train on. In addition to this, we did not restrict the maximum vocabulary size, e.g., we let the vocabulary include any words that occur at least 5 times.
 
-Neither \cite{mikolov2013a} nor \cite{mikolov2013b} stated which batch-size they used, but by inspecting the original source code\footnote{\href{https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c/\#L542}{word2vec.c at line 542 (of the original word2vec repository)}}, we concluded that they used 1 as their batch size, e.g., performing a backward pass for every forward pass in the model. We found, however, that setting the batch size to 256 to be a nice fit for our data, leading to good quality vectors and faster training.
+We set the number of passes for word2phrase to 2 and the initial threshold to 200, as \cite{mikolov2013b} did in their experiments. Furthermore, we set the threshold decay to 0.5 (i.e. the threshold is halved for each pass) to use a similar setup.
+
+Neither \cite{mikolov2013a} nor \cite{mikolov2013b} stated which batch-size they used, but by inspecting the original source code\footnote{\href{https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c/\#L542}{word2vec.c at line 542 (of the original word2vec repository)}}, we concluded that they used 1 as their batch size, i.e., performing a backward pass for every forward pass in the model. We found, however, that setting the batch size to 256 to be a nice fit for our data, leading to good quality vectors and faster training.
 
 Mikolov et al. used 1 to 4 epochs in their experiments \cite{mikolov2013a, mikolov2013b}, and in the original source code of word2vec\footnote{\href{https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c/\#L43}{word2vec.c at line 43 (of the original word2vec repository)}}, they default to 5 epochs. For this reason, we set the number of epochs to 5.
 
@@ -361,7 +378,7 @@ Furthermore, we set the embedding dimension to 300, the maximal window size to 5
 Using the preprocessing steps from \cref{sec:data-preprocessing} on our data and the hyperparameters from \cref{table:word2vec-hyperparameter-choices}, we get a vocabulary size of 1682564 ($\sim$1.7M) and corpus size of 2514127336 ($\sim$2.5B).
 
 \subsection{Empirical results}
-We evaluated a word2vec model trained on the hyperparameters from \cref{sec:hyperparameter-choices} on a machine with a single GPU (GeForce RTX 2080 Ti), one CPU (Intel i9-7900X @ 3.30GHz) and 64 GB of RAM. We evaluated the trained model using the SSWR and MSR test datasets and compare the results to models from \cite{mikolov2013a, mikolov2013b, mikolov-etal-2013-linguistic, bojanowski2017enriching}. In particular, we compare to the Skip-gram models from \cite[Table 3]{mikolov2013a} and \cite[Table 6]{mikolov2013a} (denoted SG 300 and 1000 respectively), the NEG-15 model from \cite[Table 1]{mikolov2013b}, the RNN-1600 model from \cite[Table 2]{mikolov-etal-2013-linguistic} and the fastText model from \cite[Table 2]{bojanowski2017enriching}. \textbf{TODO}: Write something about fastText? The results are shown in \cref{table:word2vec-eval-empirical-results} (a dash denotes that the model has not been evaluated on the particular subset/data set).
+We evaluated a word2vec model trained on the hyperparameters from \cref{sec:hyperparameter-choices} on a machine with a single GPU (GeForce RTX 2080 Ti), one CPU (Intel i9-7900X @ 3.30GHz) and 64 GB of RAM. We evaluated the trained model using the SSWR and MSR test datasets and compare the results to models from \cite{mikolov2013a, mikolov2013b, mikolov-etal-2013-linguistic, bojanowski2017enriching}. In particular, we compare to the Skip-gram models from \cite[Table 3]{mikolov2013a} and \cite[Table 6]{mikolov2013a} (denoted SG 300 and 1000 respectively), the NEG-15 model from \cite[Table 1]{mikolov2013b}, the RNN-1600 model from \cite[Table 2]{mikolov-etal-2013-linguistic} and the fastText model from \cite[Table 2]{bojanowski2017enriching}. The results are shown in \cref{table:word2vec-eval-empirical-results} (a dash denotes that the model has not been evaluated on the particular subset/data set).
 
 \begin{table}[ht]
     \centering
@@ -385,3 +402,10 @@ We evaluated a word2vec model trained on the hyperparameters from \cref{sec:hype
 \end{table}
 
 \textbf{TODO}: Comment on the result.
+
+\begin{figure}[h]
+   \centering
+   \includegraphics[width=\textwidth]{thesis/figures/country-capital-pca-2d.pdf}
+ \caption{Two-dimensional PCA projection of the 300-dimensional word embeddings of some countries and their capital cities.}
+ \label{fig:country-capital-pca-2d}
+\end{figure}
