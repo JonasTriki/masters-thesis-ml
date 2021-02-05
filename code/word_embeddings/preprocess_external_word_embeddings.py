@@ -86,8 +86,9 @@ def preprocess_external_word_embeddings(raw_data_dir: str, output_dir: str) -> N
 
     if not isfile(google_news_vectors_bin_raw_filepath):
         print(f"Extracting {google_news_vectors_zip_raw_filename}...")
-        with gzip.GzipFile(google_news_vectors_zip_raw_filepath) as gzip_file:
-            gzip_file.write(google_news_vectors_bin_raw_filepath)
+        with gzip.GzipFile(google_news_vectors_zip_raw_filepath, "rb") as gzip_file_raw:
+            with open(google_news_vectors_bin_raw_filepath, "wb") as gzip_file_output:
+                gzip_file_output.write(gzip_file_raw.read())
         print("Done!")
 
     # Parse vectors from binary file and save result
