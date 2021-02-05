@@ -3,6 +3,8 @@ from typing import Union
 
 import annoy
 import numpy as np
+from fastdist import fastdist
+from fastdist.fastdist import vector_to_matrix_distance
 from gudhi.persistence_graphical_tools import (
     plot_persistence_diagram as gd_plot_persistence_diagram,
 )
@@ -47,7 +49,6 @@ def plot_persistence_diagram(
 def punctured_neighbourhood(
     target_word: str,
     word_to_int: dict,
-    word_embeddings: np.ndarray,
     word_embeddings_norm: np.ndarray,
     neighbourhood_size: int,
     word_embeddings_pairwise_dists: np.ndarray,
@@ -63,8 +64,6 @@ def punctured_neighbourhood(
         Target word (w)
     word_to_int : dict of str and int
         Dictionary mapping from word to its integer representation.
-    word_embeddings : np.ndarray
-        Word embeddings
     word_embeddings_norm : np.ndarray
         Normalized word embeddings
     neighbourhood_size : int
@@ -92,8 +91,10 @@ def punctured_neighbourhood(
         if word_embeddings_pairwise_dists is not None:
             neighbourhood_distances = word_embeddings_pairwise_dists[target_word_int]
         else:
-            neighbourhood_distances = cosine_vector_to_matrix_distance(
-                x=word_embeddings[target_word_int], y=word_embeddings
+            neighbourhood_distances = vector_to_matrix_distance(
+                u=word_embeddings_norm[target_word_int],
+                m=word_embeddings_norm,
+                metric=fastdist.euclidean,
             )
         neighbourhood_sorted_indices = np.argsort(neighbourhood_distances)[
             1 : neighbourhood_size + 1
@@ -105,9 +106,9 @@ def punctured_neighbourhood(
 def tps(
     target_word: str,
     word_embeddings: np.ndarray,
-    words_vocabulary: list,
     word_to_int: dict,
     neighbourhood_size: int,
+    words_vocabulary: list = None,
     word_embeddings_normalized: np.ndarray = None,
     word_embeddings_pairwise_dists: np.ndarray = None,
     annoy_index: annoy.AnnoyIndex = None,
@@ -124,13 +125,13 @@ def tps(
         Target word (w)
     word_embeddings : np.ndarray
         Word embeddings
-    words_vocabulary : list
-        List of either words (str) or r word integer representations (int), signalizing
-        what part of the vocabulary we want to use. Set to none to use whole vocabulary.
     word_to_int : dict of str and int
         Dictionary mapping from word to its integer representation.
     neighbourhood_size : int
         Neighbourhood size (n)
+    words_vocabulary : list, optional
+        List of either words (str) or r word integer representations (int), signalizing
+        what part of the vocabulary we want to use (defaults to None, i.e., whole vocabulary).
     word_embeddings_normalized : np.ndarray, optional
         Normalized word embeddings (defaults to None).
     word_embeddings_pairwise_dists : np.ndarray, optional
@@ -179,7 +180,6 @@ def tps(
     target_word_punct_neigh = punctured_neighbourhood(
         target_word=target_word,
         word_to_int=word_to_int,
-        word_embeddings=word_vectors,
         word_embeddings_norm=word_embeddings_normalized,
         neighbourhood_size=neighbourhood_size,
         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists,
@@ -224,6 +224,7 @@ def generate_points_in_spheres(
     sphere_dimensionality: int,
     sphere_means: tuple,
     space_dimensionality: int = None,
+    create_intersection_point: bool = False,
     random_state: int = 0,
 ) -> tuple:
     """
@@ -242,6 +243,8 @@ def generate_points_in_spheres(
         Dimensionality to use for the point space (must be equal or greater than
         sphere_dimensionality). Can be used to increase the dimensionality for the points.
         Defaults to None (or sphere_dimensionality).
+    create_intersection_point : bool, optional
+        Whether or not to add intersection point between spheres (defaults to False).
     random_state : int, optional
         Random state to use when generating points (defaults to 0).
 
@@ -259,6 +262,8 @@ def generate_points_in_spheres(
         np.repeat(mean, sphere_dimensionality) for mean in sphere_means
     ]
     total_num_points = 2 * num_points
+    if create_intersection_point:
+        total_num_points += 1
     if space_dimensionality is not None:
         sphere_means_in_space_dim = [
             np.concatenate(
@@ -304,5 +309,14 @@ def generate_points_in_spheres(
 
                 # Else, use sphere index as label.
                 sphere_point_labels[sphere_point_idx] = point_in_spheres.index(True)
+
+    if create_intersection_point:
+        sphere_points[total_num_points - 1] = np.concatenate(
+            (
+                np.repeat(sphere_means[1] / 2, sphere_dimensionality),
+                np.zeros(space_dimensionality - sphere_dimensionality),
+            )
+        )
+        sphere_point_labels[total_num_points - 1] = 2
 
     return sphere_points, sphere_point_labels
