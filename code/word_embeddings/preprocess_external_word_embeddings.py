@@ -59,7 +59,7 @@ def preprocess_external_word_embeddings(raw_data_dir: str, output_dir: str) -> N
     makedirs(output_dir, exist_ok=True)
 
     # Define filepaths
-    google_news_vectors_zip_raw_download_url = "https://universityofbergen-my.sharepoint.com/personal/jtr008_uib_no/_layouts/15/download.aspx?SourceUrl=/personal/jtr008_uib_no/Documents/Jonas Folkvord @ University of Bergen/INF399/GoogleNews-vectors-negative300.bin.gz"
+    google_news_vectors_zip_raw_download_url = "https://filesender.uninett.no/download.php?token=b0aea55e-72a7-4ac0-9409-8d5dbb322505&files_ids=645861"
     google_news_vectors_zip_raw_filename = "GoogleNews-vectors-negative300.bin.gz"
     google_news_vectors_zip_raw_filepath = join(
         raw_data_dir, google_news_vectors_zip_raw_filename
