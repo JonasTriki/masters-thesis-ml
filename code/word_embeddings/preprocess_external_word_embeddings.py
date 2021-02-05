@@ -86,7 +86,7 @@ def preprocess_external_word_embeddings(raw_data_dir: str, output_dir: str) -> N
 
     if not isfile(google_news_vectors_bin_raw_filepath):
         print(f"Extracting {google_news_vectors_zip_raw_filename}...")
-        with tarfile.open(google_news_vectors_zip_raw_filename) as tar_file:
+        with tarfile.open(google_news_vectors_zip_raw_filepath) as tar_file:
             tar_file.extract(
                 google_news_vectors_bin_raw_filename, google_news_vectors_bin_raw_filepath
             )
