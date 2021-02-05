@@ -5,9 +5,8 @@ import annoy
 import numpy as np
 from fastdist import fastdist
 from fastdist.fastdist import vector_to_matrix_distance
-from gudhi.persistence_graphical_tools import (
-    plot_persistence_diagram as gd_plot_persistence_diagram,
-)
+from gudhi.persistence_graphical_tools import \
+    plot_persistence_diagram as gd_plot_persistence_diagram
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 from matplotlib import pyplot as plt
@@ -95,6 +94,7 @@ def punctured_neighbourhood(
                 u=word_embeddings_norm[target_word_int],
                 m=word_embeddings_norm,
                 metric=fastdist.euclidean,
+                metric_name="euclidean",
             )
         neighbourhood_sorted_indices = np.argsort(neighbourhood_distances)[
             1 : neighbourhood_size + 1
