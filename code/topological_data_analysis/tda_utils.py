@@ -105,10 +105,10 @@ def punctured_neighbourhood(
 
 def tps(
     target_word: str,
-    word_embeddings: np.ndarray,
     word_to_int: dict,
     neighbourhood_size: int,
     words_vocabulary: list = None,
+    word_embeddings: np.ndarray = None,
     word_embeddings_normalized: np.ndarray = None,
     word_embeddings_pairwise_dists: np.ndarray = None,
     annoy_index: annoy.AnnoyIndex = None,
@@ -123,8 +123,6 @@ def tps(
     ----------
     target_word : str
         Target word (w)
-    word_embeddings : np.ndarray
-        Word embeddings
     word_to_int : dict of str and int
         Dictionary mapping from word to its integer representation.
     neighbourhood_size : int
@@ -132,8 +130,12 @@ def tps(
     words_vocabulary : list, optional
         List of either words (str) or r word integer representations (int), signalizing
         what part of the vocabulary we want to use (defaults to None, i.e., whole vocabulary).
+    word_embeddings : np.ndarray
+        Word embeddings; either word_embeddings or word_embeddings_normalized
+        must be specified (defaults to None).
     word_embeddings_normalized : np.ndarray, optional
-        Normalized word embeddings (defaults to None).
+        Normalized word embeddings; either word_embeddings_normalized or word_embeddings
+        must be specified (defaults to None).
     word_embeddings_pairwise_dists : np.ndarray, optional
         Numpy matrix containing pairwise distances between word embeddings
         (defaults to None).
@@ -160,21 +162,24 @@ def tps(
        Topology of Word Embeddings: Singularities Reflect Polysemy.
     """
     # Create word vectors from given words/vocabulary
-    if words_vocabulary is not None:
-        word_vectors = words_to_vectors(
-            words_vocabulary=words_vocabulary,
-            word_to_int=word_to_int,
-            word_embeddings=word_embeddings,
-        )
-    else:
-        word_vectors = word_embeddings
-
-    if word_embeddings_normalized is None:
+    if word_embeddings is not None and word_embeddings_normalized is None:
+        if words_vocabulary is not None:
+            word_vectors = words_to_vectors(
+                words_vocabulary=words_vocabulary,
+                word_to_int=word_to_int,
+                word_embeddings=word_embeddings,
+            )
+        else:
+            word_vectors = word_embeddings
 
         # Normalize all word vectors to have L2-norm
         word_embeddings_normalized = word_vectors / np.linalg.norm(
             word_vectors, axis=1
         ).reshape(-1, 1)
+    elif word_embeddings is None and word_embeddings_normalized is None:
+        raise ValueError(
+            "Either word embeddings or normalized word embeddings must be specifed."
+        )
 
     # Compute punctured neighbourhood
     target_word_punct_neigh = punctured_neighbourhood(
