@@ -1,10 +1,13 @@
 import argparse
+import sys
 import tarfile
 from os import makedirs
 from os.path import isfile, join
 
 import numpy as np
 from word2vec_utils import load_word2vec_format
+
+sys.path.append("..")
 
 from utils import download_from_url
 
