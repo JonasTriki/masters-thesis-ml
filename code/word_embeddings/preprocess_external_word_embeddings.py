@@ -69,11 +69,9 @@ def preprocess_external_word_embeddings(raw_data_dir: str, output_dir: str) -> N
         raw_data_dir, google_news_vectors_bin_raw_filename
     )
     google_news_words_filepath = join(
-        raw_data_dir, "GoogleNews-vectors-negative300_words.txt"
+        output_dir, "GoogleNews-vectors-negative300_words.txt"
     )
-    google_news_vectors_filepath = join(
-        raw_data_dir, "GoogleNews-vectors-negative300.npy"
-    )
+    google_news_vectors_filepath = join(output_dir, "GoogleNews-vectors-negative300.npy")
 
     # -- GoogleNews-vectors-negative300.bin.gz --
     if not isfile(google_news_vectors_zip_raw_filepath):
