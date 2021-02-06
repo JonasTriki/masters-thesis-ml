@@ -244,6 +244,8 @@ def replace_all_numbers(words: list, language: str) -> list:
     # Add exception for Danish
     if language == "danish":
         lang = "dk"
+    elif language == "swedish":
+        lang = "sv"
     else:
         lang = language[:2]  # Extract first two characters (e.g. english --> en)
     words = replace_numbers(words, lang, ordinal=True)
