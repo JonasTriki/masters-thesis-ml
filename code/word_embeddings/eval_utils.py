@@ -119,7 +119,7 @@ def similar_words(
         ]
     else:
         sorted_indices_with_dists = annoy_index.get_nns_by_vector(
-            v=query_word_vec,
+            vector=query_word_vec,
             n=top_n
             + len(
                 exclude_words_indices
