@@ -118,8 +118,9 @@ def similar_words(
             idx for idx in sorted_indices if idx not in exclude_words_indices
         ]
     else:
+        query_word_vec_norm = query_word_vec / np.linalg.norm(query_word_vec)
         sorted_indices = annoy_index.get_nns_by_vector(
-            vector=query_word_vec,
+            vector=query_word_vec_norm,
             n=top_n
             + len(
                 exclude_words_indices
