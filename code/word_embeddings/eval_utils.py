@@ -118,18 +118,15 @@ def similar_words(
             idx for idx in sorted_indices if idx not in exclude_words_indices
         ]
     else:
-        sorted_indices_with_dists = annoy_index.get_nns_by_vector(
+        sorted_indices = annoy_index.get_nns_by_vector(
             vector=query_word_vec,
             n=top_n
             + len(
                 exclude_words_indices
             ),  # Add number of excluded words to avoid empty result
-            include_distances=True,
         )
         sorted_indices = [
-            idx
-            for idx, _ in sorted_indices_with_dists
-            if idx not in exclude_words_indices
+            idx for idx in sorted_indices if idx not in exclude_words_indices
         ]
 
     # Filter top words/similarities
