@@ -241,7 +241,11 @@ def replace_all_numbers(words: list, language: str) -> list:
     new_words : list
         List of new words with textual representation of numbers.
     """
-    lang = language[:2]  # Extract first two characters (e.g. english --> en)
+    # Add exception for Danish
+    if language == "danish":
+        lang = "dk"
+    else:
+        lang = language[:2]  # Extract first two characters (e.g. english --> en)
     words = replace_numbers(words, lang, ordinal=True)
     words = replace_numbers(words, lang)
     return words
