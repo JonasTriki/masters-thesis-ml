@@ -1,5 +1,5 @@
 #!/bin/bash
-python evaluate_word2vec.py \
+screen -dmS eval_word2vec_enwiki -L -Logfile eval_word2vec_enwiki.logs python evaluate_word2vec.py \
 --model_dir ../output/word2vec_training/word2vec_enwiki_jan_2021_word2phrase \
 --model_name word2vec \
 --dataset_name enwiki \

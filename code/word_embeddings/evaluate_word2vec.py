@@ -162,7 +162,7 @@ def evaluate_word2vec(
         annoy_index = annoy.AnnoyIndex(
             f=last_embedding_weights.shape[1], metric="euclidean"
         )
-        annoy_index.load(annoy_index_filepath)
+        annoy_index.load(annoy_index_filepath, prefault=True)
 
     # SSWR
     print("--- Evaluating SSWR ---")
