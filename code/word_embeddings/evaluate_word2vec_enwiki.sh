@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 python evaluate_word2vec.py \
 --model_dir ../output/word2vec_training/word2vec_enwiki_jan_2021_word2phrase \
 --model_name word2vec \

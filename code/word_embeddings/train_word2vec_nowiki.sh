@@ -1,5 +1,5 @@
 #!/bin/bash
-python train_word2vec.py \
+screen -dmS word2vec_nowiki -L -Logfile word2vec_nowiki.logs python train_word2vec.py \
 --text_data_dir data/nowiki-20210101_phrases/epoch_2 \
 --dataset_name nowiki \
 --output_dir ../output/word2vec_training \

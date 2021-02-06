@@ -24,7 +24,13 @@ def parse_args() -> argparse.Namespace:
         "--language",
         type=str,
         default="english",
-        help="Language of the wikipedia dump",
+        help="Language of the Wikipedia dump",
+    )
+    parser.add_argument(
+        "--wiki_name",
+        type=str,
+        default="enwiki",
+        help="Name of the Wikipedia dump",
     )
     parser.add_argument(
         "--wiki_dump_time",
@@ -67,6 +73,7 @@ def parse_args() -> argparse.Namespace:
 
 def load_and_preprocess_data(
     language: str,
+    wiki_name: str,
     wiki_dump_time: str,
     raw_data_dir: str,
     output_dir: str,
@@ -81,6 +88,8 @@ def load_and_preprocess_data(
     ----------
     language : str
         Language of the wikipedia dump.
+    wiki_name : str
+        Name of the Wikipedia dump.
     wiki_dump_time : str
         Time of the wikipedia dump.
     raw_data_dir : str
@@ -99,7 +108,6 @@ def load_and_preprocess_data(
     makedirs(output_dir, exist_ok=True)
 
     # Initialize paths
-    wiki_name = f"{language[:2]}wiki"
     dataset_name = f"{wiki_name}-{wiki_dump_time}"
     raw_data_url = (
         f"https://dumps.wikimedia.org/{wiki_name}/{wiki_dump_time}/"
@@ -151,6 +159,7 @@ if __name__ == "__main__":
     args = parse_args()
     load_and_preprocess_data(
         language=args.language,
+        wiki_name=args.wiki_name,
         wiki_dump_time=args.wiki_dump_time,
         raw_data_dir=args.raw_data_dir,
         output_dir=args.output_dir,

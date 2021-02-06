@@ -1,5 +1,5 @@
 #!/bin/bash
-python train_word2vec.py \
+screen -dmS word2vec_enwiki -L -Logfile word2vec_enwiki.logs python train_word2vec.py \
 --text_data_dir data/enwiki-20210101_phrases/epoch_2 \
 --dataset_name enwiki \
 --output_dir ../output/word2vec_training \
@@ -18,7 +18,3 @@ python train_word2vec.py \
 --num_negative_samples 5 \
 --sampling_factor 0.00001 \
 --unigram_exponent_negative_sampling 0.75
-
-# --dynamic_gpu_memory \
-# --mixed_precision \
-# --cpu_only \

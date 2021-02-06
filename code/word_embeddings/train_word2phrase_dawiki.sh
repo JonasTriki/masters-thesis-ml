@@ -1,7 +1,7 @@
 #!/bin/bash
-screen -dmS word2phrase_enwiki -L -Logfile word2phrase_enwiki.logs python train_word2phrase.py \
---text_data_dir data/enwiki-20210101 \
---dataset_name enwiki-20210101 \
+screen -dmS word2phrase_dawiki -L -Logfile word2phrase_dawiki.logs python train_word2phrase.py \
+--text_data_dir data/dawiki-20210101 \
+--dataset_name dawiki-20210101 \
 --starting_epoch_nr 1 \
 --n_epochs 2 \
 --max_vocab_size -1 \

@@ -1,5 +1,5 @@
 #!/bin/bash
-python train_word2vec.py \
+screen -dmS word2vec_enwiki -L -Logfile word2vec_enwiki.logs python train_word2vec.py \
 --text_data_dir data/enwiki-20210101_phrases/epoch_2 \
 --dataset_name enwiki \
 --output_dir ../output/word2vec_training \

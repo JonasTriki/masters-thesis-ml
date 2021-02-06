@@ -1,4 +1,5 @@
-python train_word2phrase.py \
+#!/bin/bash
+screen -dmS word2phrase_nowiki -L -Logfile word2phrase_nowiki.logs python train_word2phrase.py \
 --text_data_dir data/nowiki-20210101 \
 --dataset_name nowiki-20210101 \
 --starting_epoch_nr 1 \

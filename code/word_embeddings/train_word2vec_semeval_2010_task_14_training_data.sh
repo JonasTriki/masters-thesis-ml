@@ -1,5 +1,5 @@
 #!/bin/bash
-python train_word2vec.py \
+screen -dmS word2vec_semeval_2010_task_14 -L -Logfile word2vec_semeval_2010_task_14.logs python train_word2vec.py \
 --text_data_dir ../topological_data_analysis/data/semeval_2010_14_training_data \
 --dataset_name semeval_2010_task_14 \
 --output_dir ../output/word2vec_training \
