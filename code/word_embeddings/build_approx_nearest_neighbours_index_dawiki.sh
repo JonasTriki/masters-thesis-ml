@@ -1,5 +1,5 @@
 #!/bin/bash
-python build_approx_nearest_neighbours_index.py \
+screen -dmS build_ann_index_dawiki -L -Logfile build_ann_index_dawiki.logs python build_approx_nearest_neighbours_index.py \
 --model_training_output_dir ../output/word2vec_training/word2vec_dawiki_jan_2021_word2phrase \
 --model_name word2vec \
 --dataset_name dawiki \

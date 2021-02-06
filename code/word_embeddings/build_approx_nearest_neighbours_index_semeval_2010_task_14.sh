@@ -1,5 +1,5 @@
 #!/bin/bash
-python build_approx_nearest_neighbours_index.py \
+screen -dmS build_ann_index_semeval_2010_task_14 -L -Logfile build_ann_index_semeval_2010_task_14.logs python build_approx_nearest_neighbours_index.py \
 --model_training_output_dir ../output/word2vec_training/word2vec_semeval_2010_task_14 \
 --model_name word2vec \
 --dataset_name semeval_2010_task_14 \
