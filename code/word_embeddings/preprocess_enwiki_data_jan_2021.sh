@@ -1,5 +1,5 @@
 #!/bin/bash
-python preprocess_wikipedia_data.py \
+screen -dmS preprocess_enwiki_data -L -Logfile preprocess_enwiki_data.logs python preprocess_wikipedia_data.py \
 --language english \
 --wiki_name enwiki \
 --wiki_dump_time 20210101 \

@@ -1,5 +1,5 @@
 #!/bin/bash
-python preprocess_wikipedia_data.py \
+screen -dmS preprocess_svwiki_data -L -Logfile preprocess_svwiki_data.logs python preprocess_wikipedia_data.py \
 --language swedish \
 --wiki_name svwiki \
 --wiki_dump_time 20210101 \

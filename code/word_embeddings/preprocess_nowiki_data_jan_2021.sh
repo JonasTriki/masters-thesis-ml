@@ -1,5 +1,5 @@
 #!/bin/bash
-python preprocess_wikipedia_data.py \
+screen -dmS preprocess_nowiki_data -L -Logfile preprocess_nowiki_data.logs python preprocess_wikipedia_data.py \
 --language norwegian \
 --wiki_name nowiki \
 --wiki_dump_time 20210101 \

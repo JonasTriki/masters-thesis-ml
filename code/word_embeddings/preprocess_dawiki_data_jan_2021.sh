@@ -1,5 +1,5 @@
 #!/bin/bash
-python preprocess_wikipedia_data.py \
+screen -dmS preprocess_dawiki_data -L -Logfile preprocess_dawiki_data.logs python preprocess_wikipedia_data.py \
 --language danish \
 --wiki_name dawiki \
 --wiki_dump_time 20210101 \
