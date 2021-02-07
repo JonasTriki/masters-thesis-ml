@@ -297,8 +297,8 @@ def get_model_checkpoint_filepaths(
         [fn for fn in output_filenames if fn.endswith("weights.npy")]
     )
     intermediate_embedding_weight_filepaths = None
-    train_words_filepath = None
-    train_word_counts_filepath = None
+    intermediate_embedding_weight_normalized_filepaths = None
+    intermediate_embedding_weight_annoy_index_filepaths = None
     if len(intermediate_embedding_weight_filenames) > 0:
 
         # Extract combined epoch/embedding nrs and sort by them.
@@ -317,13 +317,34 @@ def get_model_checkpoint_filepaths(
             join(output_dir, fn) for fn in intermediate_embedding_weight_filenames
         ]
 
-        train_words_filename = f"{model_id}_words.txt"
-        if train_words_filename in output_filenames:
-            train_words_filepath = join(output_dir, train_words_filename)
+        # Check for normalized/Annoy index filepaths
+        for fn in intermediate_embedding_weight_filenames:
+            fn_no_ext = fn.rsplit(".", 1)[0]
+            for output_fn in output_filenames:
+                output_filepath = join(output_dir, output_fn)
+                if output_fn.startswith(fn_no_ext):
+                    if output_fn.endswith("_normalized.npy"):
+                        if intermediate_embedding_weight_normalized_filepaths is None:
+                            intermediate_embedding_weight_normalized_filepaths = []
+                        intermediate_embedding_weight_normalized_filepaths.append(
+                            output_filepath
+                        )
+                    elif output_fn.endswith(".ann"):
+                        if intermediate_embedding_weight_annoy_index_filepaths is None:
+                            intermediate_embedding_weight_annoy_index_filepaths = []
+                        intermediate_embedding_weight_annoy_index_filepaths.append(
+                            output_filepath
+                        )
 
-        train_word_counts_filename = f"{model_id}_word_counts.txt"
-        if train_word_counts_filename in output_filenames:
-            train_word_counts_filepath = join(output_dir, train_word_counts_filename)
+    train_words_filename = f"{model_id}_words.txt"
+    train_words_filepath = None
+    if train_words_filename in output_filenames:
+        train_words_filepath = join(output_dir, train_words_filename)
+
+    train_word_counts_filename = f"{model_id}_word_counts.txt"
+    train_word_counts_filepath = None
+    if train_word_counts_filename in output_filenames:
+        train_word_counts_filepath = join(output_dir, train_word_counts_filename)
 
     # Add path to train logs
     train_logs_filename = f"{model_id}_logs.csv"
@@ -335,6 +356,8 @@ def get_model_checkpoint_filepaths(
         "model_training_conf_filepath": model_training_conf_filepath,
         "model_filepaths": model_filepaths,
         "intermediate_embedding_weight_filepaths": intermediate_embedding_weight_filepaths,
+        "intermediate_embedding_weight_normalized_filepaths": intermediate_embedding_weight_normalized_filepaths,
+        "intermediate_embedding_weight_annoy_index_filepaths": intermediate_embedding_weight_annoy_index_filepaths,
         "train_words_filepath": train_words_filepath,
         "train_word_counts_filepath": train_word_counts_filepath,
         "train_logs_filepath": train_logs_filepath,
