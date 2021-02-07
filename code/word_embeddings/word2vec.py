@@ -20,8 +20,7 @@ from word_embeddings.tokenizer import Tokenizer
 from word_embeddings.train_utils import (
     create_model_checkpoint_filepath,
     create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath,
-)
+    create_model_train_logs_filepath)
 from word_embeddings.word2vec_model import Word2VecSGNSModel
 
 
@@ -670,6 +669,7 @@ def load_model_training_output(
 
     return {
         "last_embedding_weights": last_embedding_weights,
+        "last_embedding_weights_filepath": last_embedding_weights_filepath,
         "words": words,
         "word_to_int": word_to_int,
         "word_counts": word_counts,
