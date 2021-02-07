@@ -175,6 +175,19 @@ def evaluate_word2vec(
         annoy_index=annoy_index,
         top_n=top_n_prediction,
     )
+
+    # Compute average semantic and syntactic accuracies
+    sswr_categories = list(sswr_accuracies.keys())
+    sswr_semantic_categories = sswr_categories[:5]
+    sswr_syntactic_categories = sswr_categories[5:-1]
+    sswr_semantic_avg_acc = np.mean(
+        [sswr_accuracies[cat] for cat in sswr_semantic_categories]
+    )
+    sswr_syntactic_avg_acc = np.mean(
+        [sswr_accuracies[cat] for cat in sswr_syntactic_categories]
+    )
+    sswr_accuracies["semantic_avg"] = sswr_semantic_avg_acc
+    sswr_accuracies["syntactic_avg"] = sswr_syntactic_avg_acc
     save_analogies_accuracies_to_file("sswr", output_dir, sswr_accuracies)
     print(sswr_accuracies)
 
