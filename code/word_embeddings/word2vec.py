@@ -5,6 +5,8 @@ from os.path import isfile
 from time import time
 from typing import List, Optional, TextIO
 
+import annoy
+
 sys.path.append("..")
 
 import joblib
@@ -619,7 +621,12 @@ def load_model(model_filepath: str) -> Word2vec:
 
 
 def load_model_training_output(
-    model_training_output_dir: str, model_name: str, dataset_name: str
+    model_training_output_dir: str,
+    model_name: str,
+    dataset_name: str,
+    return_normalized_embeddings: bool = False,
+    return_annoy_index: bool = False,
+    annoy_index_prefault: bool = False,
 ) -> dict:
     """
     Loads and returns a dict object containing output from word2vec training
@@ -632,6 +639,16 @@ def load_model_training_output(
         Name of the trained model.
     dataset_name : str
         Name of the dataset the model is trained on.
+    return_normalized_embeddings : bool, optional
+        Whether or not to return last embedding weights, normalized, if they
+        are present (defaults to False).
+    return_annoy_index : bool, optional
+        Whether or not to return Annoy index fit on last embedding weights, if they
+        are present (defaults to False).
+    annoy_index_prefault : bool, optional
+        Whether or not to enable the `prefault` option when loading
+        Annoy index. return_annoy_index must be set to True to have an affect.
+        (Defaults to False).
 
     Returns
     -------
@@ -667,9 +684,42 @@ def load_model_training_output(
         words = np.array(words_file.read().split("\n"))
     word_to_int = {word: i for i, word in enumerate(words)}
 
+    # Normalized embedding weights
+    last_embedding_weights_normalized = None
+    if (
+        return_normalized_embeddings
+        and "intermediate_embedding_weight_normalized_filepaths"
+        in checkpoint_filepaths_dict
+    ):
+        last_embedding_weights_normalized = np.load(
+            checkpoint_filepaths_dict[
+                "intermediate_embedding_weight_normalized_filepaths"
+            ][-1],
+            mmap_mode="r",
+        )
+
+    # Annoy index
+    last_embedding_weights_annoy_index = None
+    if (
+        return_annoy_index
+        and "intermediate_embedding_weight_annoy_index_filepaths"
+        in checkpoint_filepaths_dict
+    ):
+        last_embedding_weights_annoy_index = annoy.AnnoyIndex(
+            f=last_embedding_weights.shape[1], metric="euclidean"
+        )
+        last_embedding_weights_annoy_index.load(
+            fn=checkpoint_filepaths_dict[
+                "intermediate_embedding_weight_annoy_index_filepaths"
+            ][-1],
+            prefault=annoy_index_prefault,
+        )
+
     return {
         "last_embedding_weights": last_embedding_weights,
         "last_embedding_weights_filepath": last_embedding_weights_filepath,
+        "last_embedding_weights_normalized": last_embedding_weights_normalized,
+        "last_embedding_weights_annoy_index": last_embedding_weights_annoy_index,
         "words": words,
         "word_to_int": word_to_int,
         "word_counts": word_counts,
