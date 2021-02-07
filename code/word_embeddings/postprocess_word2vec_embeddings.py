@@ -1,5 +1,7 @@
 import argparse
+import os
 from os.path import dirname, isfile, join
+from pathlib import Path
 
 import annoy
 import numpy as np
@@ -102,9 +104,7 @@ def postprocess_word2vec_embeddings(
     last_embedding_weights_filepath = w2v_training_output[
         "last_embedding_weights_filepath"
     ]
-    last_embedding_weights_filepath_no_ext = last_embedding_weights_filepath.rsplit(
-        ".", 1
-    )[0]
+    last_embedding_weights_filepath_no_ext = Path(last_embedding_weights_filepath).stem
     if use_full_vocab:
         last_embedding_weights_normalized_filepath = join(
             model_training_output_dir,
