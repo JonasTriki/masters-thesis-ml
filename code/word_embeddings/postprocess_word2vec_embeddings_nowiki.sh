@@ -4,5 +4,4 @@ screen -dmS postprocess_word2vec_nowiki -L -Logfile postprocess_word2vec_nowiki.
 --model_name word2vec \
 --dataset_name nowiki \
 --vocab_size -1 \
---annoy_index_n_trees 250 \
---annoy_index_filepath_suffix jan_2021_annoy_index
+--annoy_index_n_trees 250

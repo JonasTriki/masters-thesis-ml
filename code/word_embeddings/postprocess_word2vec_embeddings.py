@@ -49,12 +49,6 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Number of trees to pass to Annoy's build method. More trees => higher precision",
     )
-    parser.add_argument(
-        "--annoy_index_filepath_suffix",
-        type=str,
-        default="annoy_index",
-        help="Suffix to use for the output filepath (defaults to annoy_index)",
-    )
     return parser.parse_args()
 
 
@@ -64,7 +58,6 @@ def postprocess_word2vec_embeddings(
     dataset_name: str,
     vocab_size: int,
     annoy_index_n_trees: int,
-    annoy_index_filepath_suffix: str,
 ) -> None:
     """
     Applies post-processing to trained word2vec word embeddings:
@@ -83,8 +76,6 @@ def postprocess_word2vec_embeddings(
         Size of the vocabulary to use, -1 denotes all words
     annoy_index_n_trees : int
         Number of trees to pass to Annoys build method. More trees => higher precision.
-    annoy_index_filepath_suffix : str
-        Suffix to use for the output filepath (defaults to annoy_index)
     """
     # Load output from training word2vec
     w2v_training_output = load_model_training_output(
@@ -118,12 +109,12 @@ def postprocess_word2vec_embeddings(
     if use_full_vocab:
         model_ann_index_filepath = join(
             model_training_output_dir,
-            f"{last_embedding_weights_filepath_no_ext}_{annoy_index_filepath_suffix}.ann",
+            f"{last_embedding_weights_filepath_no_ext}_annoy_index.ann",
         )
     else:
         model_ann_index_filepath = join(
             model_training_output_dir,
-            f"{last_embedding_weights_filepath_no_ext}_{vocab_size}_{annoy_index_filepath_suffix}.ann",
+            f"{last_embedding_weights_filepath_no_ext}_{vocab_size}_annoy_index.ann",
         )
 
     # Normalize word embeddings and save to file
@@ -150,6 +141,7 @@ def postprocess_word2vec_embeddings(
         )
 
     if not isfile(model_ann_index_filepath):
+
         # Add word embeddings to index and build it
         ann_index = annoy.AnnoyIndex(f=embedding_dim, metric="euclidean")
         print("Adding word embeddings to index...")
@@ -174,5 +166,4 @@ if __name__ == "__main__":
         dataset_name=args.dataset_name,
         vocab_size=args.vocab_size,
         annoy_index_n_trees=args.annoy_index_n_trees,
-        annoy_index_filepath_suffix=args.annoy_index_filepath_suffix,
     )

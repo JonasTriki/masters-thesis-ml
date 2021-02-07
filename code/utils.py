@@ -329,7 +329,7 @@ def get_model_checkpoint_filepaths(
                         intermediate_embedding_weight_normalized_filepaths.append(
                             output_filepath
                         )
-                    elif output_fn.endswith(".ann"):
+                    elif output_fn.endswith("_annoy_index.ann"):
                         if intermediate_embedding_weight_annoy_index_filepaths is None:
                             intermediate_embedding_weight_annoy_index_filepaths = []
                         intermediate_embedding_weight_annoy_index_filepaths.append(
