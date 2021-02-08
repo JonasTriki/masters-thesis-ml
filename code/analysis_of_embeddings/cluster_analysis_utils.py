@@ -239,7 +239,7 @@ def cluster_analysis(
         agglomerative_clustering_idx = agglomerative_clustering_idx[0]
         param_grid = hyperparameter_grids[agglomerative_clustering_idx]
         linkages = param_grid.get("linkage")
-        affinity = param_grid.get("affinity", "euclidean")
+        affinity = param_grid.get("affinity", ["euclidean"])[0]
 
         clusterers = deepcopy(clusterers)
         agglomerative_clusterings = {}
