@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
 from scipy.cluster.hierarchy import cut_tree
 from sklearn.cluster import AgglomerativeClustering
+from sklearn.metrics import euclidean_distances
 from sklearn.model_selection import ParameterGrid
 from tqdm.auto import tqdm
 
@@ -127,7 +128,9 @@ def cluster_analysis(
     word_embeddings: np.ndarray,
     words_vocabulary: list,
     word_to_int: dict,
+    word_embeddings_normalized: np.ndarray = None,
     compute_pairwise_word_distances: bool = False,
+    compute_pairwise_word_distances_normalized: bool = False,
     return_word_vectors: bool = False,
     save_result_to_disk: bool = False,
     output_dir: str = None,
@@ -144,13 +147,16 @@ def cluster_analysis(
     ----------
     clusterers : list
         List of clusterer classes, where each element in the list should be a tuple
-        of the form (clusterer_name, clusterer_cls).
+        of the form (clusterer_name, clusterer_cls). A third element of the tuples
+        can be set to indicate whether or not to use normalized word vectors.
     hyperparameter_grids : list
         List of dictionaries with hyperparameters, sent to ParameterGrid for each
         respective clusterer.
     eval_metrics_grid : list
         List of internal cluster evaluation metrics used for each respective clusterer.
         Each element of the list is a tuple of the form (eval_metric_key, eval_metric_func).
+        An optional third element of the tuples can be set to denote whether
+        or not to use normalized word vectors (boolean).
     eval_metrics_params : dict
         Dictionary containing kwargs given to internal cluster evaluation metrics
         before computing metric score. The dictionary maps from eval_metric_key to
@@ -162,10 +168,18 @@ def cluster_analysis(
         what part of the vocabulary we want to use.
     word_to_int : dict of str and int
         Dictionary mapping from word to its integer representation.
+    word_embeddings_normalized : np.ndarray
+        Normalized word embeddings. Used for "euclidean only" algorithms.
     compute_pairwise_word_distances : bool
         Whether or not to compute the pairwise distances between each word vector
         (defaults to False). Set this to true if you want to use the pairwise distances
         for fitting clusterers or in evaluation metrics.
+    compute_pairwise_word_distances_normalized : bool
+        Whether or not to compute the pairwise distances between each normalized
+        word vector (defaults to False). Set this to true if you want to use the
+        normalized pairwise distances for fitting clusterers or in evaluation metrics.
+
+        If it is set to True, then word_embeddings_normalized must be specified as well.
     return_word_vectors : bool
         Whether or not to return word vectors and pairwise distances as well
         (if compute_pairwise_word_distances is set to True). Defaults to False.
@@ -196,8 +210,22 @@ def cluster_analysis(
         word_to_int=word_to_int,
         word_embeddings=word_embeddings,
     )
+
+    # Create normalized word vectors from given words/vocabulary if specified.
+    word_vectors_normalized = None
+    if word_embeddings_normalized is not None:
+        word_vectors_normalized = words_to_vectors(
+            words_vocabulary=words_vocabulary,
+            word_to_int=word_to_int,
+            word_embeddings=word_embeddings_normalized,
+        )
+
     if compute_pairwise_word_distances:
         word_vectors_pairwise_distances = pairwise_cosine_distances(word_vectors)
+    if compute_pairwise_word_distances_normalized and word_vectors_normalized is not None:
+        normalized_word_vectors_pairwise_distances = euclidean_distances(
+            word_vectors_normalized
+        )
 
     # If we should do agglomerative clustering first (for faster clustering)
     agglomerative_clustering_idx = [
@@ -220,10 +248,18 @@ def cluster_analysis(
             agglomerative_clustering_instance = AgglomerativeClustering(
                 n_clusters=None, distance_threshold=0, linkage=linkage
             )
-            if compute_pairwise_word_distances and affinity == "precomputed":
-                agglomerative_clustering_instance.fit(word_vectors_pairwise_distances)
+            if affinity == "precomputed":
+                if linkage == "ward" and compute_pairwise_word_distances_normalized:
+                    agglomerative_clustering_instance.fit(
+                        normalized_word_vectors_pairwise_distances
+                    )
+                elif compute_pairwise_word_distances:
+                    agglomerative_clustering_instance.fit(word_vectors_pairwise_distances)
             else:
-                agglomerative_clustering_instance.fit(word_vectors)
+                if linkage == "ward" and word_vectors_normalized is not None:
+                    agglomerative_clustering_instance.fit(word_vectors_normalized)
+                else:
+                    agglomerative_clustering_instance.fit(word_vectors)
 
             # Create required linkage matrix for cut_tree function
             agglomerative_clustering_linkage_matrix = create_linkage_matrix(
@@ -245,9 +281,14 @@ def cluster_analysis(
     # Perform cluster analysis
     clusterers_result = {}
     unique_cluster_metrics = set()
-    for (clusterer_name, clusterer_cls), hyperparameter_grid, eval_metrics in zip(
+    for clusterer_tuple, hyperparameter_grid, eval_metrics in zip(
         clusterers, hyperparameter_grids, eval_metrics_grid
     ):
+        if len(clusterer_tuple) == 3:
+            (clusterer_name, clusterer_cls, clusterer_use_normalized) = clusterer_tuple
+        else:
+            clusterer_use_normalized = False
+            (clusterer_name, clusterer_cls) = clusterer_tuple
         print(f"-- Clustering using {clusterer_name} --")
         clusterers_result[clusterer_name] = {
             "cluster_labels": [],
@@ -268,13 +309,28 @@ def cluster_analysis(
                 clusterer_instance = None
             else:
                 clusterer_instance = clusterer_cls(**params)
-                if compute_pairwise_word_distances and (
+                if (
+                    (
+                        clusterer_use_normalized
+                        and compute_pairwise_word_distances_normalized
+                    )
+                    or compute_pairwise_word_distances
+                ) and (
                     params.get("affinity") == "precomputed"
                     or params.get("metric") == "precomputed"
                 ):
-                    fit_predict_X = word_vectors_pairwise_distances
+                    if (
+                        clusterer_use_normalized
+                        and compute_pairwise_word_distances_normalized
+                    ):
+                        fit_predict_X = normalized_word_vectors_pairwise_distances
+                    elif compute_pairwise_word_distances:
+                        fit_predict_X = word_vectors_pairwise_distances
                 else:
-                    fit_predict_X = word_vectors
+                    if clusterer_use_normalized and word_vectors_normalized is not None:
+                        fit_predict_X = word_vectors_normalized
+                    else:
+                        fit_predict_X = word_vectors
 
                 # Use fit_predict if it is available.
                 if getattr(clusterer_instance, "fit_predict", None) is not None:
@@ -293,25 +349,52 @@ def cluster_analysis(
 
             # Evaluate predicted cluster labels using internal evaluation metrics
             for eval_metric_tuple in eval_metrics:
-                eval_metric_key, eval_metric = eval_metric_tuple
+                if len(eval_metric_tuple) == 3:
+                    (
+                        eval_metric_key,
+                        eval_metric,
+                        eval_metric_use_normalized,
+                    ) = eval_metric_tuple
+                else:
+                    eval_metric_use_normalized = False
+                    (eval_metric_key, eval_metric) = eval_metric_tuple
                 eval_metric_params = eval_metrics_params.get(eval_metric_key, {})
                 if (
                     compute_pairwise_word_distances
                     and eval_metric_params.get("metric") == "precomputed"
                 ):
-                    metric_name, metric_score, metric_obj_max = eval_metric(
-                        word_embeddings=word_vectors_pairwise_distances,
-                        cluster_labels=predicted_labels,
-                        clusterer=clusterer_instance,
-                        **eval_metric_params,
-                    )
+                    if (
+                        eval_metric_use_normalized
+                        and compute_pairwise_word_distances_normalized
+                    ):
+                        metric_name, metric_score, metric_obj_max = eval_metric(
+                            word_embeddings=normalized_word_vectors_pairwise_distances,
+                            cluster_labels=predicted_labels,
+                            clusterer=clusterer_instance,
+                            **eval_metric_params,
+                        )
+                    else:
+                        metric_name, metric_score, metric_obj_max = eval_metric(
+                            word_embeddings=word_vectors_pairwise_distances,
+                            cluster_labels=predicted_labels,
+                            clusterer=clusterer_instance,
+                            **eval_metric_params,
+                        )
                 else:
-                    metric_name, metric_score, metric_obj_max = eval_metric(
-                        word_embeddings=word_vectors,
-                        cluster_labels=predicted_labels,
-                        clusterer=clusterer_instance,
-                        **eval_metric_params,
-                    )
+                    if eval_metric_use_normalized and word_vectors_normalized is not None:
+                        metric_name, metric_score, metric_obj_max = eval_metric(
+                            word_embeddings=word_vectors_normalized,
+                            cluster_labels=predicted_labels,
+                            clusterer=clusterer_instance,
+                            **eval_metric_params,
+                        )
+                    else:
+                        metric_name, metric_score, metric_obj_max = eval_metric(
+                            word_embeddings=word_vectors,
+                            cluster_labels=predicted_labels,
+                            clusterer=clusterer_instance,
+                            **eval_metric_params,
+                        )
                 unique_cluster_metrics.add(metric_name)
 
                 # Initialize metric result
