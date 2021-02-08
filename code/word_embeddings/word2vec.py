@@ -22,7 +22,8 @@ from word_embeddings.tokenizer import Tokenizer
 from word_embeddings.train_utils import (
     create_model_checkpoint_filepath,
     create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath)
+    create_model_train_logs_filepath,
+)
 from word_embeddings.word2vec_model import Word2VecSGNSModel
 
 
@@ -667,9 +668,7 @@ def load_model_training_output(
     last_embedding_weights_filepath = checkpoint_filepaths_dict[
         "intermediate_embedding_weight_filepaths"
     ][-1]
-    last_embedding_weights = np.load(
-        last_embedding_weights_filepath, mmap_mode="r"
-    ).astype(np.float64)
+    last_embedding_weights = np.load(last_embedding_weights_filepath, mmap_mode="r")
 
     # Get word counts from tokenizer of word2vec model
     with open(

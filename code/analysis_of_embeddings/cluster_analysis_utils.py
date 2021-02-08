@@ -230,11 +230,12 @@ def cluster_analysis(
     # If we should do agglomerative clustering first (for faster clustering)
     agglomerative_clustering_idx = [
         i
-        for i, (_, clusterer_cls) in enumerate(clusterers)
-        if clusterer_cls is AgglomerativeClustering
+        for i, clusterer_tuple in enumerate(clusterers)
+        if clusterer_tuple[1] is AgglomerativeClustering
     ]
     fast_agglomerative_clustering = len(agglomerative_clustering_idx) > 0
     if fast_agglomerative_clustering:
+        print("Pre-computing agglomerative clustering...")
         agglomerative_clustering_idx = agglomerative_clustering_idx[0]
         param_grid = hyperparameter_grids[agglomerative_clustering_idx]
         linkages = param_grid.get("linkage")
@@ -277,6 +278,7 @@ def cluster_analysis(
             clusterers[agglomerative_clustering_idx][0],
             agglomerative_clusterings,
         )
+        print("Done!")
 
     # Perform cluster analysis
     clusterers_result = {}
