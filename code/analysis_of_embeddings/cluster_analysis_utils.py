@@ -247,18 +247,16 @@ def cluster_analysis(
 
             # Do agglomerative clustering
             agglomerative_clustering_instance = AgglomerativeClustering(
-                n_clusters=None, distance_threshold=0, linkage=linkage
+                n_clusters=None,
+                distance_threshold=0,
+                linkage=linkage,
+                affinity=affinity if linkage != "ward" else "euclidean",
             )
-            if affinity == "precomputed":
-                if linkage == "ward" and compute_pairwise_word_distances_normalized:
-                    agglomerative_clustering_instance.fit(
-                        normalized_word_vectors_pairwise_distances
-                    )
-                elif compute_pairwise_word_distances:
-                    agglomerative_clustering_instance.fit(word_vectors_pairwise_distances)
+            if linkage == "ward" and word_vectors_normalized is not None:
+                agglomerative_clustering_instance.fit(word_vectors_normalized)
             else:
-                if linkage == "ward" and word_vectors_normalized is not None:
-                    agglomerative_clustering_instance.fit(word_vectors_normalized)
+                if affinity == "precomputed" and compute_pairwise_word_distances:
+                    agglomerative_clustering_instance.fit(word_vectors_pairwise_distances)
                 else:
                     agglomerative_clustering_instance.fit(word_vectors)
 
