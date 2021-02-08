@@ -227,57 +227,6 @@ def cluster_analysis(
             word_vectors_normalized
         )
 
-    # If we should do agglomerative clustering first (for faster clustering)
-    agglomerative_clustering_idx = [
-        i
-        for i, clusterer_tuple in enumerate(clusterers)
-        if clusterer_tuple[1] is AgglomerativeClustering
-    ]
-    fast_agglomerative_clustering = len(agglomerative_clustering_idx) > 0
-    if fast_agglomerative_clustering:
-        print("Pre-computing agglomerative clustering...")
-        agglomerative_clustering_idx = agglomerative_clustering_idx[0]
-        param_grid = hyperparameter_grids[agglomerative_clustering_idx]
-        linkages = param_grid.get("linkage")
-        affinity = param_grid.get("affinity", ["euclidean"])[0]
-
-        clusterers = deepcopy(clusterers)
-        agglomerative_clusterings = {}
-        for linkage in linkages:
-
-            # Do agglomerative clustering
-            agglomerative_clustering_instance = AgglomerativeClustering(
-                n_clusters=None,
-                distance_threshold=0,
-                linkage=linkage,
-                affinity=affinity if linkage != "ward" else "euclidean",
-            )
-            if linkage == "ward" and word_vectors_normalized is not None:
-                agglomerative_clustering_instance.fit(word_vectors_normalized)
-            else:
-                if affinity == "precomputed" and compute_pairwise_word_distances:
-                    agglomerative_clustering_instance.fit(word_vectors_pairwise_distances)
-                else:
-                    agglomerative_clustering_instance.fit(word_vectors)
-
-            # Create required linkage matrix for cut_tree function
-            agglomerative_clustering_linkage_matrix = create_linkage_matrix(
-                clustering=agglomerative_clustering_instance
-            )
-
-            # Set result
-            agglomerative_clusterings[linkage] = {
-                "clustering": agglomerative_clustering_instance,
-                "linkage_matrix": agglomerative_clustering_linkage_matrix,
-            }
-
-        # Set result
-        clusterers[agglomerative_clustering_idx] = (
-            clusterers[agglomerative_clustering_idx][0],
-            agglomerative_clusterings,
-        )
-        print("Done!")
-
     # Perform cluster analysis
     clusterers_result = {}
     unique_cluster_metrics = set()
@@ -300,22 +249,19 @@ def cluster_analysis(
         param_grid = ParameterGrid(hyperparameter_grid)
         for params_idx, params in enumerate(tqdm(param_grid)):
             clusterers_result[clusterer_name]["cluster_params"].append(params)
-            if fast_agglomerative_clustering and isinstance(clusterer_cls, dict):
-                agglomerative_clustering = clusterer_cls[params["linkage"]]
-                predicted_labels = cut_tree(
-                    Z=agglomerative_clustering["linkage_matrix"],
-                    n_clusters=params["n_clusters"],
-                ).T[0]
-                clusterer_instance = None
+
+            # Add exception for ward linkage clustering.
+            if (
+                clusterer_cls is AgglomerativeClustering
+                and params.get("linkage") == "ward"
+                and word_vectors_normalized is not None
+            ):
+                params = {**params, "affinity": "euclidean"}
+                clusterer_instance = clusterer_cls(**params)
+                fit_predict_X = word_vectors_normalized
             else:
                 clusterer_instance = clusterer_cls(**params)
                 if (
-                    (
-                        clusterer_use_normalized
-                        and compute_pairwise_word_distances_normalized
-                    )
-                    or compute_pairwise_word_distances
-                ) and (
                     params.get("affinity") == "precomputed"
                     or params.get("metric") == "precomputed"
                 ):
@@ -332,18 +278,16 @@ def cluster_analysis(
                     else:
                         fit_predict_X = word_vectors
 
-                # Use fit_predict if it is available.
-                if getattr(clusterer_instance, "fit_predict", None) is not None:
-                    predicted_labels = clusterer_instance.fit_predict(fit_predict_X)
-                else:
-                    clusterer_instance.fit(fit_predict_X)
-                    predicted_labels = clusterer_instance.predict(fit_predict_X)
+            # Use fit_predict if it is available.
+            if getattr(clusterer_instance, "fit_predict", None) is not None:
+                predicted_labels = clusterer_instance.fit_predict(fit_predict_X)
+            else:
+                clusterer_instance.fit(fit_predict_X)
+                predicted_labels = clusterer_instance.predict(fit_predict_X)
 
-                # Separate noise labels into clusters
-                if clusterer_cls is HDBSCAN:
-                    predicted_labels = separate_noise_labels_into_clusters(
-                        predicted_labels
-                    )
+            # Separate noise labels into clusters
+            if clusterer_cls is HDBSCAN:
+                predicted_labels = separate_noise_labels_into_clusters(predicted_labels)
 
             clusterers_result[clusterer_name]["cluster_labels"].append(predicted_labels)
 
