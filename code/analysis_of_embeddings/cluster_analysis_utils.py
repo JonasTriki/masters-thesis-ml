@@ -278,10 +278,6 @@ def cluster_analysis(
                     else:
                         fit_predict_X = word_vectors
 
-            # Hotfix to solve https://github.com/scikit-learn-contrib/hdbscan/issues/71
-            if isinstance(clusterer_instance, HDBSCAN):
-                fit_predict_X = fit_predict_X.astype(np.float64)
-
             # Use fit_predict if it is available.
             if getattr(clusterer_instance, "fit_predict", None) is not None:
                 predicted_labels = clusterer_instance.fit_predict(fit_predict_X)

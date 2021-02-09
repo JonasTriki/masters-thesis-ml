@@ -22,8 +22,7 @@ from word_embeddings.tokenizer import Tokenizer
 from word_embeddings.train_utils import (
     create_model_checkpoint_filepath,
     create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath,
-)
+    create_model_train_logs_filepath)
 from word_embeddings.word2vec_model import Word2VecSGNSModel
 
 
@@ -204,7 +203,7 @@ class Word2vec:
             if weight.name.startswith(self._target_embedding_layer_name)
         ][0].numpy()
 
-        return target_embedding_weights
+        return target_embedding_weights.astype(np.float64)
 
     def fit(
         self,
