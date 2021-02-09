@@ -5,8 +5,9 @@ import annoy
 import numpy as np
 from fastdist import fastdist
 from fastdist.fastdist import vector_to_matrix_distance
-from gudhi.persistence_graphical_tools import \
-    plot_persistence_diagram as gd_plot_persistence_diagram
+from gudhi.persistence_graphical_tools import (
+    plot_persistence_diagram as gd_plot_persistence_diagram,
+)
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 
@@ -197,7 +198,7 @@ def tps(
 def tps_point_cloud(
     point_index: int,
     neighbourhood_size: int,
-    point_cloud: np.ndarray,
+    point_cloud: np.ndarray = None,
     point_cloud_indices: list = None,
     point_cloud_normalized: np.ndarray = None,
     point_cloud_pairwise_dists: np.ndarray = None,
@@ -215,8 +216,9 @@ def tps_point_cloud(
         Index of target point
     neighbourhood_size : int
         Neighbourhood size (n)
-    point_cloud : np.ndarray
-        Point cloud
+    point_cloud : np.ndarray, optional
+        Point cloud. Either point_cloud or point_cloud_normalized must be specified.
+        (Defaults to None).
     point_cloud_indices : list, optional
         List of indices of point cloud to use (defaults to None, i.e., all points).
     point_cloud_normalized : np.ndarray, optional
