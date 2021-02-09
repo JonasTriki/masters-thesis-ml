@@ -5,9 +5,8 @@ import annoy
 import numpy as np
 from fastdist import fastdist
 from fastdist.fastdist import vector_to_matrix_distance
-from gudhi.persistence_graphical_tools import (
-    plot_persistence_diagram as gd_plot_persistence_diagram,
-)
+from gudhi.persistence_graphical_tools import \
+    plot_persistence_diagram as gd_plot_persistence_diagram
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 
@@ -248,9 +247,17 @@ def tps_point_cloud(
     .. [1] Alexander Jakubowski, Milica Gašić, & Marcus Zibrowius. (2020).
        Topology of Word Embeddings: Singularities Reflect Polysemy.
     """
+    if point_cloud is not None:
+        num_points = len(point_cloud)
+    elif point_cloud_normalized is not None:
+        num_points = len(point_cloud_normalized)
+    else:
+        raise ValueError(
+            "Either point_cloud or point_cloud_normalized must be specified."
+        )
     return tps(
         target_word=str(point_index),
-        word_to_int={str(i): i for i in range(len(point_cloud))},
+        word_to_int={str(i): i for i in range(num_points)},
         neighbourhood_size=neighbourhood_size,
         words_vocabulary=point_cloud_indices,
         word_embeddings=point_cloud,
