@@ -36,7 +36,3 @@ RUN passwd -d $user
 # Make ports available to the world outside this container
 EXPOSE 1337
 EXPOSE 1338
-
-# Define environment variable
-# Use only GPU 0
-ENV CUDA_VISIBLE_DEVICES 0

@@ -1,5 +1,6 @@
 # Change the configuration here.
 # Include your useid/name as part of IMAGENAME to avoid conflicts
+CONTNAME  = jtr008-docker-container-gpu
 IMAGENAME = docker-jtr008-masters
 CONFIG    = gpu
 COMMAND   = bash
@@ -9,8 +10,7 @@ GROUPID   = $(shell id -g)
 USERNAME  = $(shell whoami)
 PORT      = -p 1337:1337 -p 1338:1338
 NETWORK   = --network host
-# Only use GPU #1.
-GPUS      = --gpus device=0
+GPUS      = --gpus all
 RUNTIME   =
 # --runtime=nvidia
 # No need to change anything below this line
@@ -31,7 +31,7 @@ endif
 	docker build $(USERCONFIG) -t $(USERNAME)-$(IMAGENAME) $(NETWORK) -f Dockerfile-$(CONFIG) .
 
 # Using -it for interactive use
-RUNCMD=docker run $(GPUS) $(RUNTIME) $(NETWORK) --rm --user $(USERID):$(GROUPID) $(DETACH) $(PORT) $(SSHFSOPTIONS) $(DISKS) -it $(USERNAME)-$(IMAGENAME)
+RUNCMD=docker run $(GPUS) $(RUNTIME) $(NETWORK) --rm --user $(USERID):$(GROUPID) $(DETACH) $(PORT) $(SSHFSOPTIONS) $(DISKS) -it $(USERNAME)-$(IMAGENAME) --name $(CONTNAME)
 
 # Replace 'bash' with the command you want to do
 default: .docker

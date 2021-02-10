@@ -1,7 +1,7 @@
 # Change the configuration here.
 # Include your useid/name as part of IMAGENAME to avoid conflicts
+CONTNAME  = jtr008-docker-container
 IMAGENAME = docker-jtr008-masters
-CONFIG    = cpu
 COMMAND   = bash
 DISKS     = -v $(PWD)/code:/project
 USERID    = $(shell id -u)
@@ -25,11 +25,11 @@ else
 	DETACH =
 endif
 
-.docker: Dockerfile-$(CONFIG)
-	docker build $(USERCONFIG) -t $(USERNAME)-$(IMAGENAME) $(NETWORK) -f Dockerfile-$(CONFIG) .
+.docker: Dockerfile
+	docker build $(USERCONFIG) -t $(USERNAME)-$(IMAGENAME) $(NETWORK) -f Dockerfile .
 
 # Using -it for interactive use
-RUNCMD=docker run $(RUNTIME) $(NETWORK) --rm --user $(USERID):$(GROUPID) $(DETACH) $(PORT) $(SSHFSOPTIONS) $(DISKS) -it $(USERNAME)-$(IMAGENAME)
+RUNCMD=docker run $(RUNTIME) $(NETWORK) --rm --user $(USERID):$(GROUPID) $(DETACH) $(PORT) $(SSHFSOPTIONS) $(DISKS) -it $(USERNAME)-$(IMAGENAME) --name $(CONTNAME)
 
 # Replace 'bash' with the command you want to do
 default: .docker
