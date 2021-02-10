@@ -1,6 +1,5 @@
 # Change the configuration here.
 # Include your useid/name as part of IMAGENAME to avoid conflicts
-CONTNAME  = jtr008-docker-container
 IMAGENAME = docker-jtr008-masters
 COMMAND   = bash
 DISKS     = -v $(PWD)/code:/project
@@ -9,6 +8,7 @@ GROUPID   = $(shell id -g)
 USERNAME  = $(shell whoami)
 PORT      = -p 1337:1337 -p 1338:1338
 NETWORK   = --network host
+CONTNAME  = --name jtr008-docker-container
 RUNTIME   =
 # --runtime=nvidia
 # No need to change anything below this line
@@ -29,7 +29,7 @@ endif
 	docker build $(USERCONFIG) -t $(USERNAME)-$(IMAGENAME) $(NETWORK) -f Dockerfile .
 
 # Using -it for interactive use
-RUNCMD=docker run $(RUNTIME) $(NETWORK) --rm --user $(USERID):$(GROUPID) $(DETACH) $(PORT) $(SSHFSOPTIONS) $(DISKS) -it $(USERNAME)-$(IMAGENAME) --name $(CONTNAME)
+RUNCMD=docker run $(RUNTIME) $(NETWORK) --rm --user $(USERID):$(GROUPID) $(DETACH) $(PORT) $(SSHFSOPTIONS) $(DISKS) $(CONTNAME) -it $(USERNAME)-$(IMAGENAME)
 
 # Replace 'bash' with the command you want to do
 default: .docker
