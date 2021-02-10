@@ -42,8 +42,8 @@ def similar_words(
     words: np.ndarray,
     annoy_index: annoy.AnnoyIndex = None,
     top_n: int = 10,
-    positive_words: List[str] = None,
-    negative_words: List[str] = None,
+    positive_words: Optional[List[str]] = None,
+    negative_words: Optional[List[str]] = None,
     vocab_size: int = -1,
     return_similarity_score: bool = True,
 ) -> List[Union[Tuple, str]]:
@@ -334,7 +334,9 @@ def plot_word_relationships_2d(
     """
     fig = go.Figure()
     for (from_word, to_word) in relationship_pairs:
-        from_word_vec = get_word_vec(from_word, word_to_int, transformed_word_embeddings)
+        from_word_vec = get_word_vec(
+            from_word, word_to_int, transformed_word_embeddings
+        )
         to_word_vec = get_word_vec(to_word, word_to_int, transformed_word_embeddings)
 
         # Plot points in 2D
@@ -431,7 +433,7 @@ def load_analogies_test_dataset(
     analogies_dict_raw = joblib.load(analogies_filepath)
 
     # Initialize resulting dictionary
-    analogies_dict = {key: [] for key in analogies_dict_raw.keys()}
+    analogies_dict: dict = {key: [] for key in analogies_dict_raw.keys()}
 
     # Ensure analogies_dict only contain entries that are in the vocabulary.
     for section_name, analogies_pairs in analogies_dict_raw.items():

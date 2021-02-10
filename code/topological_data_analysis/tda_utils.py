@@ -1,12 +1,15 @@
 import numpy as np
-from gudhi.persistence_graphical_tools import \
-    plot_persistence_diagram as gd_plot_persistence_diagram
+from gudhi.persistence_graphical_tools import (
+    plot_persistence_diagram as gd_plot_persistence_diagram,
+)
 from gudhi.rips_complex import RipsComplex
 from matplotlib import pyplot as plt
 
 
 def plot_persistence_diagram(
-    pairwise_distances: np.ndarray, simplex_tree_max_dims: int = 2, show_plot: bool = True
+    pairwise_distances: np.ndarray,
+    simplex_tree_max_dims: int = 2,
+    show_plot: bool = True,
 ) -> None:
     """
     Plots a persistence diagram using Vietoris-Rips complex.

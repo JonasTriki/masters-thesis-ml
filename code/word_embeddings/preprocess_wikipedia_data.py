@@ -7,7 +7,8 @@ from os.path import isdir, isfile, join
 from wikiextractor_utils import wikiextractor_outputs_to_file
 
 sys.path.append("..")
-from utils import download_from_url
+
+from utils import download_from_url  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

@@ -6,9 +6,6 @@ from time import time
 from typing import List, Optional, TextIO
 
 import annoy
-
-sys.path.append("..")
-
 import joblib
 import numpy as np
 import tensorflow as tf
@@ -16,14 +13,17 @@ from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import Progbar
 
-from utils import get_model_checkpoint_filepaths
-from word_embeddings.dataset import create_dataset
-from word_embeddings.tokenizer import Tokenizer
-from word_embeddings.train_utils import (
+sys.path.append("..")
+
+from utils import get_model_checkpoint_filepaths  # noqa: E402
+from word_embeddings.dataset import create_dataset  # noqa: E402
+from word_embeddings.tokenizer import Tokenizer  # noqa: E402
+from word_embeddings.train_utils import (  # noqa: E402
     create_model_checkpoint_filepath,
     create_model_intermediate_embedding_weights_filepath,
-    create_model_train_logs_filepath)
-from word_embeddings.word2vec_model import Word2VecSGNSModel
+    create_model_train_logs_filepath,
+)
+from word_embeddings.word2vec_model import Word2VecSGNSModel  # noqa: E402
 
 
 class Word2vec:
@@ -296,10 +296,13 @@ class Word2vec:
                 )
                 gradients = optimizer.get_unscaled_gradients(scaled_gradients)
             else:
-                gradients = tf.gradients(skip_gram_loss, self._model.trainable_variables)
+                gradients = tf.gradients(
+                    skip_gram_loss, self._model.trainable_variables
+                )
 
             decaying_learning_rate = tf.maximum(
-                self._learning_rate * (1 - progress) + self._min_learning_rate * progress,
+                self._learning_rate * (1 - progress)
+                + self._min_learning_rate * progress,
                 self._min_learning_rate,
             )
 
@@ -521,7 +524,9 @@ class Word2vec:
             Where to save the model.
         """
         # Save model to file
-        joblib.dump(self, target_filepath, protocol=4)  # protocol=4 for saving big files
+        joblib.dump(
+            self, target_filepath, protocol=4
+        )  # protocol=4 for saving big files
 
     def save_embedding_weights(self, target_filepath: str) -> None:
         """

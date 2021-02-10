@@ -2,7 +2,7 @@ from collections import Counter
 from itertools import chain, tee, zip_longest
 from os import makedirs
 from os.path import basename, join
-from typing import Iterable, List, Optional
+from typing import Iterable, Iterator, List, Optional, Union
 
 import tensorflow as tf
 from tqdm import tqdm
@@ -49,7 +49,7 @@ class Word2phrase:
         self._total_unigram_words = 0
 
     @staticmethod
-    def _pairwise_grouping_iter(iterable: Iterable) -> zip_longest:
+    def _pairwise_grouping_iter(iterable: Iterable) -> Iterator:
         """
         Groups elements of an iterable with pairwise tuples.
 
@@ -60,8 +60,8 @@ class Word2phrase:
 
         Returns
         -------
-        pairwise_iterable : zip_longest
-            Pairwise iterable as a zip_longest object
+        pairwise_iterable : Iterator
+            Pairwise iterable
         """
         left, right = tee(iterable)
         try:
@@ -93,12 +93,12 @@ class Word2phrase:
         for filepath in filepaths:
             with tf.io.gfile.GFile(filepath) as f:
                 lines.append(f)
-        lines = chain(*lines)
+        lines_iter = chain(*lines)
 
         self._total_unigram_words = 0
-        word_occurrences_counter = Counter()
+        word_occurrences_counter: Counter = Counter()
         for line in tqdm(
-            lines,
+            lines_iter,
             desc="- Building word occurrences",
             total=num_texts,
         ):
@@ -129,7 +129,7 @@ class Word2phrase:
             )
 
         # Exclude words with less than `self._min_word_count` occurrences
-        word_occurrences_counter = {
+        word_occurrences_counter: dict = {
             word: word_count
             for word, word_count in tqdm(
                 word_occurrences_counter, desc="- Filtering word occurrences"
@@ -150,7 +150,7 @@ class Word2phrase:
         num_texts: int,
         max_vocab_size: int,
         output_dir: str,
-    ):
+    ) -> None:
         """
         Trains/fits the word2phrase instance and saves new text data files
         where phrases have been replaced with single words.
@@ -219,7 +219,9 @@ class Word2phrase:
                             pairwise_words = self._pairwise_grouping_iter(words)
                             for pair in pairwise_words:
                                 left_word, right_word = pair
-                                bigram_word = f"{left_word}{self._phrase_sep}{right_word}"
+                                bigram_word = (
+                                    f"{left_word}{self._phrase_sep}{right_word}"
+                                )
                                 pa = self._word_occurrences_counter.get(left_word)
                                 pb = self._word_occurrences_counter.get(right_word)
                                 pab = self._word_occurrences_counter.get(bigram_word)

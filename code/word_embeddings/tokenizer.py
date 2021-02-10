@@ -35,7 +35,7 @@ class Tokenizer:
         self._word_keep_probs: Optional[list] = None
         self._static_vocab_table: Optional[tf.lookup.StaticHashTable] = None
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict:
         """
         Gets the internal state of the class.
         """
@@ -46,7 +46,7 @@ class Tokenizer:
 
         return state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: dict) -> None:
         """
         Sets the internal state of the class.
         """
@@ -223,7 +223,7 @@ class Tokenizer:
             )
         return self._int_to_word
 
-    def _init_static_vocabulary_table(self):
+    def _init_static_vocabulary_table(self) -> None:
         """
         Initializes the static vocabulary table for tokenizing tensors of text.
         """
@@ -267,11 +267,11 @@ class Tokenizer:
         for filepath in filepaths:
             with tf.io.gfile.GFile(filepath) as f:
                 lines.append(f)
-        lines = itertools.chain(*lines)
+        lines_iter = itertools.chain(*lines)
 
         self._word_occurrences_counter = Counter()
         for line in tqdm(
-            lines,
+            lines_iter,
             desc="- Building word occurrences",
             total=num_texts,
         ):

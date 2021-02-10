@@ -2,7 +2,7 @@ import subprocess
 import sys
 from multiprocessing import Array, Pool, cpu_count
 from os.path import join
-from typing import Callable
+from typing import Callable, Dict
 
 import annoy
 import numpy as np
@@ -13,7 +13,7 @@ from tqdm.auto import tqdm
 
 sys.path.append("..")
 
-from utils import batch_list_gen
+from utils import batch_list_gen  # noqa: E402
 
 
 def grid_search_prepare_word_ints_within_radii(
@@ -63,7 +63,7 @@ def grid_search_prepare_word_ints_within_radii(
     )[1:]
 
     # Prepare words within radii dictionary
-    word_ints_within_radii = {}
+    word_ints_within_radii: dict = {}
     for i in word_ints:
         word_ints_within_radii[i] = []
         for _ in range(num_radii_per_parameter):
@@ -265,7 +265,9 @@ class GeometricAnomalyDetection:
             and word_ints_within_radii is not None
             and radii_space is not None
         )
-        if not (annulus_radius_specified or precomputed_word_ints_within_radii_specified):
+        if not (
+            annulus_radius_specified or precomputed_word_ints_within_radii_specified
+        ):
             raise ValueError(
                 "Either annulus inner/outer radius or word ints within radii needs to be specified."
             )
@@ -426,9 +428,9 @@ class GeometricAnomalyDetection:
         """
         # Get word vector distance callable
         if word_embeddings_pairwise_dists is not None:
-            word_vector_distance = lambda word_i, word_j: word_embeddings_pairwise_dists[
-                word_i, word_j
-            ]
+            word_vector_distance = (
+                lambda word_i, word_j: word_embeddings_pairwise_dists[word_i, word_j]
+            )
         elif annoy_index is not None:
             word_vector_distance = lambda word_i, word_j: annoy_index.get_distance(
                 word_i, word_j

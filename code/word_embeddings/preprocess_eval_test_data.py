@@ -9,7 +9,7 @@ import joblib
 from tqdm import tqdm
 
 sys.path.append("..")
-from utils import download_from_url, get_cached_download_text_file
+from utils import download_from_url, get_cached_download_text_file  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,8 +68,8 @@ def parse_questions_X(questions_X_content: str) -> dict:
 
             # Split string of words into tuple of lower-case words and append to list
             words = word_line.split()
-            words = tuple([word.lower() for word in words])
-            questions_X_split_content.append(words)
+            words_tuple = tuple([word.lower() for word in words])
+            questions_X_split_content.append(words_tuple)
         questions_X_content_splits.append(questions_X_split_content)
 
     # Construct dictionary with question-X entries
@@ -150,7 +150,9 @@ def preprocess_msr(raw_data_dir: str, output_dir: str) -> None:
 
     # Read content from extracted zip, process them and combine into one test dataset.
     with open(
-        join(raw_data_extracted_zip_filepath, "test_set", "word_relationship.questions"),
+        join(
+            raw_data_extracted_zip_filepath, "test_set", "word_relationship.questions"
+        ),
         "r",
     ) as file:
         word_relationship_questions = [
@@ -166,7 +168,11 @@ def preprocess_msr(raw_data_dir: str, output_dir: str) -> None:
 
     # Combine lists
     print("Combining files...")
-    word_relationship_questions_answers = {"adjectives": [], "nouns": [], "verbs": []}
+    word_relationship_questions_answers: dict = {
+        "adjectives": [],
+        "nouns": [],
+        "verbs": [],
+    }
     for i in tqdm(range(len(word_relationship_questions))):
         questions = word_relationship_questions[i]
         qa_label, answer = word_relationship_answers[i]
@@ -208,7 +214,9 @@ def preprocess_questions_phrases(raw_data_dir: str, output_dir: str) -> None:
     # Fetch questions-phrases.txt from Github
     filename = "questions-phrases.txt"
     txt_url = f"https://raw.githubusercontent.com/tmikolov/word2vec/20c129af10659f7c50e86e3be406df663beff438/{filename}"
-    questions_phrases_txt = get_cached_download_text_file(txt_url, raw_data_dir, filename)
+    questions_phrases_txt = get_cached_download_text_file(
+        txt_url, raw_data_dir, filename
+    )
 
     # Parse the raw content
     questions_phrases_dict = parse_questions_X(questions_phrases_txt)

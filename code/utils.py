@@ -252,7 +252,7 @@ def get_all_filepaths_recursively(root_dir: str, file_ext: str) -> List[str]:
 
 def get_model_checkpoint_filepaths(
     output_dir: str, model_name: str, dataset_name: str
-) -> Dict[str, Union[str, List[str]]]:
+) -> Dict[str, Union[str, List[str], None]]:
     """
     Gets model checkpoint filepaths of a specific model (trained on a specific dataset)
     in an output directory.
@@ -308,9 +308,9 @@ def get_model_checkpoint_filepaths(
             epoch_embedding_nr = int(f"{epoch_nr}{embedding_nr}")
             epoch_embedding_nrs.append(epoch_embedding_nr)
         epoch_embedding_nrs = np.array(epoch_embedding_nrs)
-        intermediate_embedding_weight_filenames = intermediate_embedding_weight_filenames[
-            np.argsort(epoch_embedding_nrs)
-        ]
+        intermediate_embedding_weight_filenames = (
+            intermediate_embedding_weight_filenames[np.argsort(epoch_embedding_nrs)]
+        )
 
         # Append output directory to filenames
         intermediate_embedding_weight_filepaths = [

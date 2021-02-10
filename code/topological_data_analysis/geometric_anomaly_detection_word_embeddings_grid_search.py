@@ -10,7 +10,7 @@ from sklearn.metrics import euclidean_distances
 
 sys.path.append("..")
 
-from word_embeddings.word2vec import load_model_training_output
+from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

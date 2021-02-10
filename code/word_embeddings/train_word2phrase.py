@@ -1,11 +1,11 @@
 import argparse
 import sys
 
-sys.path.append("..")
-
 from word2phrase import Word2phrase
 
-from utils import get_all_filepaths, text_files_total_line_count
+sys.path.append("..")
+
+from utils import get_all_filepaths, text_files_total_line_count  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

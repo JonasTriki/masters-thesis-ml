@@ -9,7 +9,7 @@ from word2vec_utils import load_word2vec_format
 
 sys.path.append("..")
 
-from utils import download_from_url
+from utils import download_from_url  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -71,7 +71,9 @@ def preprocess_external_word_embeddings(raw_data_dir: str, output_dir: str) -> N
     google_news_words_filepath = join(
         output_dir, "GoogleNews-vectors-negative300_words.txt"
     )
-    google_news_vectors_filepath = join(output_dir, "GoogleNews-vectors-negative300.npy")
+    google_news_vectors_filepath = join(
+        output_dir, "GoogleNews-vectors-negative300.npy"
+    )
 
     # -- GoogleNews-vectors-negative300.bin.gz --
     if not isfile(google_news_vectors_zip_raw_filepath):

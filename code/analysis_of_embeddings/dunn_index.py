@@ -12,7 +12,9 @@ DIAMETER_METHODS = ["mean_cluster", "farthest"]
 CLUSTER_DISTANCE_METHODS = ["nearest", "farthest"]
 
 
-def inter_cluster_distances(labels, distances, method="nearest"):
+def inter_cluster_distances(
+    labels: np.ndarray, distances: np.ndarray, method: str = "nearest"
+) -> np.ndarray:
     """Calculates the distances between the two nearest points of each cluster.
 
     :param labels: a list containing cluster labels for each of the n elements
@@ -28,7 +30,9 @@ def inter_cluster_distances(labels, distances, method="nearest"):
         return __cluster_distances_by_points(labels, distances, farthest=True)
 
 
-def __cluster_distances_by_points(labels, distances, farthest=False):
+def __cluster_distances_by_points(
+    labels: np.ndarray, distances: np.ndarray, farthest: bool = False
+) -> np.ndarray:
     n_unique_labels = len(np.unique(labels))
     cluster_distances = np.full(
         (n_unique_labels, n_unique_labels), float("inf") if not farthest else 0
@@ -54,7 +58,9 @@ def __cluster_distances_by_points(labels, distances, farthest=False):
     return cluster_distances
 
 
-def diameter(labels, distances, method="farthest"):
+def diameter(
+    labels: np.ndarray, distances: np.ndarray, method: str = "farthest"
+) -> np.ndarray:
     """Calculates cluster diameters
 
     :param labels: a list containing cluster labels for each of the n elements
@@ -88,7 +94,12 @@ def diameter(labels, distances, method="farthest"):
     return diameters
 
 
-def dunn(labels, distances, diameter_method="farthest", cdist_method="nearest"):
+def dunn(
+    labels: np.ndarray,
+    distances: np.ndarray,
+    diameter_method: str = "farthest",
+    cdist_method: str = "nearest",
+) -> np.ndarray:
     """
     Dunn index for cluster validation (larger is better).
 

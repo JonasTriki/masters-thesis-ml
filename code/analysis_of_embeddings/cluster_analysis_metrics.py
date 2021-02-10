@@ -165,7 +165,9 @@ def sd_score_metric(
     # Compute metric scores
     if cluster_labels is None:
         cluster_labels = clusterer.labels_
-    metric_score = SD(X=word_embeddings, labels=cluster_labels, metric="cosine", **kwargs)
+    metric_score = SD(
+        X=word_embeddings, labels=cluster_labels, metric="cosine", **kwargs
+    )
 
     # Return tuple with result
     return "SD validity index", metric_score, False

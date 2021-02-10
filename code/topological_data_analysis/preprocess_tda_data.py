@@ -13,8 +13,12 @@ from tqdm import tqdm
 
 sys.path.append("..")
 
-from text_preprocessing_utils import preprocess_text
-from utils import batch_list_gen, download_from_url, get_cached_download_text_file
+from text_preprocessing_utils import preprocess_text  # noqa: E402
+from utils import (  # noqa: E402
+    batch_list_gen,
+    download_from_url,
+    get_cached_download_text_file,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -64,7 +68,9 @@ def preprocess_topological_polysemy_data(raw_data_dir: str, output_dir: str) -> 
     semeval_2010_14_data_url = (
         "https://www.cs.york.ac.uk/semeval2010_WSI/files/training_data.tar.gz"
     )
-    semeval_2010_14_raw_data_filepath = join(raw_data_dir, "semeval_training_data.tar.gz")
+    semeval_2010_14_raw_data_filepath = join(
+        raw_data_dir, "semeval_training_data.tar.gz"
+    )
     semeval_2010_14_raw_data_dir = join(raw_data_dir, "semeval_training_data")
     semeval_2010_14_nouns_dir = join(
         semeval_2010_14_raw_data_dir, "training_data", "nouns"
@@ -99,7 +105,7 @@ def preprocess_topological_polysemy_data(raw_data_dir: str, output_dir: str) -> 
         )
 
         # Scrape tables for word/sense pairs
-        semeval_2010_14_word_senses = {"verbs": {}, "nouns": {}, "all": {}}
+        semeval_2010_14_word_senses: dict = {"verbs": {}, "nouns": {}, "all": {}}
         for table in semeval_2010_14_york_datasets_tables_soup:
             table_rows = table.find_all("tr")[1:]
             for table_row in table_rows:
@@ -112,9 +118,13 @@ def preprocess_topological_polysemy_data(raw_data_dir: str, output_dir: str) -> 
                 target_word_senses = int(table_cols[3].get_text().strip())
 
                 if target_word_is_verb:
-                    semeval_2010_14_word_senses["verbs"][target_word] = target_word_senses
+                    semeval_2010_14_word_senses["verbs"][
+                        target_word
+                    ] = target_word_senses
                 else:
-                    semeval_2010_14_word_senses["nouns"][target_word] = target_word_senses
+                    semeval_2010_14_word_senses["nouns"][
+                        target_word
+                    ] = target_word_senses
         semeval_2010_14_word_senses["all"] = {
             **semeval_2010_14_word_senses["verbs"],
             **semeval_2010_14_word_senses["nouns"],
@@ -201,6 +211,8 @@ def preprocess_semeval_2010_task_14_training_xml_file(semeval_filepath: str) -> 
     j = 0
     output_sentences = ""
     for child in xml_root:
+        if child.text is None:
+            continue
         clear_text = unescape(child.text)
 
         # Only replace punctuation and cast sentence to lowercase.
@@ -237,7 +249,9 @@ def preprocess_tda_data(raw_data_dir: str, output_dir: str) -> None:
     makedirs(output_dir, exist_ok=True)
 
     # Data from TPS paper
-    preprocess_topological_polysemy_data(raw_data_dir=raw_data_dir, output_dir=output_dir)
+    preprocess_topological_polysemy_data(
+        raw_data_dir=raw_data_dir, output_dir=output_dir
+    )
 
 
 if __name__ == "__main__":

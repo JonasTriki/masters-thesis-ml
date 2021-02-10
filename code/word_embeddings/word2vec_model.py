@@ -19,8 +19,8 @@ class Word2VecSGNSModel(tf.keras.Model):
         min_learning_rate: float = 0.0001,
         name: str = "word2vec",
         target_embedding_layer_name: str = "target_embedding",
-        **kwargs
-    ):
+        **kwargs: dict,
+    ) -> None:
         """Initializes the word2vec skip-gram negative sampling Keras model
 
         Parameters

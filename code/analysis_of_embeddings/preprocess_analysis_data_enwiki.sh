@@ -1,3 +1,4 @@
+#!/bin/bash
 python preprocess_analysis_data.py \
 --raw_data_dir raw_data \
 --custom_data_dir custom_data \

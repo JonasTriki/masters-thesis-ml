@@ -1,7 +1,7 @@
 import sys
 from copy import deepcopy
 from os.path import join
-from typing import Union
+from typing import Optional, Union
 
 import joblib
 import numpy as np
@@ -9,7 +9,6 @@ import plotly.graph_objects as go
 from hdbscan import HDBSCAN
 from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
-from scipy.cluster.hierarchy import cut_tree
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import euclidean_distances
 from sklearn.model_selection import ParameterGrid
@@ -17,10 +16,10 @@ from tqdm.auto import tqdm
 
 sys.path.append("..")
 
-import analysis_utils
+import analysis_utils  # noqa: E402
 
-from utils import pairwise_cosine_distances, words_to_vectors
-from vis_utils import plot_word_vectors
+from utils import pairwise_cosine_distances, words_to_vectors  # noqa: E402
+from vis_utils import plot_word_vectors  # noqa: E402
 
 
 def separate_noise_labels_into_clusters(
@@ -116,7 +115,9 @@ def save_cluster_result_to_disk(
     # Save result to output dir
     joblib.dump(
         cluster_result,
-        join(output_dir, f"{model_name}-{dataset_name}-{output_filepath_suffix}.joblib"),
+        join(
+            output_dir, f"{model_name}-{dataset_name}-{output_filepath_suffix}.joblib"
+        ),
     )
 
 
@@ -133,10 +134,10 @@ def cluster_analysis(
     compute_pairwise_word_distances_normalized: bool = False,
     return_word_vectors: bool = False,
     save_result_to_disk: bool = False,
-    output_dir: str = None,
-    model_name: str = None,
-    dataset_name: str = None,
-    output_filepath_suffix: str = None,
+    output_dir: Optional[str] = None,
+    model_name: Optional[str] = None,
+    dataset_name: Optional[str] = None,
+    output_filepath_suffix: Optional[str] = None,
 ) -> Union[dict, tuple]:
     """
     Performs cluster hyperparameter and algorithm search over a range of clusterers
@@ -222,7 +223,10 @@ def cluster_analysis(
 
     if compute_pairwise_word_distances:
         word_vectors_pairwise_distances = pairwise_cosine_distances(word_vectors)
-    if compute_pairwise_word_distances_normalized and word_vectors_normalized is not None:
+    if (
+        compute_pairwise_word_distances_normalized
+        and word_vectors_normalized is not None
+    ):
         normalized_word_vectors_pairwise_distances = euclidean_distances(
             word_vectors_normalized
         )
@@ -325,7 +329,10 @@ def cluster_analysis(
                             **eval_metric_params,
                         )
                 else:
-                    if eval_metric_use_normalized and word_vectors_normalized is not None:
+                    if (
+                        eval_metric_use_normalized
+                        and word_vectors_normalized is not None
+                    ):
                         metric_name, metric_score, metric_obj_max = eval_metric(
                             word_embeddings=word_vectors_normalized,
                             cluster_labels=predicted_labels,
@@ -346,7 +353,9 @@ def cluster_analysis(
                     metric_name
                     not in clusterers_result[clusterer_name]["cluster_metrics"]
                 ):
-                    clusterers_result[clusterer_name]["cluster_metrics"][metric_name] = {
+                    clusterers_result[clusterer_name]["cluster_metrics"][
+                        metric_name
+                    ] = {
                         "metric_scores": [],
                         "metric_obj_max": metric_obj_max,
                         "best_metric_score_indices": [],
@@ -359,9 +368,9 @@ def cluster_analysis(
                 # Set best metric score indices
                 if params_idx == len(param_grid) - 1:
                     best_metric_score_indices = np.argsort(
-                        clusterers_result[clusterer_name]["cluster_metrics"][metric_name][
-                            "metric_scores"
-                        ]
+                        clusterers_result[clusterer_name]["cluster_metrics"][
+                            metric_name
+                        ]["metric_scores"]
                     )
                     if metric_obj_max:
                         best_metric_score_indices = best_metric_score_indices[::-1]
@@ -444,7 +453,9 @@ def visualize_cluster_analysis_result(
         Whether or not to use interactive plotting with Plotly
         (defaults to False).
     """
-    for clusterer_name, clusterer_result in cluster_analysis_result["clusterers"].items():
+    for clusterer_name, clusterer_result in cluster_analysis_result[
+        "clusterers"
+    ].items():
         num_clusterer_metrics = len(clusterer_result["cluster_metrics"])
         if interactive:
             fig = make_subplots(
@@ -621,8 +632,8 @@ def plot_word_embeddings_clustered(
     transformed_word_embeddings: dict,
     words: np.ndarray,
     cluster_labels: np.ndarray,
-    embedder_labels=None,
-    embedder_keys: list = None,
+    embedder_labels: Optional[dict] = None,
+    embedder_keys: Optional[list] = None,
     print_words_in_clusters: bool = False,
     continuous_word_colors: bool = False,
 ) -> None:

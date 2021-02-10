@@ -2,7 +2,7 @@ import bz2
 import sys
 from multiprocessing import Pool, cpu_count
 from os.path import join
-from typing import Generator, List, Tuple
+from typing import Tuple
 
 import nltk
 from bs4 import BeautifulSoup
@@ -10,13 +10,16 @@ from nltk.tokenize import sent_tokenize
 from tqdm import tqdm
 
 sys.path.append("..")
-from text_preprocessing_utils import preprocess_text
-from utils import batch_list_gen, get_all_filepaths_recursively
+
+from text_preprocessing_utils import preprocess_text  # noqa: E402
+from utils import batch_list_gen, get_all_filepaths_recursively  # noqa: E402
 
 nltk.download("punkt")
 
 
-def process_wiki_doc_text(doc_text: str, language: str, min_sent_word_count: int) -> str:
+def process_wiki_doc_text(
+    doc_text: str, language: str, min_sent_word_count: int
+) -> str:
     """
     Processes text of a single Wikipedia article.
 
@@ -56,7 +59,7 @@ def process_wiki_doc_text(doc_text: str, language: str, min_sent_word_count: int
     return processed_text
 
 
-def process_wiki_file(args: Tuple[str, str, int]):
+def process_wiki_file(args: Tuple[str, str, int]) -> str:
     """
     Processes an extracted Wikipedia dump file.
 
@@ -144,7 +147,9 @@ def wikiextractor_outputs_to_file(
     with Pool() as pool:
         for i, mp_args in zip(
             range(num_output_files),
-            batch_list_gen(process_wiki_files_args, num_extracted_files_per_output_file),
+            batch_list_gen(
+                process_wiki_files_args, num_extracted_files_per_output_file
+            ),
         ):
             output_filepath = join(
                 output_dir,

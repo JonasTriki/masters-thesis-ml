@@ -1,18 +1,19 @@
 import sys
-from typing import Union
+from typing import Optional, Union
 
 import annoy
 import numpy as np
 from fastdist import fastdist
 from fastdist.fastdist import vector_to_matrix_distance
-from gudhi.persistence_graphical_tools import \
-    plot_persistence_diagram as gd_plot_persistence_diagram
+from gudhi.persistence_graphical_tools import (
+    plot_persistence_diagram as gd_plot_persistence_diagram,
+)
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
 
 sys.path.append("..")
 
-from utils import words_to_vectors
+from utils import words_to_vectors  # noqa: E402
 
 
 def punctured_neighbourhood(
@@ -77,7 +78,7 @@ def tps(
     target_word: str,
     word_to_int: dict,
     neighbourhood_size: int,
-    words_vocabulary: list = None,
+    words_vocabulary: Optional[list] = None,
     word_embeddings: np.ndarray = None,
     word_embeddings_normalized: np.ndarray = None,
     word_embeddings_pairwise_dists: np.ndarray = None,
@@ -198,7 +199,7 @@ def tps_point_cloud(
     point_index: int,
     neighbourhood_size: int,
     point_cloud: np.ndarray = None,
-    point_cloud_indices: list = None,
+    point_cloud_indices: Optional[list] = None,
     point_cloud_normalized: np.ndarray = None,
     point_cloud_pairwise_dists: np.ndarray = None,
     annoy_index: annoy.AnnoyIndex = None,

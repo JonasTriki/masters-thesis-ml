@@ -9,6 +9,7 @@ flake8 = "*"
 pep8 = "*"
 isort = "*"
 mypy = "*"
+black = "*"
 jupyter = "*"
 
 [packages]
@@ -24,7 +25,6 @@ plotly = "*"
 cython = "*"
 requests = "*"
 hdbscan = "*"
-black = "==19.10b0"
 num2words = {git = "https://github.com/JonasTriki/num2words.git", ref = "master"}
 ipywidgets = "*"
 beautifulsoup4 = "*"

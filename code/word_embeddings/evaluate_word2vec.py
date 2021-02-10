@@ -1,5 +1,4 @@
 import argparse
-import sys
 from datetime import datetime
 from os import makedirs
 from os.path import join
@@ -9,9 +8,6 @@ import joblib
 import numpy as np
 from eval_utils import evaluate_model_word_analogies
 from word2vec import load_model_training_output
-
-sys.path.append("..")
-from utils import get_model_checkpoint_filepaths
 
 
 def parse_args() -> argparse.Namespace:

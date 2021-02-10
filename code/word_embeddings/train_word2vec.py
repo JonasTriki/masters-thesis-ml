@@ -10,7 +10,8 @@ from train_utils import enable_dynamic_gpu_memory
 from word2vec import Word2vec, load_model
 
 sys.path.append("..")
-from utils import get_all_filepaths, text_files_total_line_count
+
+from utils import get_all_filepaths, text_files_total_line_count  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

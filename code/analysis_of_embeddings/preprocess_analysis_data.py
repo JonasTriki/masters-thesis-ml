@@ -4,6 +4,7 @@ import zipfile
 from collections import Counter
 from os import makedirs
 from os.path import isdir, isfile, join
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -11,8 +12,8 @@ from analysis_utils import preprocess_name
 
 sys.path.append("..")
 
-from text_preprocessing_utils import preprocess_text
-from utils import download_from_url
+from text_preprocessing_utils import preprocess_text  # noqa: E402
+from utils import download_from_url  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -259,7 +260,9 @@ def preprocess_word_cluster_groups(
     )
     surnames_raw_zip_filepath = join(raw_data_dir, "surnames.zip")
     surnames_raw_zip_dir = join(raw_data_dir, "surnames")
-    surnames_raw_filepath = join(surnames_raw_zip_dir, f"Names_{surnames_year}Census.csv")
+    surnames_raw_filepath = join(
+        surnames_raw_zip_dir, f"Names_{surnames_year}Census.csv"
+    )
     surnames_output_filepath = join(output_dir, "surnames.csv")
 
     # Download raw data
@@ -286,7 +289,7 @@ def preprocess_word_cluster_groups(
         print("Done!")
 
     # Parse and save forenames/surnames
-    word_in_vocab = lambda word: word in word_to_int
+    word_in_vocab_filter: Callable[[str], bool] = lambda word: word in word_to_int
     if not isfile(forenames_output_filepath) or not isfile(surnames_output_filepath):
         forenames_raw_df = pd.read_csv(
             forenames_raw_filepath,
@@ -294,7 +297,9 @@ def preprocess_word_cluster_groups(
             names=["name", "gender", "count"],
         )
         forenames_raw_df["name"] = forenames_raw_df["name"].str.lower()
-        forenames_raw_df = forenames_raw_df[forenames_raw_df["name"].apply(word_in_vocab)]
+        forenames_raw_df = forenames_raw_df[
+            forenames_raw_df["name"].apply(word_in_vocab_filter)
+        ]
         forenames_male_raw_df = forenames_raw_df[forenames_raw_df["gender"] == "M"]
         forenames_male_raw_df = forenames_male_raw_df[:num_top_names]
         forenames_female_raw_df = forenames_raw_df[forenames_raw_df["gender"] == "F"]
@@ -306,7 +311,8 @@ def preprocess_word_cluster_groups(
         surnames_raw_df["name"] = surnames_raw_df["name"].str.lower()
         surnames_raw_df = surnames_raw_df[
             surnames_raw_df["name"].apply(
-                lambda name: word_in_vocab(name) and name not in forenames_raw_df["name"]
+                lambda name: word_in_vocab_filter(name)
+                and name not in forenames_raw_df["name"]
             )
         ]
         surnames_raw_df = surnames_raw_df[:num_top_names]
@@ -323,16 +329,21 @@ def preprocess_word_cluster_groups(
             "https://query.data.world/s/g6zcrqk6kbcks2kadrwdwjvnygbagk"
         )
         food_ingredient_df = pd.read_csv(
-            food_ingredient_list_csv_url, usecols=["name", "categories", "features.value"]
+            food_ingredient_list_csv_url,
+            usecols=["name", "categories", "features.value"],
         )
-        food_ingredient_df.rename(columns={"features.value": "ingredients"}, inplace=True)
+        food_ingredient_df.rename(
+            columns={"features.value": "ingredients"}, inplace=True
+        )
         food_ingredient_df = food_ingredient_df.astype(
             {"name": str, "categories": str, "ingredients": str}
         )
 
         # Preprocess food words and save to file
-        preprocess_sent = lambda sent: " ".join(
-            preprocess_text(sent, should_remove_stopwords=True, should_remove_digits=True)
+        preprocess_sent: Callable[[str], str] = lambda sent: " ".join(
+            preprocess_text(
+                sent, should_remove_stopwords=True, should_remove_digits=True
+            )
         )
         food_ingredient_df["name"] = food_ingredient_df["name"].apply(
             lambda name: preprocess_sent(name)
@@ -348,7 +359,7 @@ def preprocess_word_cluster_groups(
     # Combine food words into one text file sorted by word occurrence.
     if not isfile(foods_output_filepath):
         food_ingredient_df = pd.read_csv(foods_output_raw_filepath)
-        food_word_occurrences_counter = Counter()
+        food_word_occurrences_counter: Counter = Counter()
 
         # Count food word frequencies
         for col_name in ["name", "categories", "ingredients"]:

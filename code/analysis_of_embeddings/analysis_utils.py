@@ -1,6 +1,7 @@
 import re
 import sys
 from os.path import join
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -10,8 +11,8 @@ from matplotlib import pyplot as plt
 
 sys.path.append("..")
 
-from text_preprocessing_utils import preprocess_text
-from utils import words_to_vectors
+from text_preprocessing_utils import preprocess_text  # noqa: E402
+from utils import words_to_vectors  # noqa: E402
 
 
 def preprocess_name(name: str) -> str:
@@ -29,7 +30,7 @@ def preprocess_name(name: str) -> str:
     processed_name : str
         Processed name
     """
-    remove_brackets_re = re.compile("^(.+?)[(\[].*?[)\]](.*?)$")
+    remove_brackets_re = re.compile(r"^(.+?)[(\[].*?[)\]](.*?)$")
     name_no_brackets_results = re.findall(remove_brackets_re, name)
     if len(name_no_brackets_results) > 0:
         name = "".join(name_no_brackets_results[0]).strip()
@@ -305,7 +306,7 @@ def load_word_cluster_group_words(data_dir: str, word_to_int: dict) -> dict:
     vegan_foods_filepath = join(data_dir, "vegan_foods_categorized.csv")
 
     # Filter words out of vocabulary
-    word_in_vocab_filter = lambda word: word in word_to_int
+    word_in_vocab_filter: Callable[[str], bool] = lambda word: word in word_to_int
 
     # Load country info
     country_info_df = pd.read_csv(country_info_filepath)
@@ -451,7 +452,7 @@ def visualize_word_cluster_groups(
                     marker=dict(color=non_group_words_color),
                     hovertext=words_not_in_groups_sorted,
                     hoverinfo="x+y+text",
-                    name=f"Non group words",
+                    name="Non group words",
                     opacity=alpha,
                 )
             )

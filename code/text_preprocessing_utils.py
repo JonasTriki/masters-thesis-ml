@@ -6,21 +6,22 @@ https://gist.github.com/MrEliptik/b3f16179aa2f530781ef8ca9a16499af
 
 import re
 from string import digits
-from typing import List, Match
+from typing import Dict, List, Match
 
 import nltk
 from nltk import word_tokenize
 from nltk.corpus import stopwords
-
-# Download NLTK files
-nltk.download("punkt")
-
 from num2words import num2words
 
 from contractions_utils import contractions_dict
 
+# Download NLTK files
+nltk.download("punkt")
+
 # Convert keys to lowercase
-contractions_dict = {key.lower(): val for key, val in contractions_dict.items()}
+contractions_dict_lower: Dict[str, str] = {
+    key.lower(): val for key, val in contractions_dict.items()
+}
 
 
 def remove_urls(text: str) -> str:
@@ -41,7 +42,7 @@ def remove_urls(text: str) -> str:
     return re.sub(url_regex, "", text)
 
 
-def remove_stopwords(words: list, language: str):
+def remove_stopwords(words: list, language: str) -> list:
     """
     Removes stop words from list of tokenized words.
 
@@ -84,7 +85,7 @@ def replace_contractions(text: str) -> str:
         New text without contractions.
     """
 
-    def replace_contraction_matches(contraction_match: Match):
+    def replace_contraction_matches(contraction_match: Match) -> str:
         """
         Replaces contraction matches (used as argument to re.sub).
 
@@ -98,8 +99,8 @@ def replace_contractions(text: str) -> str:
         match_result : str
             Fixed string (mapping from contraction match).
         """
-        match = contraction_match.group(0)
-        return contractions_dict.get(match.lower())
+        match = contraction_match.group(0).lower()
+        return contractions_dict_lower.get(match)
 
     # Create regex for matching contraction keys
     contractions_keys_re = "|".join(contractions_dict.keys())
@@ -161,7 +162,7 @@ def remove_punctuation(words: list) -> list:
     return new_words
 
 
-def remove_digits(words: list):
+def remove_digits(words: list) -> list:
     """
     Removes digits from list of tokenized words.
 
