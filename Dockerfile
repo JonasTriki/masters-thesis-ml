@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y sudo screen git cmake texlive-xetex
 # Install any needed packages from apt
 RUN pip3 install --trusted-host pypi.python.org --upgrade pip
 RUN pip3 install --trusted-host pypi.python.org pipenv
-RUN pipenv lock -r > requirements.txt
+RUN pipenv lock -d -r > requirements.txt
 RUN pip3 install --trusted-host pypi.python.org -r requirements.txt --ignore-installed
 
 # Configure user
