@@ -1,0 +1,350 @@
+import argparse
+from os import makedirs
+from os.path import join
+from typing import Optional
+
+import annoy
+import joblib
+import numpy as np
+from matplotlib import pyplot as plt
+from nltk.corpus import wordnet as wn
+from scipy.stats import pearsonr
+from tqdm import tqdm
+
+from .topological_polysemy import tps
+
+
+def parse_args() -> argparse.Namespace:
+    """
+    Parses arguments sent to the python script.
+
+    Returns
+    -------
+    parsed_args : argparse.Namespace
+        Parsed arguments
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--semeval_word_senses_filepath",
+        type=str,
+        default="",
+        help="Filepath of the SemEval-2010 task 14 word senses",
+    )
+    parser.add_argument(
+        "--word2vec_semeval_model_dir",
+        type=str,
+        default="",
+        help="Directory of the SemEval-2010 task 14 word2vec model",
+    )
+    parser.add_argument(
+        "--word2vec_enwiki_model_dir",
+        type=str,
+        default="",
+        help="Directory of the enwiki word2vec model",
+    )
+    parser.add_argument(
+        "--word2vec_google_news_model_weights_filepath",
+        type=str,
+        default="",
+        help="Filepath of the Google News 3M word2vec model weights",
+    )
+    parser.add_argument(
+        "--word2vec_google_news_model_words_filepath",
+        type=str,
+        default="",
+        help="Filepath of the Google News 3M word2vec model words",
+    )
+    parser.add_argument(
+        "--cyclo_octane_data_filepath",
+        type=str,
+        default="",
+        help="Filepath of the cyclo-octane dataset",
+    )
+    parser.add_argument(
+        "--henneberg_data_filepath",
+        type=str,
+        default="",
+        help="Filepath of the Henneberg dataset",
+    )
+    parser.add_argument(
+        "--tps_neighbourhood_sizes",
+        nargs="+",
+        help="Neighbourhood sizes to use when computing TPS (e.g. 50, 60)",
+    )
+    parser.add_argument(
+        "--num_top_k_words_frequencies",
+        type=int,
+        help="Number of top words to use when computing TPS scores vs. word frequencies",
+    )
+    parser.add_argument(
+        "--output_dir", type=str, default="", help="Output directory to save results",
+    )
+    return parser.parse_args()
+
+
+def tps_word_embeddings_correlation_plot(
+    tps_scores: np.ndarray,
+    y_values: np.ndarray,
+    y_values_name: str,
+    tps_vs_y_correlation: float,
+    output_dir: str,
+    word_embeddings_name: str,
+    neighbourhood_size: int,
+) -> None:
+    """
+    TODO: Docs
+    """
+    # Plot TPS scores to GS
+    _, ax = plt.subplots(figsize=(10, 5))
+    ax.scatter(x=tps_scores, y=y_values)
+    ax.set_xlabel("TPS")
+    ax.set_ylabel("Clusters in GS")
+    ax.set_title(f"Correlation: {tps_vs_y_correlation:.5f}")
+    plt.tight_layout()
+    plt.savefig(
+        join(
+            output_dir,
+            word_embeddings_name,
+            f"tps_{neighbourhood_size}_vs_{y_values_name}.pdf",
+        ),
+        backend="pgf",
+    )
+
+
+def tps_word_embeddings(
+    word_embeddings_name: str,
+    neighbourhood_sizes: int,
+    semeval_target_words: np.ndarray,
+    semeval_target_words_gs_clusters: np.ndarray,
+    word_embeddings_normalized: np.ndarray,
+    word_to_int: dict,
+    word_vocabulary: list,
+    num_top_k_words_frequencies: int,
+    output_dir: str,
+    word_counts: Optional[list] = None,
+    annoy_index: annoy.AnnoyIndex = None,
+) -> dict:
+    """
+    Computes TPS for word embeddings and creates correlation plots
+    TODO: Docs
+    """
+    # Ensure output directory exists
+    makedirs(output_dir, exist_ok=True)
+
+    # Only use the SemEval-2010 task 14 words in vocabulary
+    semeval_target_words_in_vocab_filter = [
+        i for i, word in enumerate(semeval_target_words) if word in word_to_int
+    ]
+    num_semeval_words = len(semeval_target_words_in_vocab_filter)
+    semeval_target_words_in_vocab = semeval_target_words[
+        semeval_target_words_in_vocab_filter
+    ]
+    semeval_target_words_gs_clusters_in_vocab = semeval_target_words_gs_clusters[
+        semeval_target_words_in_vocab_filter
+    ]
+
+    tps_vs_gs_key = "TPS_n vs. GS"
+    tps_vs_synsets_key = "TPS_n vs. synsets"
+    tps_vs_frequency_key = "TPS_n vs. frequency"
+    result_dict: dict = {
+        "n": neighbourhood_sizes,
+        tps_vs_gs_key: [],
+        tps_vs_synsets_key: [],
+    }
+    has_word_counts = word_counts is not None
+    if has_word_counts:
+        result_dict[tps_vs_frequency_key] = []
+
+    for neighbourhood_size in neighbourhood_sizes:
+        print(f"-- Neighbourhood size: {neighbourhood_size} --")
+
+        # -- Compute TPS scores and correlation vs 100 GS words --
+        tps_scores_semeval = []
+        print("Computing TPS scores for 100 GS words")
+        for semeval_target_word, semeval_target_word_gs_clusters in tqdm(
+            zip(
+                semeval_target_words_in_vocab,
+                semeval_target_words_gs_clusters_in_vocab,
+            ),
+            total=num_semeval_words,
+        ):
+            tps_score_semeval = tps(
+                target_word=semeval_target_word,
+                word_to_int=word_to_int,
+                neighbourhood_size=neighbourhood_size,
+                word_embeddings_normalized=word_embeddings_normalized,
+                annoy_index=annoy_index,
+            )
+            tps_scores_semeval.append(tps_score_semeval)
+
+        # Compute correlation vs GS word meanings
+        tps_score_vs_gs_correlation, _ = pearsonr(
+            x=tps_scores_semeval, y=semeval_target_word_gs_clusters
+        )
+        result_dict[tps_vs_gs_key].append(tps_score_vs_gs_correlation)
+
+        # Save plot of TPS scores vs. GS
+        tps_word_embeddings_correlation_plot(
+            tps_scores=tps_scores_semeval,
+            y_values=semeval_target_word_gs_clusters,
+            y_values_name="gs",
+            tps_vs_y_correlation=tps_score_vs_gs_correlation,
+            output_dir=output_dir,
+            word_embeddings_name=word_embeddings_name,
+            neighbourhood_size=neighbourhood_size,
+        )
+
+        # Find words in vocabulary that have synsets in Wordnet
+        tps_scores_wordnet_synsets = []
+        wordnet_synsets_words_in_vocab_meanings = []
+        print("Computing TPS scores for words in vocabulary with Wordnet synsets")
+        for word in tqdm(word_vocabulary):
+            num_synsets_word = len(wn.synsets(word))
+            if num_synsets_word > 0:
+                wordnet_synsets_words_in_vocab_meanings.append(num_synsets_word)
+                tps_score_wordnet_synset = tps(
+                    target_word=word,
+                    word_to_int=word_to_int,
+                    neighbourhood_size=neighbourhood_size,
+                    word_embeddings_normalized=word_embeddings_normalized,
+                    annoy_index=annoy_index,
+                )
+                tps_scores_wordnet_synsets.append(tps_score_wordnet_synset)
+
+        # Compute correlation vs Wordnet synsets
+        tps_score_vs_wordnet_synsets_correlation, _ = pearsonr(
+            x=tps_scores_wordnet_synsets, y=wordnet_synsets_words_in_vocab_meanings
+        )
+        result_dict[tps_vs_synsets_key].append(tps_score_vs_wordnet_synsets_correlation)
+
+        # Save plot of TPS scores vs. Wordnet synsets
+        tps_word_embeddings_correlation_plot(
+            tps_scores=tps_scores_wordnet_synsets,
+            y_values=wordnet_synsets_words_in_vocab_meanings,
+            y_values_name="synsets",
+            tps_vs_y_correlation=tps_score_vs_wordnet_synsets_correlation,
+            output_dir=output_dir,
+            word_embeddings_name=word_embeddings_name,
+            neighbourhood_size=neighbourhood_size,
+        )
+
+        if has_word_counts:
+            print(
+                f"Computing TPS scores for top {num_top_k_words_frequencies} words vs. word frequencies"
+            )
+            tps_score_word_frequencies = []
+            for word in tqdm(word_vocabulary[:num_top_k_words_frequencies]):
+                tps_score_word_frequency = tps(
+                    target_word=word,
+                    word_to_int=word_to_int,
+                    neighbourhood_size=neighbourhood_size,
+                    word_embeddings_normalized=word_embeddings_normalized,
+                    annoy_index=annoy_index,
+                )
+                tps_score_word_frequencies.append(tps_score_word_frequency)
+
+            # Compute correlation vs Wordnet synsets
+            tps_score_vs_word_frequency_correlation, _ = pearsonr(
+                x=tps_score_word_frequencies,
+                y=word_counts[:num_top_k_words_frequencies],
+            )
+            result_dict[tps_vs_frequency_key].append(
+                tps_score_vs_word_frequency_correlation
+            )
+
+            # Save plot of TPS scores vs. Wordnet synsets
+            tps_word_embeddings_correlation_plot(
+                tps_scores=tps_score_word_frequencies,
+                y_values=word_counts[:num_top_k_words_frequencies],
+                y_values_name="frequency",
+                tps_vs_y_correlation=tps_score_vs_word_frequency_correlation,
+                output_dir=output_dir,
+                word_embeddings_name=word_embeddings_name,
+                neighbourhood_size=neighbourhood_size,
+            )
+
+
+def topological_polysemy_pipeline(
+    semeval_word_senses_filepath: str,
+    word2vec_semeval_model_dir: str,
+    word2vec_enwiki_model_dir: str,
+    word2vec_google_news_model_weights_filepath: str,
+    word2vec_google_news_model_words_filepath: str,
+    cyclo_octane_data_filepath: str,
+    henneberg_data_filepath: str,
+    tps_neighbourhood_sizes: str,
+    num_top_k_words_frequencies: int,
+    output_dir: str,
+) -> None:
+    """
+    Computes the topological polysemy of various word embeddings and data sets.
+    Saves results in output dir with some additional plots.
+
+    Parameters
+    ----------
+    semeval_word_senses_filepath : str
+        Filepath of the SemEval-2010 task 14 word senses
+    word2vec_semeval_model_dir : str
+        Directory of the SemEval-2010 task 14 word2vec model.
+    word2vec_enwiki_model_dir : str
+        Directory of the enwiki word2vec model.
+    word2vec_google_news_model_weights_filepath : str
+        Filepath of the Google News 3M word2vec model weights.
+    word2vec_google_news_model_words_filepath : str
+        Filepath of the Google News 3M word2vec model words.
+    cyclo_octane_data_filepath : str
+        Filepath of the cyclo-octane dataset.
+    henneberg_data_filepath : str
+        Filepath of the Henneberg dataset.
+    tps_neighbourhood_sizes : str
+        Neighbourhood sizes to use when computing TPS (e.g. 50, 60).
+    num_top_k_words_frequencies : int
+        Number of top words to use when computing TPS scores vs. word frequencies.
+    output_dir : str
+        Output directory to save results.
+    """
+    # Ensure output directory exists
+    makedirs(output_dir, exist_ok=True)
+
+    # Load SemEval-2010 task 14 word senses
+    semeval_word_senses: dict = joblib.load(semeval_word_senses_filepath)
+    semeval_target_words = np.array(list(semeval_word_senses["all"].keys()))
+    semeval_target_word_gs_clusters = np.array(
+        list(semeval_word_senses["all"].values())
+    )
+
+    # Parse strings into int
+    tps_neighbourhood_sizes = [int(n_size) for n_size in tps_neighbourhood_sizes]
+
+    """
+    TODO
+    + SemEval-2010 task 14 data
+        - 100 target words that are in vocab
+        - Wordnet words that are in vocab
+        - Frequencies of words in vocab
+    + Enwiki jan 2021 data
+        - 100 target words that are in vocab
+        - WordNet words that are in vocab
+        - Frequencies of words in vocab
+    + GoogleNews 3M data
+        - 100 target words that are in vocab
+        - WordNet words that are in vocab
+    + Cyclo-octane data
+    + Henneberg data
+    """
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    topological_polysemy_pipeline(
+        semeval_word_senses_filepath=args.semeval_word_senses_filepath,
+        word2vec_semeval_model_dir=args.word2vec_semeval_model_dir,
+        word2vec_enwiki_model_dir=args.word2vec_enwiki_model_dir,
+        word2vec_google_news_model_weights_filepath=args.word2vec_google_news_model_weights_filepath,
+        word2vec_google_news_model_words_filepath=args.word2vec_google_news_model_words_filepath,
+        cyclo_octane_data_filepath=args.cyclo_octane_data_filepath,
+        henneberg_data_filepath=args.henneberg_data_filepath,
+        tps_neighbourhood_sizes=args.tps_neighbourhood_sizes,
+        num_top_k_words_frequencies=args.num_top_k_words_frequencies,
+        output_dir=args.output_dir,
+    )

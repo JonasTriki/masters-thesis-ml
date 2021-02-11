@@ -24,10 +24,7 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model_dir",
-        type=str,
-        default="",
-        help="Directory of the model to load",
+        "--model_dir", type=str, default="", help="Directory of the model to load",
     )
     parser.add_argument(
         "--model_name",
@@ -42,9 +39,7 @@ def parse_args() -> argparse.Namespace:
         help="Name of the dataset the model is trained on",
     )
     parser.add_argument(
-        "--vocab_size",
-        type=int,
-        help="Size of the vocabulary to use",
+        "--vocab_size", type=int, help="Size of the vocabulary to use",
     )
     parser.add_argument(
         "--annoy_index_filepath",
@@ -68,10 +63,7 @@ def parse_args() -> argparse.Namespace:
         help="Maximal difference between outer and inner radii for annulus",
     )
     parser.add_argument(
-        "--output_dir",
-        type=str,
-        default="",
-        help="Output directory to save data",
+        "--output_dir", type=str, default="", help="Output directory to save data",
     )
     return parser.parse_args()
 

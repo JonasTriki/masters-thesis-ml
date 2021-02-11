@@ -9,6 +9,22 @@
       "source.organizeImports": true
     }
   },
-  "python.linting.mypyEnabled": true,
-  "python.pythonPath": "/Users/triki/.local/share/virtualenvs/code-gd-a4ILK/bin/python"
+  "python.linting.mypyEnabled": false,
+  "python.pythonPath": ".local/share/virtualenvs/project-OdyMjCZJ/bin/python",
+  "files.watcherExclude": {
+    "**/__pycache__/**": true,
+    "**/.cache/**": true,
+    "**/.config/**": true,
+    "**/.ipynb_checkpoints/**": true,
+    "**/.ipython/**": true,
+    "**/.jupyter/**": true,
+    "**/.keras/**": true,
+    "**/.local/**": true,
+    "**/.nv/**": true,
+    "**/.ssh/**": true,
+    "**/.vscode-server/**": true,
+    "**/data/**": true,
+    "**/raw_data/**": true,
+  },
+  "jupyter.jupyterServerType": "remote"
 }

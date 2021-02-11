@@ -28,10 +28,7 @@ def parse_args() -> argparse.Namespace:
         help="Language of the Wikipedia dump",
     )
     parser.add_argument(
-        "--wiki_name",
-        type=str,
-        default="enwiki",
-        help="Name of the Wikipedia dump",
+        "--wiki_name", type=str, default="enwiki", help="Name of the Wikipedia dump",
     )
     parser.add_argument(
         "--wiki_dump_time",
