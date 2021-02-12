@@ -1,4 +1,5 @@
 import argparse
+import sys
 from os import makedirs
 from os.path import join
 from typing import Optional
@@ -6,12 +7,17 @@ from typing import Optional
 import annoy
 import joblib
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from nltk.corpus import wordnet as wn
 from scipy.stats import pearsonr
+from sklearn.metrics.pairwise import euclidean_distances
+from topological_polysemy import tps, tps_point_cloud
 from tqdm import tqdm
 
-from .topological_polysemy import tps
+sys.path.append("..")
+
+from word_embeddings.word2vec import load_model_training_output
 
 
 def parse_args() -> argparse.Namespace:
@@ -55,6 +61,16 @@ def parse_args() -> argparse.Namespace:
         help="Filepath of the Google News 3M word2vec model words",
     )
     parser.add_argument(
+        "--tps_neighbourhood_sizes",
+        nargs="+",
+        help="Neighbourhood sizes to use when computing TPS (e.g. 50, 60)",
+    )
+    parser.add_argument(
+        "--num_top_k_words_frequencies",
+        type=int,
+        help="Number of top words to use when computing TPS scores vs. word frequencies",
+    )
+    parser.add_argument(
         "--cyclo_octane_data_filepath",
         type=str,
         default="",
@@ -67,14 +83,9 @@ def parse_args() -> argparse.Namespace:
         help="Filepath of the Henneberg dataset",
     )
     parser.add_argument(
-        "--tps_neighbourhood_sizes",
-        nargs="+",
-        help="Neighbourhood sizes to use when computing TPS (e.g. 50, 60)",
-    )
-    parser.add_argument(
-        "--num_top_k_words_frequencies",
+        "--custom_point_cloud_neighbourhood_size",
         type=int,
-        help="Number of top words to use when computing TPS scores vs. word frequencies",
+        help="Neighbourhood size to use when computing TPS for custom point clouds",
     )
     parser.add_argument(
         "--output_dir", type=str, default="", help="Output directory to save results",
@@ -92,21 +103,40 @@ def tps_word_embeddings_correlation_plot(
     neighbourhood_size: int,
 ) -> None:
     """
-    TODO: Docs
+    Saves a correlation plot between TPS scores and some y values.
+
+    Parameters
+    ----------
+    tps_scores : np.ndarray
+        TPS scores.
+    y_values : np.ndarray
+        Y-values to plot against TPS scores.
+    y_values_name : np.ndarray
+        Name of the y-values.
+    tps_vs_y_correlation : float
+        Correlation between TPS scores and y values.
+    output_dir : str
+        Output directory.
+    word_embeddings_name : str
+        Name of word embeddings (appended to output filepath).
+    neighbourhood_size : int
+        Neighbourhood size used to compute TPS scores (appended to output filepath).
     """
+    # Ensure output directory exists
+    output_dir_plots = join(output_dir, word_embeddings_name)
+    makedirs(output_dir_plots, exist_ok=True)
+
     # Plot TPS scores to GS
     _, ax = plt.subplots(figsize=(10, 5))
-    ax.scatter(x=tps_scores, y=y_values)
+    scatter_h = ax.scatter(x=tps_scores, y=y_values)
+    if len(tps_scores) > 1000:
+        scatter_h.set_rasterized(True)
     ax.set_xlabel("TPS")
     ax.set_ylabel("Clusters in GS")
     ax.set_title(f"Correlation: {tps_vs_y_correlation:.5f}")
     plt.tight_layout()
     plt.savefig(
-        join(
-            output_dir,
-            word_embeddings_name,
-            f"tps_{neighbourhood_size}_vs_{y_values_name}.pdf",
-        ),
+        join(output_dir_plots, f"tps_{neighbourhood_size}_vs_{y_values_name}.pdf",),
         backend="pgf",
     )
 
@@ -125,8 +155,13 @@ def tps_word_embeddings(
     annoy_index: annoy.AnnoyIndex = None,
 ) -> dict:
     """
-    Computes TPS for word embeddings and creates correlation plots
-    TODO: Docs
+    Computes TPS for word embeddings and saves correlation plots.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
     """
     # Ensure output directory exists
     makedirs(output_dir, exist_ok=True)
@@ -161,13 +196,7 @@ def tps_word_embeddings(
         # -- Compute TPS scores and correlation vs 100 GS words --
         tps_scores_semeval = []
         print("Computing TPS scores for 100 GS words")
-        for semeval_target_word, semeval_target_word_gs_clusters in tqdm(
-            zip(
-                semeval_target_words_in_vocab,
-                semeval_target_words_gs_clusters_in_vocab,
-            ),
-            total=num_semeval_words,
-        ):
+        for semeval_target_word in tqdm(semeval_target_words_in_vocab):
             tps_score_semeval = tps(
                 target_word=semeval_target_word,
                 word_to_int=word_to_int,
@@ -179,14 +208,14 @@ def tps_word_embeddings(
 
         # Compute correlation vs GS word meanings
         tps_score_vs_gs_correlation, _ = pearsonr(
-            x=tps_scores_semeval, y=semeval_target_word_gs_clusters
+            x=tps_scores_semeval, y=semeval_target_words_gs_clusters_in_vocab
         )
         result_dict[tps_vs_gs_key].append(tps_score_vs_gs_correlation)
 
         # Save plot of TPS scores vs. GS
         tps_word_embeddings_correlation_plot(
             tps_scores=tps_scores_semeval,
-            y_values=semeval_target_word_gs_clusters,
+            y_values=semeval_target_words_gs_clusters_in_vocab,
             y_values_name="gs",
             tps_vs_y_correlation=tps_score_vs_gs_correlation,
             output_dir=output_dir,
@@ -270,10 +299,11 @@ def topological_polysemy_pipeline(
     word2vec_enwiki_model_dir: str,
     word2vec_google_news_model_weights_filepath: str,
     word2vec_google_news_model_words_filepath: str,
-    cyclo_octane_data_filepath: str,
-    henneberg_data_filepath: str,
     tps_neighbourhood_sizes: str,
     num_top_k_words_frequencies: int,
+    cyclo_octane_data_filepath: str,
+    henneberg_data_filepath: str,
+    custom_point_cloud_neighbourhood_size: int,
     output_dir: str,
 ) -> None:
     """
@@ -292,14 +322,16 @@ def topological_polysemy_pipeline(
         Filepath of the Google News 3M word2vec model weights.
     word2vec_google_news_model_words_filepath : str
         Filepath of the Google News 3M word2vec model words.
-    cyclo_octane_data_filepath : str
-        Filepath of the cyclo-octane dataset.
-    henneberg_data_filepath : str
-        Filepath of the Henneberg dataset.
     tps_neighbourhood_sizes : str
         Neighbourhood sizes to use when computing TPS (e.g. 50, 60).
     num_top_k_words_frequencies : int
         Number of top words to use when computing TPS scores vs. word frequencies.
+    cyclo_octane_data_filepath : str
+        Filepath of the cyclo-octane dataset.
+    henneberg_data_filepath : str
+        Filepath of the Henneberg dataset.
+    custom_point_cloud_neighbourhood_size : int
+        Neighbourhood size to use when computing TPS for custom point clouds.
     output_dir : str
         Output directory to save results.
     """
@@ -316,22 +348,111 @@ def topological_polysemy_pipeline(
     # Parse strings into int
     tps_neighbourhood_sizes = [int(n_size) for n_size in tps_neighbourhood_sizes]
 
-    """
-    TODO
-    + SemEval-2010 task 14 data
-        - 100 target words that are in vocab
-        - Wordnet words that are in vocab
-        - Frequencies of words in vocab
-    + Enwiki jan 2021 data
-        - 100 target words that are in vocab
-        - WordNet words that are in vocab
-        - Frequencies of words in vocab
-    + GoogleNews 3M data
-        - 100 target words that are in vocab
-        - WordNet words that are in vocab
-    + Cyclo-octane data
-    + Henneberg data
-    """
+    # -- Compute TPS for word embeddings (SemEval and enwiki) --
+    for dataset_name, model_dir in zip(
+        ["semeval_2010_task_14", "enwiki"],
+        [word2vec_semeval_model_dir, word2vec_enwiki_model_dir],
+    ):
+        # Load word embeddings
+        print(f"Loading {dataset_name} word embeddings...")
+        w2v_training_output = load_model_training_output(
+            model_training_output_dir=model_dir,
+            model_name="word2vec",
+            dataset_name=dataset_name,
+            return_normalized_embeddings=True,
+            return_annoy_index=True,
+            annoy_index_prefault=True,
+        )
+        last_embedding_weights_normalized = w2v_training_output[
+            "last_embedding_weights_normalized"
+        ]
+        last_embedding_weights_annoy_index = w2v_training_output[
+            "last_embedding_weights_annoy_index"
+        ]
+        words = w2v_training_output["words"]
+        word_to_int = w2v_training_output["word_to_int"]
+        word_counts = w2v_training_output["word_counts"]
+        print("Done!")
+
+        print("Computing TPS for word embeddings...")
+        tps_word_embeddings(
+            word_embeddings_name=dataset_name,
+            neighbourhood_sizes=tps_neighbourhood_sizes,
+            semeval_target_words=semeval_target_words,
+            semeval_target_words_gs_clusters=semeval_target_word_gs_clusters,
+            word_embeddings_normalized=last_embedding_weights_normalized,
+            word_to_int=word_to_int,
+            word_vocabulary=words,
+            num_top_k_words_frequencies=num_top_k_words_frequencies,
+            output_dir=output_dir,
+            word_counts=word_counts,
+            annoy_index=last_embedding_weights_annoy_index,
+        )
+        print("Done!")
+
+    # -- Compute TPS for GoogleNews 3M word embeddings --
+    # Load data
+    print("Loading GoogleNews 3M data...")
+    google_news_model_weights = np.load(
+        word2vec_google_news_model_weights_filepath, mmap_mode="r"
+    )
+    google_news_model_weights_normalized = google_news_model_weights / np.linalg.norm(
+        google_news_model_weights, axis=1
+    ).reshape(-1, 1)
+    with open(word2vec_google_news_model_words_filepath, "r") as words_file:
+        google_news_model_words = np.array(words_file.read().split("\n"))
+    print("Done!")
+    print("Computing TPS for GoogleNews 3M word embeddings...")
+    tps_word_embeddings(
+        word_embeddings_name="google_news_3m",
+        neighbourhood_sizes=tps_neighbourhood_sizes,
+        semeval_target_words=semeval_target_words,
+        semeval_target_words_gs_clusters=semeval_target_word_gs_clusters,
+        word_embeddings_normalized=google_news_model_weights_normalized,
+        word_to_int={
+            i: google_news_model_words[i] for i in range(len(google_news_model_words))
+        },
+        word_vocabulary=google_news_model_words,
+        num_top_k_words_frequencies=num_top_k_words_frequencies,
+        output_dir=output_dir,
+    )
+    print("Done!")
+
+    # -- Compute TPS for custom point clouds --
+    for point_cloud_name, point_cloud_filepath in zip(
+        ["cyclo_octane", "henneberg"],
+        [cyclo_octane_data_filepath, henneberg_data_filepath],
+    ):
+        # Load and prepare data for TPS
+        point_cloud = pd.read_csv(point_cloud_filepath, header=None).values
+        point_cloud_normalized = point_cloud / np.linalg.norm(
+            point_cloud, axis=1
+        ).reshape(-1, 1)
+        point_cloud_pairwise_dists = euclidean_distances(point_cloud)
+
+        # Compute TPS scores
+        num_points = len(point_cloud)
+        tps_scores = np.zeros(num_points)
+        print(f"Computing TPS scores for {point_cloud_name}...")
+        for point_index in tqdm(range(num_points)):
+            tps_score = tps_point_cloud(
+                point_index=point_index,
+                neighbourhood_size=custom_point_cloud_neighbourhood_size,
+                point_cloud_normalized=point_cloud_normalized,
+                point_cloud_pairwise_dists=point_cloud_pairwise_dists,
+            )
+            tps_scores[point_index] = tps_score
+
+        # Save result
+        point_cloud_output_dir = join(output_dir, point_cloud_name)
+        makedirs(point_cloud_output_dir, exist_ok=True)
+        np.save(
+            join(
+                point_cloud_output_dir,
+                f"tps_scores_{custom_point_cloud_neighbourhood_size}.npy",
+            ),
+            tps_scores,
+        )
 
 
 if __name__ == "__main__":
@@ -342,9 +463,10 @@ if __name__ == "__main__":
         word2vec_enwiki_model_dir=args.word2vec_enwiki_model_dir,
         word2vec_google_news_model_weights_filepath=args.word2vec_google_news_model_weights_filepath,
         word2vec_google_news_model_words_filepath=args.word2vec_google_news_model_words_filepath,
-        cyclo_octane_data_filepath=args.cyclo_octane_data_filepath,
-        henneberg_data_filepath=args.henneberg_data_filepath,
         tps_neighbourhood_sizes=args.tps_neighbourhood_sizes,
         num_top_k_words_frequencies=args.num_top_k_words_frequencies,
+        cyclo_octane_data_filepath=args.cyclo_octane_data_filepath,
+        henneberg_data_filepath=args.henneberg_data_filepath,
+        custom_point_cloud_neighbourhood_size=args.custom_point_cloud_neighbourhood_size,
         output_dir=args.output_dir,
     )
