@@ -7,7 +7,7 @@ from typing import Callable, Dict
 import annoy
 import numpy as np
 from ripser import ripser
-from ripser_utils import parse_ripser_plus_plus_output
+from ripser_utils import run_ripser_plus_plus
 from sklearn.metrics import euclidean_distances
 from tqdm.auto import tqdm
 
@@ -93,6 +93,7 @@ def compute_gad_mp_init(word_embeddings: Array, word_embeddings_shape: tuple) ->
 
 def compute_gad_multiprocessing(args: tuple) -> dict:
     """
+    TODO: Docs
 
     Parameters
     ----------
@@ -109,6 +110,7 @@ def compute_gad_multiprocessing(args: tuple) -> dict:
         annulus_outer_radius,
         annoy_index_filepath,
         target_homology_dim,
+        use_ripser_plus_plus,
     ) = args
     persistence_threshold = abs(annulus_outer_radius - annulus_inner_radius)
 
@@ -144,13 +146,19 @@ def compute_gad_multiprocessing(args: tuple) -> dict:
 
         # Compute (k-1) Vietoris-Rips barcode of A_y
         A_y = word_embeddings[A_y_indices]
-        A_y_pairwise_dists = euclidean_distances(A_y)
-        rips_complex = ripser(
-            X=A_y_pairwise_dists,
-            maxdim=target_homology_dim,
-            distance_matrix=True,
-        )
-        diagrams = rips_complex["dgms"]
+        if use_ripser_plus_plus and len(A_y) > 200:
+            diagrams_dict = run_ripser_plus_plus(
+                point_cloud=A_y, max_dim=target_homology_dim
+            )
+            diagrams = list(diagrams_dict.values())
+        else:
+            A_y_pairwise_dists = euclidean_distances(A_y)
+            rips_complex = ripser(
+                X=A_y_pairwise_dists,
+                maxdim=target_homology_dim,
+                distance_matrix=True,
+            )
+            diagrams = rips_complex["dgms"]
 
         # Calculate number of intervals in A_y_barcodes of length
         # (death - birth) > (annulus_outer_radius - annulus_inner_radius).
@@ -318,40 +326,13 @@ class GeometricAnomalyDetection:
 
             # Compute (k-1) Vietoris-Rips barcode of A_y
             A_y = self._word_embeddings[A_y_indices]
-            A_y_pairwise_dists = euclidean_distances(A_y)
-            if use_ripser_plus_plus:
-
-                # Prepare Ripser++ arguments
-                A_y_pairwise_dists_list_str = str(A_y_pairwise_dists.tolist())
-                target_homology_dim_str = str(target_homology_dim)
-
-                # Run Ripser++ and capture output
-                ripser_plus_plus_proc = subprocess.Popen(
-                    [
-                        "python",
-                        join(
-                            "..",
-                            "inf399-uib-ripser-plus-plus",
-                            "python",
-                            "working_directory",
-                            "run_ripser++.py",
-                        ),
-                        "--distance_matrix",
-                        A_y_pairwise_dists_list_str,
-                        "--dim",
-                        target_homology_dim_str,
-                    ],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
+            if use_ripser_plus_plus and len(A_y) > 200:
+                diagrams_dict = run_ripser_plus_plus(
+                    point_cloud=A_y, max_dim=target_homology_dim
                 )
-                ripser_plus_plus_output = ""
-                for line in ripser_plus_plus_proc.stdout:
-                    ripser_plus_plus_output += line.decode("utf-8")
-
-                diagrams = parse_ripser_plus_plus_output(
-                    rpp_output=ripser_plus_plus_output, dims=target_homology_dim
-                )
+                diagrams = list(diagrams_dict.values())
             else:
+                A_y_pairwise_dists = euclidean_distances(A_y)
                 rips_complex = ripser(
                     X=A_y_pairwise_dists,
                     maxdim=target_homology_dim,
@@ -456,6 +437,8 @@ class GeometricAnomalyDetection:
         annulus_outer_radius: float,
         annoy_index_filepath: str,
         word_ints: list = None,
+        use_ripser_plus_plus: bool = False,
+        num_cpus: int = -1,
     ) -> dict:
         """
         Computes geometric anomaly detection Procedure 1 from [1] using
@@ -474,6 +457,10 @@ class GeometricAnomalyDetection:
         word_ints : list, optional
             List word integer representations, signalizing what part of the
             vocabulary we want to use. Set to None to use whole vocabulary.
+        use_ripser_plus_plus : bool
+            Whether or not to use Ripser++ and GPUs for computing Rips complices.
+        num_cpus : int
+            Number of CPUs to use (defaults -1 = to all CPUs).
 
         Returns
         -------
@@ -500,7 +487,8 @@ class GeometricAnomalyDetection:
         np.copyto(word_embeddings_raw_np, self._word_embeddings[word_ints])
 
         # Prepare arguments for multiprocessing
-        num_cpus = cpu_count()
+        if num_cpus == -1:
+            num_cpus = cpu_count()
         num_word_ints_per_process = int(word_embeddings_shape[0] // num_cpus)
         grid_search_args = [
             (
@@ -509,6 +497,7 @@ class GeometricAnomalyDetection:
                 annulus_outer_radius,
                 annoy_index_filepath,
                 manifold_dimension - 1,
+                use_ripser_plus_plus,
             )
             for word_int_chunk in batch_list_gen(word_ints, num_word_ints_per_process)
         ]
@@ -520,6 +509,7 @@ class GeometricAnomalyDetection:
 
         # Run MP
         with Pool(
+            processes=num_cpus,
             initializer=compute_gad_mp_init,
             initargs=(word_embeddings_raw, word_embeddings_shape),
         ) as pool:
@@ -546,6 +536,8 @@ class GeometricAnomalyDetection:
         outer_inner_radii_max_diff: float = np.inf,
         max_pairwise_distance: float = -1,
         word_embeddings_pairwise_dists: np.ndarray = None,
+        use_ripser_plus_plus: bool = False,
+        num_cpus: int = -1,
     ) -> tuple:
         """
         Performs grid search to find the best pair of inner/outer annulus radii.
@@ -571,6 +563,10 @@ class GeometricAnomalyDetection:
         word_embeddings_pairwise_dists : np.ndarray, optional
             Numpy matrix containing pairwise distances between word embeddings
             (defaults to None).
+        use_ripser_plus_plus : bool
+            Whether or not to use Ripser++ and GPUs for computing Rips complices.
+        num_cpus : int
+            Number of CPUs to use (defaults -1 = to all CPUs).
 
         Returns
         -------
@@ -610,6 +606,8 @@ class GeometricAnomalyDetection:
                 annulus_outer_radius=outer_radius,
                 annoy_index_filepath=annoy_index_filepath,
                 word_ints=word_ints,
+                use_ripser_plus_plus=use_ripser_plus_plus,
+                num_cpus=num_cpus,
             )
             P_man_counts.append(len(gad_result["P_man"]))
             gad_results.append(gad_result)

@@ -13,7 +13,7 @@ from gudhi.wasserstein import wasserstein_distance
 
 sys.path.append("..")
 
-from utils import words_to_vectors  # noqa: E402
+from utils import words_to_vectors
 
 
 def punctured_neighbourhood(
