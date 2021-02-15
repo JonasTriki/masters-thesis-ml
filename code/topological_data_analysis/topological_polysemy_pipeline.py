@@ -127,7 +127,7 @@ def tps_word_embeddings_correlation_plot(
     makedirs(output_dir_plots, exist_ok=True)
 
     # Plot TPS scores to GS
-    _, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(10, 5))
     scatter_h = ax.scatter(x=tps_scores, y=y_values)
     if len(tps_scores) > 1000:
         scatter_h.set_rasterized(True)
@@ -139,6 +139,7 @@ def tps_word_embeddings_correlation_plot(
         join(output_dir_plots, f"tps_{neighbourhood_size}_vs_{y_values_name}.pdf",),
         backend="pgf",
     )
+    plt.close(fig)
 
 
 def tps_word_embeddings(

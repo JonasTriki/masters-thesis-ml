@@ -24,7 +24,10 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model_dir", type=str, default="", help="Directory of the model to load",
+        "--model_dir",
+        type=str,
+        default="",
+        help="Directory of the model to load",
     )
     parser.add_argument(
         "--model_name",
@@ -39,7 +42,9 @@ def parse_args() -> argparse.Namespace:
         help="Name of the dataset the model is trained on",
     )
     parser.add_argument(
-        "--vocab_size", type=int, help="Size of the vocabulary to use",
+        "--vocab_size",
+        type=int,
+        help="Size of the vocabulary to use",
     )
     parser.add_argument(
         "--annoy_index_filepath",
@@ -63,7 +68,21 @@ def parse_args() -> argparse.Namespace:
         help="Maximal difference between outer and inner radii for annulus",
     )
     parser.add_argument(
-        "--output_dir", type=str, default="", help="Output directory to save data",
+        "--use_ripser_plus_plus",
+        default=False,
+        action="store_true",
+        help="Whether or not to use Ripser++ and GPUs for computing Rips complices",
+    )
+    parser.add_argument(
+        "--num_cpus",
+        type=int,
+        help="Number of CPUs to use (defaults -1 = to all CPUs)",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="",
+        help="Output directory to save data",
     )
     return parser.parse_args()
 
@@ -77,6 +96,8 @@ def geometric_anomaly_detection_grid_search(
     manifold_dimension: int,
     num_radii_to_use: int,
     max_annulus_radii_diff: float,
+    use_ripser_plus_plus: bool,
+    num_cpus: int,
     output_dir: str,
 ) -> None:
     """
@@ -102,6 +123,10 @@ def geometric_anomaly_detection_grid_search(
         (all for outer radius and (all - 1) for inner radius).
     max_annulus_radii_diff : float
         Maximal difference between outer and inner radii for annulus
+    use_ripser_plus_plus : bool
+        Whether or not to use Ripser++ and GPUs for computing Rips complices.
+    num_cpus : int
+        Number of CPUs to use (defaults -1 = to all CPUs).
     output_dir : str
         Output directory to save data
     """
@@ -114,15 +139,13 @@ def geometric_anomaly_detection_grid_search(
         model_training_output_dir=model_dir,
         model_name=model_name,
         dataset_name=dataset_name,
+        return_normalized_embeddings=True,
     )
-    last_embedding_weights = w2v_training_output["last_embedding_weights"]
+    last_embedding_weights_normalized = w2v_training_output[
+        "last_embedding_weights_normalized"
+    ]
     model_id = f"{model_name}_{dataset_name}"
     print("Done!")
-
-    # Normalize word embeddings
-    last_embedding_weights_normalized = last_embedding_weights / np.linalg.norm(
-        last_embedding_weights, axis=1
-    ).reshape(-1, 1)
 
     # Compute pairwise distances for grid search using specified vocab size
     vocabulary_word_ints = list(range(vocab_size))
@@ -148,6 +171,8 @@ def geometric_anomaly_detection_grid_search(
         annoy_index_filepath=annoy_index_filepath,
         outer_inner_radii_max_diff=max_annulus_radii_diff,
         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists_grid_search,
+        use_ripser_plus_plus=use_ripser_plus_plus,
+        num_cpus=num_cpus,
     )
     grid_search_result = {
         "best_gad_result_idx": best_gad_result_idx,
@@ -172,5 +197,7 @@ if __name__ == "__main__":
         manifold_dimension=args.manifold_dimension,
         num_radii_to_use=args.num_radii_to_use,
         max_annulus_radii_diff=args.max_annulus_radii_diff,
+        use_ripser_plus_plus=args.use_ripser_plus_plus,
+        num_cpus=args.num_cpus,
         output_dir=args.output_dir,
     )

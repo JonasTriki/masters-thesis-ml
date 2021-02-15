@@ -10,7 +10,7 @@
     }
   },
   "python.linting.mypyEnabled": false,
-  "python.pythonPath": ".local/share/virtualenvs/project-OdyMjCZJ/bin/python",
+  "python.pythonPath": "/usr/bin/python3",
   "files.watcherExclude": {
     "**/__pycache__/**": true,
     "**/.cache/**": true,
