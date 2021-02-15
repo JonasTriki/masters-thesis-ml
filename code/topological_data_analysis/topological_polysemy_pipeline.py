@@ -88,7 +88,10 @@ def parse_args() -> argparse.Namespace:
         help="Neighbourhood size to use when computing TPS for custom point clouds",
     )
     parser.add_argument(
-        "--output_dir", type=str, default="", help="Output directory to save results",
+        "--output_dir",
+        type=str,
+        default="",
+        help="Output directory to save results",
     )
     return parser.parse_args()
 
@@ -97,6 +100,7 @@ def tps_word_embeddings_correlation_plot(
     tps_scores: np.ndarray,
     y_values: np.ndarray,
     y_values_name: str,
+    y_label: str,
     tps_vs_y_correlation: float,
     output_dir: str,
     word_embeddings_name: str,
@@ -113,6 +117,8 @@ def tps_word_embeddings_correlation_plot(
         Y-values to plot against TPS scores.
     y_values_name : np.ndarray
         Name of the y-values.
+    y_label : str
+        Y-axis label.
     tps_vs_y_correlation : float
         Correlation between TPS scores and y values.
     output_dir : str
@@ -131,12 +137,15 @@ def tps_word_embeddings_correlation_plot(
     scatter_h = ax.scatter(x=tps_scores, y=y_values)
     if len(tps_scores) > 1000:
         scatter_h.set_rasterized(True)
-    ax.set_xlabel("TPS")
-    ax.set_ylabel("Clusters in GS")
+    ax.set_xlabel(f"TPS_{neighbourhood_size}")
+    ax.set_ylabel(y_label)
     ax.set_title(f"Correlation: {tps_vs_y_correlation:.5f}")
     plt.tight_layout()
     plt.savefig(
-        join(output_dir_plots, f"tps_{neighbourhood_size}_vs_{y_values_name}.pdf",),
+        join(
+            output_dir_plots,
+            f"tps_{neighbourhood_size}_vs_{y_values_name}.pdf",
+        ),
         backend="pgf",
     )
     plt.close(fig)
@@ -171,7 +180,6 @@ def tps_word_embeddings(
     semeval_target_words_in_vocab_filter = [
         i for i, word in enumerate(semeval_target_words) if word in word_to_int
     ]
-    num_semeval_words = len(semeval_target_words_in_vocab_filter)
     semeval_target_words_in_vocab = semeval_target_words[
         semeval_target_words_in_vocab_filter
     ]
@@ -194,9 +202,9 @@ def tps_word_embeddings(
     for neighbourhood_size in neighbourhood_sizes:
         print(f"-- Neighbourhood size: {neighbourhood_size} --")
 
-        # -- Compute TPS scores and correlation vs 100 GS words --
+        # -- Compute TPS scores and correlation vs GS words --
         tps_scores_semeval = []
-        print("Computing TPS scores for 100 GS words")
+        print("Computing TPS scores for GS words")
         for semeval_target_word in tqdm(semeval_target_words_in_vocab):
             tps_score_semeval = tps(
                 target_word=semeval_target_word,
@@ -218,6 +226,7 @@ def tps_word_embeddings(
             tps_scores=tps_scores_semeval,
             y_values=semeval_target_words_gs_clusters_in_vocab,
             y_values_name="gs",
+            y_label="Clusters in GS",
             tps_vs_y_correlation=tps_score_vs_gs_correlation,
             output_dir=output_dir,
             word_embeddings_name=word_embeddings_name,
@@ -252,6 +261,7 @@ def tps_word_embeddings(
             tps_scores=tps_scores_wordnet_synsets,
             y_values=wordnet_synsets_words_in_vocab_meanings,
             y_values_name="synsets",
+            y_label="Synsets in WordNet",
             tps_vs_y_correlation=tps_score_vs_wordnet_synsets_correlation,
             output_dir=output_dir,
             word_embeddings_name=word_embeddings_name,
@@ -287,6 +297,7 @@ def tps_word_embeddings(
                 tps_scores=tps_score_word_frequencies,
                 y_values=word_counts[:num_top_k_words_frequencies],
                 y_values_name="frequency",
+                y_label="Word frequency",
                 tps_vs_y_correlation=tps_score_vs_word_frequency_correlation,
                 output_dir=output_dir,
                 word_embeddings_name=word_embeddings_name,
