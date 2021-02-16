@@ -4,7 +4,9 @@ import sys
 from os import makedirs
 from os.path import isfile, join
 
+import annoy
 import numpy as np
+from tqdm import tqdm
 from word2vec_utils import load_word2vec_format
 
 sys.path.append("..")
@@ -34,10 +36,18 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Output directory to save processed data",
     )
+    parser.add_argument(
+        "--annoy_index_n_trees",
+        type=int,
+        default="",
+        help="Number of trees to pass to Annoy's build method. More trees => higher precision",
+    )
     return parser.parse_args()
 
 
-def preprocess_external_word_embeddings(raw_data_dir: str, output_dir: str) -> None:
+def preprocess_external_word_embeddings(
+    raw_data_dir: str, output_dir: str, annoy_index_n_trees: int
+) -> None:
     """
     Downloads and preprocesses external word embeddings:
     - GoogleNews-vectors-negative300.bin.gz [1]
@@ -48,6 +58,8 @@ def preprocess_external_word_embeddings(raw_data_dir: str, output_dir: str) -> N
         Path to the raw data directory (where files will be downloaded to).
     output_dir : str
         Output directory to save processed data.
+    annoy_index_n_trees : int
+        Number of trees to pass to Annoys build method. More trees => higher precision.
 
     References
     ----------
@@ -56,6 +68,7 @@ def preprocess_external_word_embeddings(raw_data_dir: str, output_dir: str) -> N
        (https://arxiv.org/pdf/1310.4546.pdf). In Proceedings of NIPS, 2013.
     """
     # Ensure output directory exists
+    output_dir = join(output_dir, "GoogleNews-vectors-negative300")
     makedirs(output_dir, exist_ok=True)
 
     # Define filepaths
@@ -73,6 +86,12 @@ def preprocess_external_word_embeddings(raw_data_dir: str, output_dir: str) -> N
     )
     google_news_vectors_filepath = join(
         output_dir, "GoogleNews-vectors-negative300.npy"
+    )
+    google_news_normalized_vectors_filepath = join(
+        output_dir, "GoogleNews-vectors-negative300_normalized.npy"
+    )
+    google_news_vectors_annoy_index_filepath = join(
+        output_dir, "GoogleNews-vectors-negative300_annoy_index.ann"
     )
 
     # -- GoogleNews-vectors-negative300.bin.gz --
@@ -99,14 +118,48 @@ def preprocess_external_word_embeddings(raw_data_dir: str, output_dir: str) -> N
     )
 
     # Save words
-    with open(google_news_words_filepath, "w") as file:
-        for i, word in enumerate(google_news_vectors["words"]):
-            if i > 0:
-                file.write("\n")
-            file.write(word)
+    if not isfile(google_news_words_filepath):
+        with open(google_news_words_filepath, "w") as file:
+            for i, word in enumerate(google_news_vectors["words"]):
+                if i > 0:
+                    file.write("\n")
+                file.write(word)
 
     # Save word embeddings
-    np.save(google_news_vectors_filepath, google_news_vectors["word_embeddings"])
+    if not isfile(google_news_vectors_filepath):
+        np.save(google_news_vectors_filepath, google_news_vectors["word_embeddings"])
+
+    # Save normalized word embeddings
+    word_embeddings_normalized = None
+    if not isfile(google_news_normalized_vectors_filepath):
+        word_embeddings_normalized = google_news_vectors[
+            "word_embeddings"
+        ] / np.linalg.norm(google_news_vectors["word_embeddings"], axis=1).reshape(
+            -1, 1
+        )
+        np.save(google_news_normalized_vectors_filepath, word_embeddings_normalized)
+
+    if not isfile(google_news_vectors_annoy_index_filepath):
+        if word_embeddings_normalized is None:
+            word_embeddings_normalized = np.load(
+                google_news_normalized_vectors_filepath
+            )
+        vocab_size, embedding_dim = word_embeddings_normalized.shape
+
+        # Add word embeddings to index and build it
+        ann_index = annoy.AnnoyIndex(f=embedding_dim, metric="euclidean")
+        print("Adding word embeddings to index...")
+        for i in tqdm(range(vocab_size)):
+            ann_index.add_item(i, word_embeddings_normalized[i])
+        print("Done!")
+
+        print("Building index...")
+        ann_index.build(n_trees=annoy_index_n_trees, n_jobs=-1)
+        print("Done!")
+
+        print("Saving to file...")
+        ann_index.save(google_news_vectors_annoy_index_filepath)
+        print("Done!")
 
 
 if __name__ == "__main__":
@@ -114,4 +167,5 @@ if __name__ == "__main__":
     preprocess_external_word_embeddings(
         raw_data_dir=args.raw_data_dir,
         output_dir=args.output_dir,
+        annoy_index_n_trees=args.annoy_index_n_trees,
     )

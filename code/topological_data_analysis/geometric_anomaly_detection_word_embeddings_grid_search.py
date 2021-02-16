@@ -62,6 +62,18 @@ def parse_args() -> argparse.Namespace:
         help="Number of radii parameters to use at most (all for outer radius and (all - 1) for inner radius)",
     )
     parser.add_argument(
+        "--min_outer_annulus_radius",
+        type=float,
+        default=0,
+        help="Minimal outer annulus radius to search over",
+    )
+    parser.add_argument(
+        "--max_outer_annulus_radius",
+        type=float,
+        default=-1,
+        help="Maximal outer annulus radius to search over",
+    )
+    parser.add_argument(
         "--max_annulus_radii_diff",
         type=float,
         default=np.inf,
@@ -76,6 +88,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--num_cpus",
         type=int,
+        default=-1,
         help="Number of CPUs to use (defaults -1 = to all CPUs)",
     )
     parser.add_argument(
@@ -83,6 +96,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="",
         help="Output directory to save data",
+    )
+    parser.add_argument(
+        "--output_filepath_suffix",
+        type=str,
+        default="",
+        help="Output filepath suffix",
     )
     return parser.parse_args()
 
@@ -95,10 +114,13 @@ def geometric_anomaly_detection_grid_search(
     vocab_size: int,
     manifold_dimension: int,
     num_radii_to_use: int,
+    min_outer_annulus_radius: float,
+    max_outer_annulus_radius: float,
     max_annulus_radii_diff: float,
     use_ripser_plus_plus: bool,
     num_cpus: int,
     output_dir: str,
+    output_filepath_suffix: str,
 ) -> None:
     """
     Performs grid search to find best set of annulus radii (inner and outer)
@@ -121,6 +143,10 @@ def geometric_anomaly_detection_grid_search(
     num_radii_to_use : int
         Number of radii parameters to use at most
         (all for outer radius and (all - 1) for inner radius).
+    min_outer_annulus_radius : float
+        Minimal outer annulus radius to search over.
+    max_outer_annulus_radius : float
+        Maximal outer annulus radius to search over.
     max_annulus_radii_diff : float
         Maximal difference between outer and inner radii for annulus
     use_ripser_plus_plus : bool
@@ -129,6 +155,8 @@ def geometric_anomaly_detection_grid_search(
         Number of CPUs to use (defaults -1 = to all CPUs).
     output_dir : str
         Output directory to save data
+    output_filepath_suffix : str
+        Output filepath suffix
     """
     # Ensure output directory exists
     makedirs(output_dir, exist_ok=True)
@@ -169,6 +197,8 @@ def geometric_anomaly_detection_grid_search(
         manifold_dimension=manifold_dimension,
         num_radii_per_parameter=num_radii_to_use,
         annoy_index_filepath=annoy_index_filepath,
+        min_outer_annulus_radius=min_outer_annulus_radius,
+        max_outer_annulus_radius=max_outer_annulus_radius,
         outer_inner_radii_max_diff=max_annulus_radii_diff,
         word_embeddings_pairwise_dists=word_embeddings_pairwise_dists_grid_search,
         use_ripser_plus_plus=use_ripser_plus_plus,
@@ -181,7 +211,7 @@ def geometric_anomaly_detection_grid_search(
         "annulus_radii_grid": annulus_radii_grid,
     }
     grid_search_result_filepath = join(
-        output_dir, f"{model_id}_grid_search_result.joblib"
+        output_dir, f"{model_id}_grid_search_result_{output_filepath_suffix}.joblib"
     )
     joblib.dump(grid_search_result, grid_search_result_filepath)
 
@@ -196,8 +226,11 @@ if __name__ == "__main__":
         vocab_size=args.vocab_size,
         manifold_dimension=args.manifold_dimension,
         num_radii_to_use=args.num_radii_to_use,
+        min_outer_annulus_radius=args.min_outer_annulus_radius,
+        max_outer_annulus_radius=args.max_outer_annulus_radius,
         max_annulus_radii_diff=args.max_annulus_radii_diff,
         use_ripser_plus_plus=args.use_ripser_plus_plus,
         num_cpus=args.num_cpus,
         output_dir=args.output_dir,
+        output_filepath_suffix=args.output_filepath_suffix,
     )

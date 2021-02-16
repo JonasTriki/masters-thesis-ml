@@ -20,7 +20,8 @@ def grid_search_prepare_word_ints_within_radii(
     word_ints: list,
     num_radii_per_parameter: int,
     word_vector_distance: Callable[[int, int], float],
-    max_pairwise_distance: float = -1,
+    min_outer_annulus_radius: float = 0,
+    max_outer_annulus_radius: float = -1,
     word_embeddings_pairwise_dists: np.ndarray = None,
 ) -> tuple:
     """
@@ -37,8 +38,10 @@ def grid_search_prepare_word_ints_within_radii(
     word_vector_distance : callable
         Callable which takes in two indices i and j and returns the distance
         between word vector i and j.
-    max_pairwise_distance : float
-        Maximum pairwise distance between word embeddings. Must
+    min_outer_annulus_radius : float
+        Minimal outer annulus radius to search over.
+    max_outer_annulus_radius : float
+        Maximal outer annulus radius to search over. Must
         be specified if word_embeddings_pairwise_dists is None.
     word_embeddings_pairwise_dists : np.ndarray
         Numpy matrix containing pairwise distances between word embeddings
@@ -51,15 +54,17 @@ def grid_search_prepare_word_ints_within_radii(
         and radii space.
     """
     # Find largest pairwise distance between word embeddings
-    if max_pairwise_distance == -1:
+    if max_outer_annulus_radius == -1:
         if word_embeddings_pairwise_dists is not None:
-            max_pairwise_distance = np.max(word_embeddings_pairwise_dists)
+            max_outer_annulus_radius = np.max(word_embeddings_pairwise_dists)
         else:
             raise ValueError("Maximum pairwise distance must be specified.")
 
     # Find values for radii to use during search
     radii_space = np.linspace(
-        start=0, stop=max_pairwise_distance, num=num_radii_per_parameter + 1
+        start=min_outer_annulus_radius,
+        stop=max_outer_annulus_radius,
+        num=num_radii_per_parameter + 1,
     )[1:]
 
     # Prepare words within radii dictionary
@@ -534,7 +539,8 @@ class GeometricAnomalyDetection:
         num_radii_per_parameter: int,
         annoy_index_filepath: str,
         outer_inner_radii_max_diff: float = np.inf,
-        max_pairwise_distance: float = -1,
+        min_outer_annulus_radius: float = 0,
+        max_outer_annulus_radius: float = -1,
         word_embeddings_pairwise_dists: np.ndarray = None,
         use_ripser_plus_plus: bool = False,
         num_cpus: int = -1,
@@ -557,8 +563,10 @@ class GeometricAnomalyDetection:
             Filepath of Annoy index built on the word embeddings
         outer_inner_radii_max_diff : float
             Maximal difference between outer and inner radii (defaults to np.inf => unbounded).
-        max_pairwise_distance : float
-            Maximum pairwise distance between word embeddings. Must
+        min_outer_annulus_radius : float
+            Minimal outer annulus radius to search over.
+        max_outer_annulus_radius : float
+            Maximal outer annulus radius to search over. Must
             be specified if word_embeddings_pairwise_dists is None.
         word_embeddings_pairwise_dists : np.ndarray, optional
             Numpy matrix containing pairwise distances between word embeddings
@@ -574,15 +582,17 @@ class GeometricAnomalyDetection:
             Tuple containing best result index, P_man counts in a list, results
             from geometric anomaly detection and annulus radii grid.
         """
-        if max_pairwise_distance == -1:
+        if max_outer_annulus_radius == -1:
             if word_embeddings_pairwise_dists is not None:
-                max_pairwise_distance = np.max(word_embeddings_pairwise_dists)
+                max_outer_annulus_radius = np.max(word_embeddings_pairwise_dists)
             else:
                 raise ValueError("Maximum pairwise distance must be specified.")
 
         # Find values for radii to use during search
         radii_space = np.linspace(
-            start=0, stop=max_pairwise_distance, num=num_radii_per_parameter + 1
+            start=min_outer_annulus_radius,
+            stop=max_outer_annulus_radius,
+            num=num_radii_per_parameter + 1,
         )[1:]
 
         # Grid-search best set of annulus radii to optimize number of P_man words

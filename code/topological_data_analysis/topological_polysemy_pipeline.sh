@@ -3,8 +3,7 @@ screen -dmS topological_polysemy_pipeline -L -Logfile topological_polysemy_pipel
 --semeval_word_senses_filepath data/semeval_2010_14_word_senses.joblib \
 --word2vec_semeval_model_dir ../output/word2vec_training/word2vec_semeval_2010_task_14 \
 --word2vec_enwiki_model_dir ../output/word2vec_training/word2vec_enwiki_jan_2021_word2phrase \
---word2vec_google_news_model_weights_filepath ../word_embeddings/data/GoogleNews-vectors-negative300.npy \
---word2vec_google_news_model_words_filepath ../word_embeddings/data/GoogleNews-vectors-negative300_words.txt \
+--word2vec_google_news_model_dir ../word_embeddings/data/GoogleNews-vectors-negative300 \
 --tps_neighbourhood_sizes 10 40 50 60 100 150 200 \
 --num_top_k_words_frequencies 10000 \
 --cyclo_octane_data_filepath custom_data/cyclo-octane.csv \
