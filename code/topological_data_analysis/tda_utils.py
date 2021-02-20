@@ -40,7 +40,6 @@ def plot_persistence_diagram(
 def generate_points_in_spheres(
     num_points: int,
     sphere_dimensionality: int,
-    sphere_means: tuple,
     space_dimensionality: int = None,
     create_intersection_point: bool = False,
     random_state: int = 0,
@@ -55,8 +54,6 @@ def generate_points_in_spheres(
         Number of points to generate per sphere.
     sphere_dimensionality : int
         Dimensionality (d) to use when generating points in d-dimensional spheres.
-    sphere_means : tuple
-        Tuple containing two floats indicating the mean of each sphere.
     space_dimensionality : int, optional
         Dimensionality to use for the point space (must be equal or greater than
         sphere_dimensionality). Can be used to increase the dimensionality for the points.
@@ -74,6 +71,10 @@ def generate_points_in_spheres(
     """
     # Set random seed
     np.random.seed(random_state)
+
+    # Compute sphere means
+    spheres_mean_diff = 2 / np.sqrt(sphere_dimensionality)
+    sphere_means = [-spheres_mean_diff / 2, spheres_mean_diff / 2]
 
     # Generate points in spheres
     sphere_means_in_space_dim = [
@@ -101,10 +102,8 @@ def generate_points_in_spheres(
 
             # Method 20 from (accessed 31th of January 2021):
             # http://extremelearning.com.au/how-to-generate-uniformly-random-points-on-n-spheres-and-n-balls/
-            u = np.random.normal(loc=0, scale=1, size=sphere_dimensionality)
-            u /= np.linalg.norm(u)
-            r = np.random.random() ** (1.0 / sphere_dimensionality)
-            x = r * u
+            x = np.random.normal(loc=0, scale=1, size=sphere_dimensionality)
+            x /= np.linalg.norm(x)
             if space_dimensionality is not None:
                 x = np.concatenate(
                     (x, np.zeros(space_dimensionality - sphere_dimensionality))
@@ -112,29 +111,13 @@ def generate_points_in_spheres(
 
             x += loc  # Shift point by adding mean
             sphere_points[sphere_point_idx] = x
-
-            # Compute distance to sphere origos
-            point_in_spheres = []
-            for k, sphere_loc in enumerate(sphere_means_in_space_dim):
-                dist_to_sphere = np.linalg.norm(x - sphere_loc)
-                point_in_sphere = dist_to_sphere <= 1
-                point_in_spheres.append(point_in_sphere)
-
-            # If point is between spheres, we label it as 2, indicating overlapping.
-            if all(point_in_spheres):
-                sphere_point_labels[sphere_point_idx] = 2
-            else:
-
-                # Else, use sphere index as label.
-                sphere_point_labels[sphere_point_idx] = point_in_spheres.index(True)
+            sphere_point_labels[sphere_point_idx] = i
 
     if create_intersection_point:
-        sphere_points[total_num_points - 1] = np.concatenate(
-            (
-                np.repeat(sphere_means[1] / 2, sphere_dimensionality),
-                np.zeros(space_dimensionality - sphere_dimensionality),
-            )
-        )
+        if space_dimensionality is not None:
+            sphere_points[total_num_points - 1] = np.zeros(space_dimensionality)
+        else:
+            sphere_points[total_num_points - 1] = np.zeros(sphere_dimensionality)
         sphere_point_labels[total_num_points - 1] = 2
 
     return sphere_points, sphere_point_labels
