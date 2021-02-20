@@ -2,7 +2,7 @@
 In this master thesis, we will use several general machine learning methods in conjunction with each other. In this chapter we will introduce and explain these methods.
 
 \section{Artificial Neural Networks (ANNs)}
-In this section we will explain artificial neural networks (ANN). In particular, we will focus on multilayered neural networks (MLNN). We refer to \cite[Chapter 1]{Aggarwal18} and \cite{rong2016word2vec} when describing ANNs.
+In this section we will explain artificial neural networks (ANN). In particular, we will focus on multilayered neural networks (MLNN). We refer to \cite[Chapter 1]{Aggarwal18} and \cite{rong2016word2vec} when describing this section.
 
 \begin{definition}
 An artificial neuron (or unit) is a function which receives one or more inputs and a bias, and then sums them to produce an output, as illustrated in \cref{fig:artificial_neuron}; $\left\{ x_1, \ldots, x_K \right\}$ are the input values, $x_0$ is the bias, $\left\{ w_0, \ldots, w_K \right\}$ are the weights and $y$ is a scalar output. We denote $f$ as the activation function.
@@ -131,7 +131,7 @@ where $K$ is the number of output values for the softmax layer.
 
 \begin{figure}[H]
     \centering
-    \input{thesis/figures/common-activation-functions.tex}
+    \includegraphics[width=0.7\textwidth]{thesis/figures/common-activation-functions.pdf}
     \caption{Various activation functions}
     \label{fig:activation-functions}
 \end{figure}
@@ -250,16 +250,20 @@ The main advantage of k-means clustering is its simplicity, both in implementati
 
 \begin{figure}[H]
     \centering
-    \input{thesis/figures/curse-of-dimensionality}
+    \includegraphics[width=0.7\textwidth]{thesis/figures/curse-of-dimensionality.pdf}
     \caption{Curse of dimensionality: the distance between points in higher dimensional spaces become the same as the dimensionality increases, and thus, it is harder to differentiate between points using distance metrics. The blue line represents the density of the pairwise euclidean distances (divided by max distance to normalize x-axis). The red line is the mean distance.}
     \label{fig:curse-of-dimensionality}
 \end{figure}
+
+\textbf{TODO: Write cons/pros.}
 
 \subsection{Mini-batch k-means clustering}
 \label{sec:mini-batch-k-means-clustering}
 The time it takes for K-means clustering to converge strongly depends on the number of data points $n$ and the desired number of clusters $k$. In order to reduce the computation time, mini-batch k-means clustering was introduced \cite{sculley2010}. The mini-batches are randomly sampled subsets of the training data for each training iteration (similar to the mini-batches in gradient descent). By using mini-batches, we drastically reduce the computational requirement required to converge to a local solution and, as noted by the authors in \cite{sculley2010}, the results of mini-batch k-means clustering tend to only be slightly worse than the standard algorithm.
 
 The algorithm is very similar to the standard k-means clustering algorithm and comprises two major steps. In the first step, we initialize $k$ cluster centroids and sample $B=\enclc{b_1, b_2, \ldots, b_m} \subset X$ points at random from the data set $X$, where $m$ is the mini-batch size. In the second step, we update the cluster centroids by gradually moving the centroids. For each sample $b$ in the mini-batch, the centroids are updated by taking the average of $b$ and the previous points assigned to the centroid. By doing so, the centroid is moved with a decreasing rate over time. The first and the second step is repeated until convergence is met.
+
+\textbf{TODO: Write cons/pros.}
 
 \subsection{K-medoids clustering}
 \label{sec:k-medoids-clustering}
@@ -269,36 +273,80 @@ To solve the k-medoids problem efficiently, the Partitioning Around Medoids (PAM
 
 Even though K-medoids clustering seems to be the superior choice over K-means clustering, it suffers from the fact it is more computationally heavy to compute and thus is not always feasible to run for large data sets.
 
+\textbf{TODO: Write cons/pros.}
+
 \subsection{Gaussian mixture models (GMMs)}
 \label{sec:gmm-clustering}
 Gaussian mixture models (GMMs) are probability distributions which consists of a mixture of multiple Gaussians \cite[Section 9.2]{bishop2006}. A Gaussian (also called normal) is a probability distribution which was several nice properties, such as mean as its mode and symmetry. In the context of cluster algorithms, GMMs can be used to cluster data points by using multivariate (i.e. of higher dimension) Gaussian distributions as cluster centroids. In particular, for each cluster centroid $c_i, 1 \leq i \leq k$, we define $\mu_i$ to be the cluster mean, $\Sigma_i$ to be the cluster covariances and $\pi_i$ to be the mixing coefficients. The cluster mean $\mu_i$ and covariances $\Sigma_i$ determines the localization and spread for each cluster, while the mixing coefficients $\pi_i$ determine how much we emphasize each cluster. In other words, by using Gaussian distributions, we get more freedom as to how the clusters are shaped and how much to prioritize them for each data point. To estimate the parameters $\theta = \enclc{\mu, \Sigma, \pi}$ of GMMs, the Expectation-Maximization (EM) algorithm is often used and is an iterative algorithm.
 
 The EM algorithm starts off my initializing its parameters $\mu$, $\Sigma$ and $\pi$. There exists several methods for initializing the parameters and it is common to first run K-means clustering on the data in order to obtain a suitable starting point. By running K-means clustering first, the parameters are computed by using statistics from the result of K-means. Furthermore, the EM algorithm consists of two main stages, namely expectation and maximization. In the expectation stage compute the responsibilities for each data point in $X$ using the current set of parameters. With responsibilities, we mean how much each Gaussian is responsible for explaining a single data point in $X$. Next, in the maximization step, the responsibilities from the expectation step is used to update the parameters such that the likelihood $\text{P}(X | \theta)$ is maximized. The likelihood $\text{P}(X | \theta)$ tells us how good the set of parameters $\theta$ fits our data $X$. The exact derivation and update rules for each parameter is left out and we refer the reader to \cites[Section 9.4]{bishop2006} for more details. Once a suitable threshold is met with respect to $\text{P}(X | \theta)$, the algorithm terminates and we have converged to a set or parameters $\hat{\theta}$. Using the final parameters, $\hat{\theta}$ we predict which Gaussian (i.e. cluster) each data point in $X$ is associated with.
 
-\subsection{Hierarchical clustering}
-Hierarchical clustering is a group of clustering algorithms which constructs clusters by recursively partitioning the data points of $X$ in top-down or bottom-up fashion \cite{Rokach2005}. These two methods are divided into what we call agglomerative- and divisive hierarchical clustering. Using agglomerative hierarchical clustering, each data point in $X$ starts off in their own cluster and are successively merged until all points are merged into a single cluster. In contrast to the agglomerative method, divisive hierarchical clustering starts off with all data points in $X$ in a single cluster. Then, the single cluster is divided into smaller clusters, until each point is in its own cluster. The output of an hierarchical clustering algorithm is a dendrogram, which represents the nested clustering structure. An example of a dendrogram is illustrated in (\textbf{TODO: Add figure}).
+\textbf{TODO: Write cons/pros.}
 
-To merge or divide clusters, we use some similarity measure in order to either merge similar data points (agglomerative) or divide dissimilar data points (divisive). Exactly which data points we choose to merge or divide depends on which criterion we want to optimize. There exist several different criterions one may choose to perform hierarchical clustering:
+\subsection{Hierarchical clustering}
+Hierarchical clustering is a group of clustering algorithms which constructs clusters by recursively partitioning the data points of $X$ in top-down or bottom-up fashion \cite{Rokach2005}. These two methods are divided into what we call agglomerative- and divisive hierarchical clustering. Using agglomerative hierarchical clustering, each data point in $X$ starts off in their own cluster and are successively merged until all points are merged into a single cluster. In contrast to the agglomerative method, divisive hierarchical clustering starts off with all data points in $X$ in a single cluster. Then, the single cluster is divided into smaller clusters, until each point is in its own cluster. The output of an hierarchical clustering algorithm is a dendrogram, which represents the nested clustering structure. An example of a dendrogram is illustrated in \cref{fig:dendrogram-example}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{thesis/figures/dendrogram-example.pdf}
+    \caption{Example of a dendrogram plot using the Iris dataset \cite{Fisher1936}.}
+    \label{fig:dendrogram-example}
+\end{figure}
+
+To merge or divide clusters, we use some similarity measure in order to either merge similar data points (agglomerative) or divide dissimilar data points (divisive). Exactly which data points we choose to merge or divide depends on which criterion we want to optimize. There exist several different criterions one may choose to perform hierarchical clustering. Below we will list some of the most common ones and very briefly discuss the pros/cons for each criterion.
 \begin{itemize}
     \item \textbf{Single-linkage clustering} --- combines two clusters that contain the closest pair (i.e. largest similarity) of elements that do not yet belong to the same cluster as each other.
+    \begin{itemize}
+        \item Single-linkage clustering tends to produce clusters of long chains, which can lead to the clustering of data points which in reality are far apart from each other.
+        \item Single-linkage clustering is fast to use for big data sets and is able to create clusters of different shapes and sizes.
+        \item Single-linkage clustering is sensible to noise.
+    \end{itemize}
     \item \textbf{Complete-linkage clustering}  --- combines two clusters that contain the furthest pair (i.e. smallest similarity) of elements that do not yet belong to the same cluster as each other.
+    \begin{itemize}
+        \item Complete-linkage clustering is biased towards spherical clusters.
+        \item Complete-linkage clustering works well on data with noise.
+        \item Complete-linkage clustering tends to split large clusters.
+    \end{itemize}
     \item \textbf{Average-linkage clustering} --- combines two clusters such that the average pairwise distance within the newly created cluster is minimum.
+    \begin{itemize}
+        \item Average-linkage clustering is biased towards spherical clusters.
+        \item Average-linkage clustering works well on data with noise.
+    \end{itemize}
     \item \textbf{Ward-linkage clustering} --- combines two clusters such that the variance of the newly created cluster is minimum \cite{Ward1963}.
+    \begin{itemize}
+        \item Ward-linkage clustering is biased towards spherical clusters.
+        \item Ward-linkage clustering works well on data with noise.
+    \end{itemize}
 \end{itemize}
 
-\textbf{TODO}: Write pros/cons of the different linkages
-(https://www.youtube.com/watch?v=VMyXc3SiEqs).
-
-\textbf{TODO}: Mention that agglomerative clustering is used over divisive, since it is more practical.
+\textbf{TODO: Write cons/pros.}
 
 \subsection{Spectral clustering}
-TODO
+Spectral clustering is a clustering algorithm which uses the eigenvalues of the affinity matrix (e.g. a similarity matrix using pairwise euclidean distances) of the data $X$ to reduce the dimensionality of the data, before applying some common clustering algorithm, such as K-means clustering \cite{Andrew2002}.
 
-\subsection{Hierarchical Density-Based Spatial Clustering of Applications with Noise (HDBSCAN)}
-TODO
+Imagine that we want to cluster the data into $k$ clusters. Spectral clustering starts off with the construction of the affinity matrix $A$. Typically, one uses some similarity measure to create pairwise distances between data points to create such an affinity matrix. Then, the graph Laplacian $L = D - A$ is computed, where $D$ is a diagonal matrix with $D_{ii} = \sumlim{j}{} A_{ij}$ and $A$ is the affinity matrix. The graph Laplacian $L$ is simply a matrix representation of a graph, and in our case, the similarities between data points in $X$. Next, the eigenvectors of $L$ is computed, and using these eigenvectors, we now have a lower-dimensional space of the original data $X$ (from $d$ dimensions to $k$). Lastly, we use a clustering algorithm, such as K-means clustering, on the eigenvectors of $L$ to get the final clustering.
+
+\textbf{TODO: Write cons/pros.}
+
+\subsection{HDBSCAN}
+Clusters come in different shapes and sizes, and real-life data is rather noisy. DBSCAN is a density-based algorithm invented to cope with such problems \cite{Ester1996}. It, however, is only able to produce a "flat" clustering given some global threshold parameter. HDBSCAN is a generalization of DBSCAN and improves on it by creating a complete density-based clustering hierarchy \cite{Campello2013}, automatically extracting flat clusters. HDBSCAN is different from the other clustering algorithms we have seen so far, as it is able to create clustering without predetermining the number of clusters beforehand and can mark data points a noise. To fully understand the HDBSCAN algorithm, we will introduce its key concepts and then explain how the algorithm works in practice.
+
+HDBSCAN is a density-based clustering algorithm and, for this reason, requires an inexpensive density estimation method to be efficient. Using k-nearest neighbours, the authors of HDBSCAN is able to estimate the density in an efficient manner. In particular, they define the \textbf{core distance} of a data point $x \in X$ to be the distance to the $\textit{minPts}$-nearest neighbour (including $x$), denoted $d_{core}(x)$. $\textit{minPts}$ is a hyperparameter and controls how conservative we want the clustering to be; the larger $\textit{minPts}$, the more points will be marked as "noise". To further spread apart data points that have low density, the \textbf{mutual reachability distance} metric (MRD) is defined, as seen in \cref{eqn:mutual_reachability_distance}.
+\begin{align}
+    d_{mreach}(x, y) = \max \enclc{ d_{core}(x), d_{core}(y), d(x, y) }
+    \label{eqn:mutual_reachability_distance}
+\end{align}
+where $d(x, y)$ is the distance between data point $x$ and data point $y$ using the original distance metric. Under the MRD metric, data points in dense regions will not change their distances, but sparser data points will be pushed away such that the distance is at least their core distance to other points.
+
+Next, given the MRD metric, we use it to find dense areas in the data. To find such areas, we create a minimal spanning tree (MST) where each node represents a data point $x \in X$ and edges connecting pairs of nodes is weighted by the MRD between the two nodes. By using an MST, we get a graph with the minimal set of edges between nodes such that the weight between the nodes is minimized. Also, by dropping one edge, we graph becomes disconnected, i.e., each pair of nodes is connected by exactly one edge. Using these two facts, we can create a clustering hierarchy in a single-linkage clustering manner. First, the weights of the edges of the MST is sorted in increasing order. Following, we iterate over the sorted edges of the MST and merge data points into clusters (note that each individual data point is its own cluster initially). Now, from the hierarchical clustering we are left with a dendrogram, similar to the one from \cref{fig:dendrogram-example}, but are left with a critical question; how should we define the cut in order to get a flat clustering?
+
+Dendrograms can be very difficult to interpret once a certain number of data points is reached. For this reason, the authors of HDBSCAN condense (or compact) the dendrogram from the hierarchical clustering such that a flat clustering can be obtained rather easily. First, the notion of \textbf{minimum cluster size} is defined and is a hyperparameter controlling the minimal cluster size at any time. Following, we walk down the dendrogram, starting from the root cluster, and at each split we check whether or not the new cluster created by the split has at least \textbf{minimum cluster size} data points in them. If the new cluster has at least \textbf{minimum cluster size} data points in them, we let that cluster be in the tree. If the new cluster has less than the \textbf{minimum cluster size}, then we let the parent cluster identify the new cluster and the node is removed from the tree. As we walk through the dendrogram in order to condense it, we also include at what distance clusters merge into the parent cluster, i.e., "fall out of clusters". An example of a condensed diagram is down in \textbf{TODO}.
+
+Now, to define the flat cut in the condensed diagram, we select the clusters such that the largest total area of "ink" is maximized, under an additional constraint that we can not select clusters that are descendants of an already selected cluster. Any clusters which are not selected are marked as noise, as they are merely artifacts of the initial hierarchical clustering. The final clustering is then decided, as illustrated from the example in \textbf{TODO}.
+
+\textbf{TODO: Write cons/pros.}
 
 \section{Dimensionality reduction techniques}
-TODO
+TODO 
 
 \subsection{Principal Component Analysis (PCA)}
 TODO
