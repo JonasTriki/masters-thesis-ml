@@ -488,3 +488,34 @@ def words_to_vectors(
             "words_vocabulary argument must contain list of words or integers representing the vocabulary."
         )
     return word_vectors
+
+
+def normalize_array(arr: np.ndarray):
+    """
+    Nornalizes a vector to be unit-length if 1D or unit-length rows if 2D.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        Array to normalize
+
+    Returns
+    -------
+    arr_norm : np.ndarray
+        Normalized array
+    """
+    # Do not perform normalization if array is null-vector as it leads to division by zero.
+    if np.allclose(arr, np.zeros(arr.shape)):
+        return arr
+
+    if len(arr.shape) == 1:
+        arr_norm = arr / np.linalg.norm(arr)
+    else:
+        arr_norm = np.empty(arr.shape)
+        for i, row in enumerate(arr):
+            if np.allclose(row, np.zeros(row.shape)):
+                arr_norm[i] = row
+            else:
+                arr_norm[i] = row / np.linalg.norm(row)
+
+    return arr_norm
