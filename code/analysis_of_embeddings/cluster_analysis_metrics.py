@@ -1,7 +1,9 @@
 import numpy as np
 from cdbw import CDbw
+from dsi import dsi
 from dunn_index import dunn
 from hdbscan import HDBSCAN
+from hdbscan.validity import validity_index as dbcv
 from s_dbw import SD, S_Dbw
 from sklearn.metrics import davies_bouldin_score, silhouette_score
 
@@ -43,6 +45,74 @@ def silhouette_score_metric(
 
     # Return tuple with result
     return "Silhouette Coefficient", metric_score, True
+
+
+def dsi_score_metric(
+    word_embeddings: np.ndarray, cluster_labels: np.ndarray, clusterer, **kwargs: dict
+) -> tuple:
+    """
+    Wrapper function for Distance-based Separability Index (DSI) used in `cluster_analysis` function.
+
+    Parameters
+    ----------
+    word_embeddings : np.ndarray
+        Word embeddings/pairwise distances to evaluate on
+    cluster_labels : np.ndarray
+        Predicted cluster labels
+    clusterer : clustering instance
+        Clustering instance (fitted on data)
+    **kwargs : dict
+        Keyword arguments passed to `dsi`
+
+    Returns
+    -------
+    result : tuple
+        Result as a triple, consisting of metric title, metric score and whether or not
+        the metrics objective function is to maximize the metric score.
+    """
+    # Compute metric scores
+    if cluster_labels is None:
+        cluster_labels = clusterer.labels_
+
+    metric_score = dsi(X=word_embeddings, labels=cluster_labels, **kwargs)
+
+    # Return tuple with result
+    return "Distance-based Separability Index", metric_score, True
+
+
+def dbcv_score_metric(
+    word_embeddings: np.ndarray, cluster_labels: np.ndarray, clusterer, **kwargs: dict
+) -> tuple:
+    """
+    Wrapper function for Density Based Clustering Validation index (DBCV) used in `cluster_analysis` function.
+
+    Parameters
+    ----------
+    word_embeddings : np.ndarray
+        Word embeddings/pairwise distances to evaluate on
+    cluster_labels : np.ndarray
+        Predicted cluster labels
+    clusterer : clustering instance
+        Clustering instance (fitted on data)
+    **kwargs : dict
+        Keyword arguments passed to `dbcv`
+
+    Returns
+    -------
+    result : tuple
+        Result as a triple, consisting of metric title, metric score and whether or not
+        the metrics objective function is to maximize the metric score.
+    """
+    # Compute metric scores
+    if cluster_labels is None:
+        cluster_labels = clusterer.labels_
+
+    metric_score = dbcv(
+        X=word_embeddings, labels=cluster_labels, per_cluster_scores=False, **kwargs
+    )
+
+    # Return tuple with result
+    return "Density Based Clustering Validation index", metric_score, True
 
 
 def davies_bouldin_score_metric(
