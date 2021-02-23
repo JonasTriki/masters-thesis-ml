@@ -5,7 +5,11 @@ from dunn_index import dunn
 from hdbscan import HDBSCAN
 from hdbscan.validity import validity_index as dbcv
 from s_dbw import SD, S_Dbw
-from sklearn.metrics import davies_bouldin_score, silhouette_score
+from sklearn.metrics import (
+    calinski_harabasz_score,
+    davies_bouldin_score,
+    silhouette_score,
+)
 
 
 def silhouette_score_metric(
@@ -45,6 +49,70 @@ def silhouette_score_metric(
 
     # Return tuple with result
     return "Silhouette Coefficient", metric_score, True
+
+
+def davies_bouldin_score_metric(
+    word_embeddings: np.ndarray, cluster_labels: np.ndarray, clusterer, **_: dict
+) -> tuple:
+    """
+    Wrapper function for Davies–Bouldin index used in `cluster_analysis` function.
+
+    Parameters
+    ----------
+    word_embeddings : np.ndarray
+        Word embeddings to evaluate on
+    cluster_labels : np.ndarray
+        Predicted cluster labels
+    clusterer : clustering instance
+        Clustering instance (fitted on data)
+    **_ : dict
+        Keyword arguments sent into the void (not used)
+
+    Returns
+    -------
+    result : tuple
+        Result as a triple, consisting of metric title, metric score and whether or not
+        the metrics objective function is to maximize the metric score.
+    """
+    # Compute metric scores
+    if cluster_labels is None:
+        cluster_labels = clusterer.labels_
+    metric_score = davies_bouldin_score(X=word_embeddings, labels=cluster_labels)
+
+    # Return tuple with result
+    return "Davies–Bouldin index", metric_score, False
+
+
+def calinski_harabasz_score_metric(
+    word_embeddings: np.ndarray, cluster_labels: np.ndarray, clusterer, **_: dict
+) -> tuple:
+    """
+    Wrapper function for Calinski-Harabasz Index used in `cluster_analysis` function.
+
+    Parameters
+    ----------
+    word_embeddings : np.ndarray
+        Word embeddings to evaluate on
+    cluster_labels : np.ndarray
+        Predicted cluster labels
+    clusterer : clustering instance
+        Clustering instance (fitted on data)
+    **_ : dict
+        Keyword arguments sent into the void (not used)
+
+    Returns
+    -------
+    result : tuple
+        Result as a triple, consisting of metric title, metric score and whether or not
+        the metrics objective function is to maximize the metric score.
+    """
+    # Compute metric scores
+    if cluster_labels is None:
+        cluster_labels = clusterer.labels_
+    metric_score = calinski_harabasz_score(X=word_embeddings, labels=cluster_labels)
+
+    # Return tuple with result
+    return "Calinski-Harabasz Index", metric_score, True
 
 
 def dsi_score_metric(
@@ -113,38 +181,6 @@ def dbcv_score_metric(
 
     # Return tuple with result
     return "Density Based Clustering Validation index", metric_score, True
-
-
-def davies_bouldin_score_metric(
-    word_embeddings: np.ndarray, cluster_labels: np.ndarray, clusterer, **_: dict
-) -> tuple:
-    """
-    Wrapper function for Davies–Bouldin index used in `cluster_analysis` function.
-
-    Parameters
-    ----------
-    word_embeddings : np.ndarray
-        Word embeddings/pairwise distances to evaluate on
-    cluster_labels : np.ndarray
-        Predicted cluster labels
-    clusterer : clustering instance
-        Clustering instance (fitted on data)
-    **_ : dict
-        Keyword arguments sent into the void (not used)
-
-    Returns
-    -------
-    result : tuple
-        Result as a triple, consisting of metric title, metric score and whether or not
-        the metrics objective function is to maximize the metric score.
-    """
-    # Compute metric scores
-    if cluster_labels is None:
-        cluster_labels = clusterer.labels_
-    metric_score = davies_bouldin_score(X=word_embeddings, labels=cluster_labels)
-
-    # Return tuple with result
-    return "Davies–Bouldin index", metric_score, False
 
 
 def dunn_score_metric(
