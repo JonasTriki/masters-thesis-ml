@@ -7,6 +7,7 @@ rng_seed = 399
 np.random.seed(rng_seed)
 
 # Clustering
+from gudhi.clustering.tomato import Tomato  # noqa: E402
 from hdbscan import HDBSCAN  # noqa: E402
 from sklearn.cluster import (  # noqa: E402
     AgglomerativeClustering,
@@ -162,6 +163,7 @@ def cluster_analysis_all_algorithms(
     eval_metrics_grid = [
         general_eval_metrics,
         general_eval_metrics,
+        general_eval_metrics,
         [
             ("relative_dbcv_score", relative_dbcv_score_metric),
             *general_eval_metrics,
@@ -174,6 +176,7 @@ def cluster_analysis_all_algorithms(
         "silhouette_score": {"metric": "precomputed"},
     }
     clusterers = [
+        ("ToMATo", Tomato, True),
         ("Agglomerative clustering", AgglomerativeClustering),
         ("GMM clustering", GaussianMixture, True),
         ("HDBSCAN", HDBSCAN),
@@ -182,6 +185,10 @@ def cluster_analysis_all_algorithms(
         ("K-medoids clustering", KMedoids),
     ]
     hyperparameter_grids = [
+        {
+            "n_clusters": n_clusters,
+            "n_jobs": [-1],
+        },
         {
             "n_clusters": n_clusters,
             "affinity": ["precomputed"],
