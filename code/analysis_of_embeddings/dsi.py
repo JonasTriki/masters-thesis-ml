@@ -18,7 +18,9 @@ from fastdist import fastdist
 from scipy.stats import ks_2samp
 
 
-def icd(X: np.ndarray, pos_indices: np.ndarray, dist_metric: Union[str, Callable]) -> np.ndarray:
+def icd(
+    X: np.ndarray, pos_indices: np.ndarray, metric: Union[str, Callable]
+) -> np.ndarray:
     """
     Computes Intra-Class distances (ICD) [1].
 
@@ -29,9 +31,9 @@ def icd(X: np.ndarray, pos_indices: np.ndarray, dist_metric: Union[str, Callable
         matrix.
     pos_indices : np.ndarray
         Indices of class-positive data points.
-    dist_metric : str or Callable, optional
-        Distance metric callable function. If metric is set to "pairwise", then X is an
-        (n*n) pairdise distance matrix.
+    metric : str or Callable
+        Distance metric (defaults to fastdist.euclidean). If metric is set to "pairwise",
+        then X is an (n*n) pairdise distance matrix.
 
     Returns
     -------
@@ -48,10 +50,10 @@ def icd(X: np.ndarray, pos_indices: np.ndarray, dist_metric: Union[str, Callable
     icd_dists = []
     for i in range(0, num - 1):
         for j in range(i + 1, num):
-            if dist_metric == "precomputed":
+            if metric == "precomputed":
                 dist = X[pos_indices[i], pos_indices[j]]
             else:
-                dist = dist_metric(X[pos_indices[i]], X[pos_indices[j]])
+                dist = metric(X[pos_indices[i]], X[pos_indices[j]])
             icd_dists.append(dist)
     return np.array(icd_dists)
 
@@ -60,7 +62,7 @@ def bcd(
     X: np.ndarray,
     pos_indices: np.ndarray,
     neg_indices: np.ndarray,
-    dist_metric: Union[str, Callable],
+    metric: Union[str, Callable],
 ) -> np.ndarray:
     """
     Computes Between-Class distances (BCD) [1].
@@ -74,9 +76,9 @@ def bcd(
         Indices of class-positive data points.
     neg_indices : np.ndarray
         Indices of class-negative data points.
-    dist_metric : str or Callable, optional
-        Distance metric callable function. If metric is set to "pairwise", then X is an
-        (n*n) pairdise distance matrix.
+    metric : str or Callable
+        Distance metric (defaults to fastdist.euclidean). If metric is set to "pairwise",
+        then X is an (n*n) pairdise distance matrix.
 
     Returns
     -------
@@ -94,10 +96,10 @@ def bcd(
     bcd_dists = []
     for i in range(pos_mask_num):
         for j in range(neg_mask_num):
-            if dist_metric == "precomputed":
+            if metric == "precomputed":
                 dist = X[pos_indices[i], neg_indices[j]]
             else:
-                dist = dist_metric(X[pos_indices[i]], X[neg_indices[j]])
+                dist = metric(X[pos_indices[i]], X[neg_indices[j]])
             bcd_dists.append(dist)
     return np.array(bcd_dists)
 
@@ -105,7 +107,7 @@ def bcd(
 def dsi(
     X: np.ndarray,
     labels: np.ndarray,
-    dist_metric: Union[str, Callable] = fastdist.euclidean,
+    metric: Union[str, Callable] = fastdist.euclidean,
 ) -> float:
     """
     Computes the Distance-based Separability Index (DSI) [1] of the given labels on the given data X.
@@ -117,9 +119,9 @@ def dsi(
         matrix.
     labels : np.ndarray
         Label for each data point.
-    dist_metric : str or Callable, optional
-        Distance metric callable function (defaults to fastdist.euclidean).
-        If metric is set to "pairwise", then X is an (n*n) pairdise distance matrix.
+    metric : str or Callable, optional
+        Distance metric (defaults to fastdist.euclidean). If metric is set to "pairwise",
+        then X is an (n*n) pairdise distance matrix.
 
     Returns
     -------
@@ -137,8 +139,8 @@ def dsi(
     for c in classes:
         pos_indices = np.where(labels == c)[0]
         neg_indices = np.where(labels != c)[0]
-        intra_class_distances = icd(X, pos_indices, dist_metric)
-        between_class_distances = bcd(X, pos_indices, neg_indices, dist_metric)
+        intra_class_distances = icd(X, pos_indices, metric)
+        between_class_distances = bcd(X, pos_indices, neg_indices, metric)
 
         ks_stat, _ = ks_2samp(intra_class_distances, between_class_distances)
         dsi_sum += ks_stat
