@@ -55,6 +55,18 @@ def parse_args() -> argparse.Namespace:
         help="Directory of the Google News 3M word2vec model",
     )
     parser.add_argument(
+        "--glove_model_dir",
+        type=str,
+        default="",
+        help="Directory of the GloVe model",
+    )
+    parser.add_argument(
+        "--fasttext_model_dir",
+        type=str,
+        default="",
+        help="Directory of the fastText model",
+    )
+    parser.add_argument(
         "--tps_neighbourhood_sizes",
         nargs="+",
         help="Neighbourhood sizes to use when computing TPS (e.g. 50, 60)",
@@ -306,6 +318,8 @@ def topological_polysemy_pipeline(
     word2vec_semeval_model_dir: str,
     word2vec_enwiki_model_dir: str,
     word2vec_google_news_model_dir: str,
+    glove_model_dir: str,
+    fasttext_model_dir: str,
     tps_neighbourhood_sizes: str,
     num_top_k_words_frequencies: int,
     cyclo_octane_data_filepath: str,
@@ -327,6 +341,10 @@ def topological_polysemy_pipeline(
         Directory of the enwiki word2vec model.
     word2vec_google_news_model_dir : str
         Directory of the Google News 3M word2vec model
+    glove_model_dir : str
+        Directory of the GloVe model.
+    fasttext_model_dir : str
+        Directory of the fastText model.
     tps_neighbourhood_sizes : str
         Neighbourhood sizes to use when computing TPS (e.g. 50, 60).
     num_top_k_words_frequencies : int
@@ -396,49 +414,64 @@ def topological_polysemy_pipeline(
         print("Done!")
         last_embedding_weights_annoy_index.unload()
 
-    # -- Compute TPS for GoogleNews 3M word embeddings --
-    # Prepare filepaths
-    google_news_model_name = "GoogleNews-vectors-negative300"
-    word2vec_google_news_model_normalized_weights_filepath = join(
-        word2vec_google_news_model_dir, f"{google_news_model_name}_normalized.npy"
-    )
-    word2vec_google_news_model_words_filepath = join(
-        word2vec_google_news_model_dir, f"{google_news_model_name}_words.txt"
-    )
-    word2vec_google_news_model_annoy_index_filepath = join(
-        word2vec_google_news_model_dir, f"{google_news_model_name}_annoy_index.ann"
-    )
+    # -- Compute TPS for external word embeddings --
+    # Prepare constants
+    external_word_embeddings = [
+        (
+            "google_news_3m",
+            "GoogleNews-vectors-negative300",
+            word2vec_google_news_model_dir,
+        ),
+        (
+            "glove_cc_840b_300d",
+            "glove.840B.300d",
+            glove_model_dir,
+        ),
+        (
+            "fasttext_cc_300d",
+            "cc.en.300.vec",
+            fasttext_model_dir,
+        ),
+    ]
 
-    # Load data
-    print("Loading GoogleNews 3M data...")
-    google_news_model_weights_normalized = np.load(
-        word2vec_google_news_model_normalized_weights_filepath, mmap_mode="r"
-    )
-    with open(word2vec_google_news_model_words_filepath, "r") as words_file:
-        google_news_model_words = np.array(words_file.read().split("\n"))
-    google_news_model_annoy_index = annoy.AnnoyIndex(
-        f=google_news_model_weights_normalized.shape[1], metric="euclidean"
-    )
-    google_news_model_annoy_index.load(
-        fn=word2vec_google_news_model_annoy_index_filepath, prefault=True
-    )
+    # Compute TPS for each external word embeddings
+    for word_embeddings_name, model_name, model_dir in external_word_embeddings:
 
-    print("Done!")
-    print("Computing TPS for GoogleNews 3M word embeddings...")
-    tps_word_embeddings(
-        word_embeddings_name="google_news_3m",
-        neighbourhood_sizes=tps_neighbourhood_sizes,
-        semeval_target_words=semeval_target_words,
-        semeval_target_words_gs_clusters=semeval_target_word_gs_clusters,
-        word_embeddings_normalized=google_news_model_weights_normalized,
-        word_to_int={word: i for i, word in enumerate(google_news_model_words)},
-        word_vocabulary=google_news_model_words,
-        num_top_k_words_frequencies=num_top_k_words_frequencies,
-        output_dir=output_dir,
-        annoy_index=google_news_model_annoy_index,
-    )
-    print("Done!")
-    google_news_model_annoy_index.unload()
+        # Prepare filepaths
+        model_normalized_weights_filepath = join(
+            model_dir, f"{model_name}_normalized.npy"
+        )
+        model_words_filepath = join(model_dir, f"{model_name}_words.txt")
+        model_annoy_index_filepath = join(model_dir, f"{model_name}_annoy_index.ann")
+
+        # Load data
+        print(f"Loading {model_name} data...")
+        model_weights_normalized = np.load(
+            model_normalized_weights_filepath, mmap_mode="r"
+        )
+        with open(model_words_filepath, "r") as words_file:
+            model_words = np.array(words_file.read().split("\n"))
+        model_annoy_index = annoy.AnnoyIndex(
+            f=model_weights_normalized.shape[1], metric="euclidean"
+        )
+        model_annoy_index.load(fn=model_annoy_index_filepath, prefault=True)
+        print("Done!")
+
+        print(f"Computing TPS for {model_name} word embeddings...")
+        tps_word_embeddings(
+            word_embeddings_name=word_embeddings_name,
+            neighbourhood_sizes=tps_neighbourhood_sizes,
+            semeval_target_words=semeval_target_words,
+            semeval_target_words_gs_clusters=semeval_target_word_gs_clusters,
+            word_embeddings_normalized=model_weights_normalized,
+            word_to_int={word: i for i, word in enumerate(model_words)},
+            word_vocabulary=model_words,
+            num_top_k_words_frequencies=num_top_k_words_frequencies,
+            output_dir=output_dir,
+            annoy_index=model_annoy_index,
+        )
+        print("Done!")
+        model_annoy_index.unload()
 
     # -- Compute TPS for custom point clouds --
     for point_cloud_name, point_cloud_filepath in zip(
@@ -484,6 +517,8 @@ if __name__ == "__main__":
         word2vec_semeval_model_dir=args.word2vec_semeval_model_dir,
         word2vec_enwiki_model_dir=args.word2vec_enwiki_model_dir,
         word2vec_google_news_model_dir=args.word2vec_google_news_model_dir,
+        glove_model_dir=args.glove_model_dir,
+        fasttext_model_dir=args.fasttext_model_dir,
         tps_neighbourhood_sizes=args.tps_neighbourhood_sizes,
         num_top_k_words_frequencies=args.num_top_k_words_frequencies,
         cyclo_octane_data_filepath=args.cyclo_octane_data_filepath,

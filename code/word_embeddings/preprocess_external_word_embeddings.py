@@ -71,7 +71,7 @@ def preprocess_google_news(
        (https://arxiv.org/pdf/1310.4546.pdf). In Proceedings of NIPS, 2013.
     """
     # Ensure output directory exists
-    output_dir = join(output_dir, "GoogleNews-vectors-negative300")
+    output_dir = join(output_dir, "GoogleNews")
     makedirs(output_dir, exist_ok=True)
 
     # Define filepaths
