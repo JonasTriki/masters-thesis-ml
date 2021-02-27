@@ -1,8 +1,6 @@
-import subprocess
 import sys
 from multiprocessing import Array, Pool, cpu_count
-from os.path import join
-from typing import Callable, Dict
+from typing import Callable
 
 import annoy
 import numpy as np
@@ -224,6 +222,7 @@ class GeometricAnomalyDetection:
         word_ints: list = None,
         tqdm_enabled: bool = False,
         use_ripser_plus_plus: bool = False,
+        return_annlus_persistence_diagrams: bool = False,
     ) -> dict:
         """
         Computes geometric anomaly detection Procedure 1 from [1]. Either
@@ -255,13 +254,18 @@ class GeometricAnomalyDetection:
         tqdm_enabled : bool, optional
             Whether or not to show the progress using tqdm (defaults to False).
         use_ripser_plus_plus : bool, optional
-            Whether or not to use Ripser++, speeding up the computation
+            Whether or not to use Ripser++, speeding up the computation.
+        return_annlus_persistence_diagrams : bool, optional
+            Whether or not to return the persistence diagrams of the annulus points.
+            (defaults to False).
 
         Returns
         -------
         result : dict
             Result as a dict, containing three subsets P_man (k-manifold points),
             P_bnd (boundary points) and P_int (desired intersection points).
+            Contains persistence diagrams if return_annlus_persistence_diagrams is set to
+            True.
 
         References
         ----------
@@ -292,6 +296,9 @@ class GeometricAnomalyDetection:
         P_bnd = []
         P_man = []
         P_int = []
+        annulus_pds = None
+        if return_annlus_persistence_diagrams:
+            annulus_pds = []
 
         if annulus_radius_specified:
             persistence_threshold = abs(annulus_outer_radius - annulus_inner_radius)
@@ -344,11 +351,14 @@ class GeometricAnomalyDetection:
                     distance_matrix=True,
                 )
                 diagrams = rips_complex["dgms"]
+            target_homology_dim_diagram = diagrams[target_homology_dim]
+            if return_annlus_persistence_diagrams:
+                annulus_pds.append(target_homology_dim_diagram)
 
             # Calculate number of intervals in A_y_barcodes of length
             # (death - birth) > (annulus_outer_radius - annulus_inner_radius).
             N_y = 0
-            for birth, death in diagrams[target_homology_dim]:
+            for birth, death in target_homology_dim_diagram:
                 if (death - birth) > persistence_threshold:
                     N_y += 1
 
@@ -364,6 +374,7 @@ class GeometricAnomalyDetection:
             "P_bnd": P_bnd,
             "P_man": P_man,
             "P_int": P_int,
+            "annulus_pds": annulus_pds,
         }
 
     def compute(
@@ -375,6 +386,7 @@ class GeometricAnomalyDetection:
         word_embeddings_pairwise_dists: np.ndarray = None,
         annoy_index: annoy.AnnoyIndex = None,
         tqdm_enabled: bool = False,
+        return_annlus_persistence_diagrams: bool = False,
     ) -> dict:
         """
         Computes geometric anomaly detection Procedure 1 from [1].
@@ -400,12 +412,17 @@ class GeometricAnomalyDetection:
             distance between word vectors.
         tqdm_enabled : bool, optional
             Whether or not to show the progress using tqdm (defaults to False).
+        return_annlus_persistence_diagrams : bool, optional
+            Whether or not to return the persistence diagrams of the annulus points.
+            (defaults to False).
 
         Returns
         -------
         result : dict
             Result as a dict, containing three subsets P_man (k-manifold points),
             P_bnd (boundary points) and P_int (desired intersection points).
+            Contains persistence diagrams if return_annlus_persistence_diagrams is set to
+            True.
 
         References
         ----------
@@ -433,6 +450,7 @@ class GeometricAnomalyDetection:
             annulus_outer_radius=annulus_outer_radius,
             word_ints=word_ints,
             tqdm_enabled=tqdm_enabled,
+            return_annlus_persistence_diagrams=return_annlus_persistence_diagrams,
         )
 
     def _compute_gad_mp(
