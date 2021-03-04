@@ -73,22 +73,22 @@ def generate_points_in_spheres(
     np.random.seed(random_state)
 
     # Compute sphere means
-    spheres_mean_diff = 2 / np.sqrt(sphere_dimensionality)
-    sphere_means = [-spheres_mean_diff / 2, spheres_mean_diff / 2]
+    sphere_mean_x_offsets = [-1, 1]
 
     # Generate points in spheres
-    sphere_means_in_space_dim = [
-        np.repeat(mean, sphere_dimensionality) for mean in sphere_means
+    sphere_mean_x_offsets_in_space_dim = [
+        np.concatenate(([offset], np.zeros(sphere_dimensionality - 1)))
+        for offset in sphere_mean_x_offsets
     ]
     total_num_points = 2 * num_points
     if create_intersection_point:
         total_num_points += 1
     if space_dimensionality is not None:
-        sphere_means_in_space_dim = [
+        sphere_mean_x_offsets_in_space_dim = [
             np.concatenate(
-                (sphere_mean, np.zeros(space_dimensionality - sphere_dimensionality))
+                (sphere_offset, np.zeros(space_dimensionality - sphere_dimensionality))
             )
-            for sphere_mean in sphere_means_in_space_dim
+            for sphere_offset in sphere_mean_x_offsets_in_space_dim
         ]
 
         sphere_points = np.zeros((total_num_points, space_dimensionality))
@@ -96,7 +96,7 @@ def generate_points_in_spheres(
         sphere_points = np.zeros((total_num_points, sphere_dimensionality))
     sphere_point_labels = np.zeros(total_num_points)
 
-    for i, loc in enumerate(sphere_means_in_space_dim):
+    for i, offset in enumerate(sphere_mean_x_offsets_in_space_dim):
         for j in range(num_points):
             sphere_point_idx = i * num_points + j
 
@@ -109,7 +109,7 @@ def generate_points_in_spheres(
                     (x, np.zeros(space_dimensionality - sphere_dimensionality))
                 )
 
-            x += loc  # Shift point by adding mean
+            x += offset  # Shift point by adding sphere offset
             sphere_points[sphere_point_idx] = x
             sphere_point_labels[sphere_point_idx] = i
 
