@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 sys.path.append("..")
 
-from word_embeddings.word2vec import load_model_training_output
+from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -146,7 +146,7 @@ def tps_word_embeddings_correlation_plot(
 
 def tps_word_embeddings(
     word_embeddings_name: str,
-    neighbourhood_sizes: int,
+    neighbourhood_sizes: list,
     semeval_target_words: np.ndarray,
     semeval_target_words_gs_clusters: np.ndarray,
     word_embeddings_normalized: np.ndarray,
@@ -156,18 +156,36 @@ def tps_word_embeddings(
     output_dir: str,
     word_counts: Optional[list] = None,
     annoy_index: annoy.AnnoyIndex = None,
-) -> dict:
+) -> None:
     """
     Computes TPS for word embeddings and saves correlation plots.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    word_embeddings_name : str
+        Name of the word embeddings.
+    neighbourhood_sizes : list
+        Neighbourhood sizes to compute TPS scores of.
+    semeval_target_words : np.ndarray
+        SemEval-2010 task 14 target words.
+    semeval_target_words_gs_clusters : np.ndarray
+        SemEval-2010 task 14 GS clusters.
+    word_embeddings_normalized : np.ndarray
+        Normalized word embeddings.
+    word_to_int : dict
+        Dictionary for mapping a word to its integer representation.
+    word_vocabulary : list
+        List of words/word ints to use for the vocabulary.
+    num_top_k_words_frequencies : list
+        Number of top words to use when computing TPS scores vs. word frequencies.
+    output_dir : str
+        Output directory.
+    word_counts : list
+        List containing word counts
+    annoy_index : annoy.AnnoyIndex
+        Annoy index to use for computing TPS scores.
     """
     # Ensure output directory exists
-    makedirs(output_dir, exist_ok=True)
     output_dir_plots = join(output_dir, word_embeddings_name)
     makedirs(output_dir_plots, exist_ok=True)
 
@@ -202,6 +220,10 @@ def tps_word_embeddings(
             output_dir_plots,
             f"tps_{neighbourhood_size}_vs_gs.pdf",
         )
+        output_tps_filepath = join(
+            output_dir_plots,
+            f"tps_{neighbourhood_size}_vs_gs.npy",
+        )
         if not isfile(output_plot_filepath):
             tps_scores_semeval = []
             print("Computing TPS scores for GS words")
@@ -231,10 +253,17 @@ def tps_word_embeddings(
                 neighbourhood_size=neighbourhood_size,
             )
 
+            # Save TPS scores to file
+            np.save(output_tps_filepath, tps_scores_semeval)
+
         # -- Compute TPS scores and correlation vs Wordnet synsets words --
         output_plot_filepath = join(
             output_dir_plots,
             f"tps_{neighbourhood_size}_vs_synsets.pdf",
+        )
+        output_tps_filepath = join(
+            output_dir_plots,
+            f"tps_{neighbourhood_size}_vs_synsets.npy",
         )
         if not isfile(output_plot_filepath):
 
@@ -273,10 +302,17 @@ def tps_word_embeddings(
                 neighbourhood_size=neighbourhood_size,
             )
 
+            # Save TPS scores to file
+            np.save(output_tps_filepath, tps_scores_wordnet_synsets)
+
         # -- Compute TPS scores and correlation vs Wordnet synsets words --
         output_plot_filepath = join(
             output_dir_plots,
             f"tps_{neighbourhood_size}_vs_frequency.pdf",
+        )
+        output_tps_filepath = join(
+            output_dir_plots,
+            f"tps_{neighbourhood_size}_vs_frequency.npy",
         )
         if has_word_counts and not isfile(output_plot_filepath):
             print(
@@ -302,7 +338,7 @@ def tps_word_embeddings(
                 tps_score_vs_word_frequency_correlation
             )
 
-            # Save plot of TPS scores vs. Wordnet synsets
+            # Save plot of TPS scores vs. word frequencies
             tps_word_embeddings_correlation_plot(
                 tps_scores=tps_score_word_frequencies,
                 y_values=word_counts[:num_top_k_words_frequencies],
@@ -311,6 +347,9 @@ def tps_word_embeddings(
                 output_plot_filepath=output_plot_filepath,
                 neighbourhood_size=neighbourhood_size,
             )
+
+            # Save TPS scores to file
+            np.save(output_tps_filepath, tps_score_word_frequencies)
 
 
 def topological_polysemy_pipeline(

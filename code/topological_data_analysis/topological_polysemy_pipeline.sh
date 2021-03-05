@@ -13,5 +13,3 @@ screen -dmS topological_polysemy_pipeline -L -Logfile topological_polysemy_pipel
 --custom_point_cloud_neighbourhood_size 50 \
 --output_dir ../output/topological_polysemy_experimentation
 screen -r topological_polysemy_pipeline
-
-# --tps_neighbourhood_sizes 10 40 50 60 100 150 200 500 1000 1500 \
