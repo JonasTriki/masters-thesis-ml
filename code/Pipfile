@@ -52,6 +52,7 @@ ripser = "*"
 fasttext = "*"
 jedi = "==0.17.2"
 scikit-dimension = "*"
+pervect = "*"
 
 [requires]
 python_version = "3.6"
