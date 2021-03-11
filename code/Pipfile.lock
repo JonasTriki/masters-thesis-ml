@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "b81bd6e9f1370a2d2bdd6dc85f577c169bc1096aedee428b89c4bfafcc4ef5aa"
+            "sha256": "95e989b5ff48c81220649047151ca55039cb12c050ebb7ad0ffbc88005651345"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1380,6 +1380,14 @@
             ],
             "index": "pypi",
             "version": "==0.4.0"
+        },
+        "scann": {
+            "file": "https://files.pythonhosted.org/packages/8d/ad/e6981da67acb1ba3e5515b59b2ce0562498dfd7124298fbfd23f35db361e/scann-1.2.1-cp36-cp36m-manylinux2014_x86_64.whl",
+            "hashes": [
+                "sha256:b34a153612c8abcf2d3710f5ee2d9633d02a8d38191aef770558acdd2ffb7dba"
+            ],
+            "markers": "sys_platform == 'linux'",
+            "version": "==1.2.1"
         },
         "scikit-dimension": {
             "hashes": [
