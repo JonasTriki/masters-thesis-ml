@@ -1,7 +1,6 @@
 import sys
 from typing import Optional
 
-import annoy
 import joblib
 import numpy as np
 from nltk.corpus import wordnet as wn
@@ -12,6 +11,7 @@ from tqdm import tqdm
 
 sys.path.append("..")
 
+from approx_nn import ApproxNN  # noqa: E402
 from topological_data_analysis.topological_polysemy import tps  # noqa: E402
 from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
@@ -25,14 +25,13 @@ w2v_training_output = load_model_training_output(
     model_name="word2vec",
     dataset_name="enwiki",
     return_normalized_embeddings=True,
-    return_annoy_index=True,
-    annoy_index_prefault=True,
+    return_scann_instance=True,
 )
 last_embedding_weights_normalized = w2v_training_output[
     "last_embedding_weights_normalized"
 ]
-last_embedding_weights_annoy_index = w2v_training_output[
-    "last_embedding_weights_annoy_index"
+last_embedding_weights_scann_instance = w2v_training_output[
+    "last_embedding_weights_scann_instance"
 ]
 words = w2v_training_output["words"]
 word_to_int = w2v_training_output["word_to_int"]
@@ -95,7 +94,7 @@ def create_word_meaning_model_features(
     words: list,
     word_to_int: dict,
     word_embeddings_normalized: np.ndarray,
-    annoy_index: annoy.AnnoyIndex,
+    ann_instance: ApproxNN,
     tps_neighbourhood_size: int,
     words_estimated_ids: np.array,
     include_word_vector: bool,
@@ -106,6 +105,7 @@ def create_word_meaning_model_features(
     """
     TODO: Docs
     """
+    # TODO: Move TPS code outside method and cache result to file.
     features = []
     for i, word in enumerate(tqdm(words)):
         word_i = word_to_int[word]
@@ -123,7 +123,7 @@ def create_word_meaning_model_features(
                 neighbourhood_size=tps_neighbourhood_size,
                 words_vocabulary=words,
                 word_embeddings_normalized=word_embeddings_normalized,
-                annoy_index=annoy_index,
+                ann_instance=ann_instance,
                 return_persistence_diagram=include_pd_vector,
             )
             if include_pd_vector:
@@ -173,7 +173,7 @@ if compute_word_meaning_features:
         words=data_words,
         word_to_int=word_to_int,
         word_embeddings_normalized=last_embedding_weights_normalized,
-        annoy_index=last_embedding_weights_annoy_index,
+        ann_instance=last_embedding_weights_scann_instance,
         tps_neighbourhood_size=tps_neighbourhood_size,
         words_estimated_ids=words_estimated_ids,
         include_word_vector=True,
