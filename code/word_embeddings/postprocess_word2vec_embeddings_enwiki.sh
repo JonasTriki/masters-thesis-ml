@@ -5,3 +5,4 @@ screen -dmS postprocess_word2vec_enwiki -L -Logfile postprocess_word2vec_enwiki.
 --dataset_name enwiki \
 --vocab_size -1 \
 --annoy_index_n_trees 250
+screen -r postprocess_word2vec_enwiki

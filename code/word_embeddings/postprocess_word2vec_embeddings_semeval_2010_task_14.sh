@@ -5,3 +5,4 @@ screen -dmS postprocess_word2vec_semeval_2010_task_14 -L -Logfile postprocess_wo
 --dataset_name semeval_2010_task_14 \
 --vocab_size -1 \
 --annoy_index_n_trees 250
+screen -r postprocess_word2vec_semeval_2010_task_14

@@ -5,3 +5,4 @@ screen -dmS postprocess_word2vec_dawiki -L -Logfile postprocess_word2vec_dawiki.
 --dataset_name dawiki \
 --vocab_size -1 \
 --annoy_index_n_trees 250
+screen -r postprocess_word2vec_dawiki

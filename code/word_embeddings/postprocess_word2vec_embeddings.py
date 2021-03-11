@@ -1,11 +1,17 @@
 import argparse
+import pickle
 from os.path import isfile, join
 from pathlib import Path
 
 import annoy
+import joblib
 import numpy as np
+from pynndescent import NNDescent
 from tqdm import tqdm
 from word2vec import load_model_training_output
+
+rng_seed = 399
+np.random.seed(rng_seed)
 
 
 def parse_args() -> argparse.Namespace:
@@ -83,7 +89,6 @@ def postprocess_word2vec_embeddings(
         dataset_name=dataset_name,
     )
     last_embedding_weights = w2v_training_output["last_embedding_weights"]
-    embedding_dim = last_embedding_weights.shape[1]
 
     use_full_vocab = False
     if vocab_size == -1:
@@ -108,12 +113,12 @@ def postprocess_word2vec_embeddings(
     if use_full_vocab:
         model_ann_index_filepath = join(
             model_training_output_dir,
-            f"{last_embedding_weights_filepath_no_ext}_annoy_index.ann",
+            f"{last_embedding_weights_filepath_no_ext}_nnd.ann",
         )
     else:
         model_ann_index_filepath = join(
             model_training_output_dir,
-            f"{last_embedding_weights_filepath_no_ext}_{vocab_size}_annoy_index.ann",
+            f"{last_embedding_weights_filepath_no_ext}_{vocab_size}_nnd.ann",
         )
 
     # Normalize word embeddings and save to file
@@ -142,19 +147,42 @@ def postprocess_word2vec_embeddings(
     if not isfile(model_ann_index_filepath):
 
         # Add word embeddings to index and build it
-        ann_index = annoy.AnnoyIndex(f=embedding_dim, metric="euclidean")
         print("Adding word embeddings to index...")
-        for i in tqdm(range(vocab_size)):
-            ann_index.add_item(i, last_embedding_weights_normalized[i])
-        print("Done!")
-
-        print("Building index...")
-        ann_index.build(n_trees=annoy_index_n_trees, n_jobs=-1)
+        if use_full_vocab:
+            last_embedding_weights_normalized_in_vocab = (
+                last_embedding_weights_normalized
+            )
+        else:
+            last_embedding_weights_normalized_in_vocab = (
+                last_embedding_weights_normalized[:vocab_size]
+            )
+        ann_index = NNDescent(
+            data=last_embedding_weights_normalized_in_vocab,
+            metric="euclidean",
+            n_neighbors=50,
+            n_jobs=-1,
+            random_state=rng_seed,
+        )
         print("Done!")
 
         print("Saving to file...")
-        ann_index.save(model_ann_index_filepath)
+        with open(model_ann_index_filepath, "wb") as ann_index_file:
+            pickle.dump(ann_index, ann_index_file, protocol=4)
         print("Done!")
+
+        # ann_index = annoy.AnnoyIndex(f=embedding_dim, metric="euclidean")
+        # print("Adding word embeddings to index...")
+        # for i in tqdm(range(vocab_size)):
+        #     ann_index.add_item(i, last_embedding_weights_normalized[i])
+        # print("Done!")
+
+        # print("Building index...")
+        # ann_index.build(n_trees=annoy_index_n_trees, n_jobs=-1)
+        # print("Done!")
+
+        # print("Saving to file...")
+        # ann_index.save(model_ann_index_filepath)
+        # print("Done!")
 
 
 if __name__ == "__main__":
