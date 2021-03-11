@@ -15,6 +15,7 @@ from tensorflow.keras.utils import Progbar
 
 sys.path.append("..")
 
+from approx_nn import ApproxNN  # noqa: E402
 from utils import get_model_checkpoint_filepaths  # noqa: E402
 from word_embeddings.dataset import create_dataset  # noqa: E402
 from word_embeddings.tokenizer import Tokenizer  # noqa: E402
@@ -632,6 +633,7 @@ def load_model_training_output(
     return_normalized_embeddings: bool = False,
     return_annoy_index: bool = False,
     annoy_index_prefault: bool = False,
+    return_scann_instance: bool = False,
 ) -> dict:
     """
     Loads and returns a dict object containing output from word2vec training
@@ -654,6 +656,9 @@ def load_model_training_output(
         Whether or not to enable the `prefault` option when loading
         Annoy index. return_annoy_index must be set to True to have an affect.
         (Defaults to False).
+    return_scann_instance : bool, optional
+        Whether or not to return the ScaNN instance fit on the last embedding weights,
+        if they are present (defaults to False).
 
     Returns
     -------
@@ -718,11 +723,26 @@ def load_model_training_output(
             prefault=annoy_index_prefault,
         )
 
+    # ScaNN instance
+    last_embedding_weights_scann_instance = None
+    if (
+        return_scann_instance
+        and "intermediate_embedding_weight_scann_artifact_dirs"
+        in checkpoint_filepaths_dict
+    ):
+        last_embedding_weights_scann_instance = ApproxNN(ann_alg="scann")
+        last_embedding_weights_scann_instance.load(
+            checkpoint_filepaths_dict[
+                "intermediate_embedding_weight_scann_artifact_dirs"
+            ][-1]
+        )
+
     return {
         "last_embedding_weights": last_embedding_weights,
         "last_embedding_weights_filepath": last_embedding_weights_filepath,
         "last_embedding_weights_normalized": last_embedding_weights_normalized,
         "last_embedding_weights_annoy_index": last_embedding_weights_annoy_index,
+        "last_embedding_weights_scann_instance": last_embedding_weights_scann_instance,
         "words": words,
         "word_to_int": word_to_int,
         "word_counts": word_counts,

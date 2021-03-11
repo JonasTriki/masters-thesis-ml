@@ -299,6 +299,7 @@ def get_model_checkpoint_filepaths(
     intermediate_embedding_weight_filepaths = None
     intermediate_embedding_weight_normalized_filepaths = None
     intermediate_embedding_weight_annoy_index_filepaths = None
+    intermediate_embedding_weight_scann_artifact_dirs = None
     if len(intermediate_embedding_weight_filenames) > 0:
 
         # Extract combined epoch/embedding nrs and sort by them.
@@ -335,6 +336,12 @@ def get_model_checkpoint_filepaths(
                         intermediate_embedding_weight_annoy_index_filepaths.append(
                             output_filepath
                         )
+                    elif output_fn.endswith("_scann_artifacts"):
+                        if intermediate_embedding_weight_scann_artifact_dirs is None:
+                            intermediate_embedding_weight_scann_artifact_dirs = []
+                        intermediate_embedding_weight_scann_artifact_dirs.append(
+                            output_filepath
+                        )
 
     train_words_filename = f"{model_id}_words.txt"
     train_words_filepath = None
@@ -358,6 +365,7 @@ def get_model_checkpoint_filepaths(
         "intermediate_embedding_weight_filepaths": intermediate_embedding_weight_filepaths,
         "intermediate_embedding_weight_normalized_filepaths": intermediate_embedding_weight_normalized_filepaths,
         "intermediate_embedding_weight_annoy_index_filepaths": intermediate_embedding_weight_annoy_index_filepaths,
+        "intermediate_embedding_weight_scann_artifact_dirs": intermediate_embedding_weight_scann_artifact_dirs,
         "train_words_filepath": train_words_filepath,
         "train_word_counts_filepath": train_word_counts_filepath,
         "train_logs_filepath": train_logs_filepath,

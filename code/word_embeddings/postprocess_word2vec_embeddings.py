@@ -1,14 +1,14 @@
 import argparse
-import pickle
-from os.path import isfile, join
+import sys
+from os.path import isdir, isfile, join
 from pathlib import Path
 
-import annoy
-import joblib
 import numpy as np
-from pynndescent import NNDescent
-from tqdm import tqdm
-from word2vec import load_model_training_output
+
+sys.path.append("..")
+
+from approx_nn import ApproxNN  # noqa: E402
+from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
 rng_seed = 399
 np.random.seed(rng_seed)
@@ -48,12 +48,6 @@ def parse_args() -> argparse.Namespace:
         default=-1,
         help="Size of the vocabulary to use, -1 denotes all words",
     )
-    parser.add_argument(
-        "--annoy_index_n_trees",
-        type=int,
-        default="",
-        help="Number of trees to pass to Annoy's build method. More trees => higher precision",
-    )
     return parser.parse_args()
 
 
@@ -62,7 +56,6 @@ def postprocess_word2vec_embeddings(
     model_name: str,
     dataset_name: str,
     vocab_size: int,
-    annoy_index_n_trees: int,
 ) -> None:
     """
     Applies post-processing to trained word2vec word embeddings:
@@ -79,8 +72,6 @@ def postprocess_word2vec_embeddings(
         Name of the dataset the model is trained on.
     vocab_size : int
         Size of the vocabulary to use, -1 denotes all words
-    annoy_index_n_trees : int
-        Number of trees to pass to Annoys build method. More trees => higher precision.
     """
     # Load output from training word2vec
     w2v_training_output = load_model_training_output(
@@ -111,14 +102,14 @@ def postprocess_word2vec_embeddings(
             f"{last_embedding_weights_filepath_no_ext}_{vocab_size}_normalized.npy",
         )
     if use_full_vocab:
-        model_ann_index_filepath = join(
+        model_ann_index_dir = join(
             model_training_output_dir,
-            f"{last_embedding_weights_filepath_no_ext}_nnd.ann",
+            f"{last_embedding_weights_filepath_no_ext}_scann_artifacts",
         )
     else:
-        model_ann_index_filepath = join(
+        model_ann_index_dir = join(
             model_training_output_dir,
-            f"{last_embedding_weights_filepath_no_ext}_{vocab_size}_nnd.ann",
+            f"{last_embedding_weights_filepath_no_ext}_{vocab_size}_scann_artifacts",
         )
 
     # Normalize word embeddings and save to file
@@ -144,10 +135,9 @@ def postprocess_word2vec_embeddings(
             last_embedding_weights_normalized_filepath
         )
 
-    if not isfile(model_ann_index_filepath):
+    if not isdir(model_ann_index_dir):
 
         # Add word embeddings to index and build it
-        print("Adding word embeddings to index...")
         if use_full_vocab:
             last_embedding_weights_normalized_in_vocab = (
                 last_embedding_weights_normalized
@@ -156,33 +146,13 @@ def postprocess_word2vec_embeddings(
             last_embedding_weights_normalized_in_vocab = (
                 last_embedding_weights_normalized[:vocab_size]
             )
-        ann_index = NNDescent(
+        scann_instance = ApproxNN(ann_alg="scann")
+        scann_instance.build(
             data=last_embedding_weights_normalized_in_vocab,
-            metric="euclidean",
-            n_neighbors=50,
-            n_jobs=-1,
-            random_state=rng_seed,
+            distance_measure="dot_product",
+            scann_num_leaves_scaling=2.5,
         )
-        print("Done!")
-
-        print("Saving to file...")
-        with open(model_ann_index_filepath, "wb") as ann_index_file:
-            pickle.dump(ann_index, ann_index_file, protocol=4)
-        print("Done!")
-
-        # ann_index = annoy.AnnoyIndex(f=embedding_dim, metric="euclidean")
-        # print("Adding word embeddings to index...")
-        # for i in tqdm(range(vocab_size)):
-        #     ann_index.add_item(i, last_embedding_weights_normalized[i])
-        # print("Done!")
-
-        # print("Building index...")
-        # ann_index.build(n_trees=annoy_index_n_trees, n_jobs=-1)
-        # print("Done!")
-
-        # print("Saving to file...")
-        # ann_index.save(model_ann_index_filepath)
-        # print("Done!")
+        scann_instance.save(model_ann_index_dir)
 
 
 if __name__ == "__main__":
@@ -192,5 +162,4 @@ if __name__ == "__main__":
         model_name=args.model_name,
         dataset_name=args.dataset_name,
         vocab_size=args.vocab_size,
-        annoy_index_n_trees=args.annoy_index_n_trees,
     )
