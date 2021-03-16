@@ -5,13 +5,13 @@ In this master thesis, we will use several general machine learning methods in c
 In this section we will explain artificial neural networks (ANN). In particular, we will focus on multilayered neural networks (MLNN). We refer to \cite[Chapter 1]{Aggarwal18} and \cite{rong2016word2vec} when describing this section.
 
 \begin{definition}
-An artificial neuron (or unit) is a function which receives one or more inputs and a bias, and then sums them to produce an output, as illustrated in \cref{fig:artificial_neuron}; $\left\{ x_1, \ldots, x_K \right\}$ are the input values, $x_0$ is the bias, $\left\{ w_0, \ldots, w_K \right\}$ are the weights and $y$ is a scalar output. We denote $f$ as the activation function.
+An artificial neuron (or unit) is a function which receives one or more inputs and a bias, and then sums them to produce an output, as illustrated in \cref{fig:artificial_neuron}; $\left\{ x_1, \ldots, x_K \right\}$ are the input values, $b$ is the bias, $\left\{ w_1, \ldots, w_K \right\}$ are the weights and $y$ is a scalar output. We denote $f$ as the activation function.
 \end{definition}
 
-\begin{figure}
+\begin{figure}[H]
     \centering
-    \includegraphics[width=8cm]{thesis/figures/artificial-neuron-rong-2014.png}
-    \caption{An artificial neuron as illustrated by \cite[Figure 5]{rong2016word2vec}. Note that the bias is omitted from this illustration (i.e. $x_0=0$).}
+    \includegraphics[width=8cm]{thesis/figures/artificial-neuron_cropped.pdf}
+    \caption{An artificial neuron taking in a $K$-dimensional input $x$ and bias $b$ to produce some output $y$.}
     \label{fig:artificial_neuron}
 \end{figure}
 
@@ -21,11 +21,11 @@ To produce the output of a single unit, we do the following
 \end{align}
 where $u$ is the input of the neuron. $u$ is defined as
 \begin{align}
-    u = \sumlim{i=0}{K} w_i x_i
+    u = b + \sumlim{i=1}{K} w_i x_i
 \end{align}
-which is the weighted sum of the input values (including bias term) $\left\{ x_0, \ldots, x_K \right\}$ with $\left\{ w_0, \ldots, w_K \right\}$ as weights.
+which is the weighted sum of the input values $\left\{ x_1, \ldots, x_K \right\}$ plus the bias term, with $\left\{ w_1, \ldots, w_K \right\}$ as weights.
 
-The bias term acts as a intercept value to make the model more general and is usually set to 1. For some models (e.g. word2vec, introduced in \cref{sec:word2vec-as-an-ann}), one does not include the bias term for the units in the neural network, i.e., we leave $x_0$ to be zero.
+The bias term acts as a intercept value to make the model more general and is usually set to +1. For some models (e.g. word2vec, introduced in \cref{sec:word2vec-as-an-ann}), one does not include the bias term for the units in the neural network, i.e., we leave $b$ to be zero.
 
 The choice of activation function $f$ is typically a non-linear function. Artificial neural networks use different activation functions such as ReLU, sigmoid or tanh to learn non-linear relationships in the data. We will come back to this in \cref{sec:activation-functions-ann}.
 
@@ -40,9 +40,7 @@ A layer $\layer{z}{j} = \left\{ z_1, z_2, \ldots, z_K \right\}$ of an artificial
     \layer{z}{j} = f \left( W \cdot x + b \right)
     \label{eqn:artificial_layer}
 \end{align}
-where $x$ is a $K$-dimensional input vector. Note that we here separate $x$ and $b$ into separate vectors.
-
-In the following subsections, we will go over the different types of layers in the ANN, namely the input, hidden and output layers.
+where $x$ is a $K$-dimensional input vector. In the following subsections, we will go over the different types of layers in the ANN, namely the input, hidden and output layers.
 
 \subsection{Input layer}
 \label{sec:ann-input-layer}
@@ -50,16 +48,16 @@ The first layer in the ANN is the input layer $\layer{x}{k} = \left\{ x_1, x_2, 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[height=7cm]{thesis/figures/ann-input-layer-rong-2014.png}
-    \caption{Input layer in the ANN for a $K$-dimensional vector $x$. The bias $x_0$ is omitted from this figure. Illustration is taken from \cite[Figure 6]{rong2016word2vec}.}
+    \includegraphics[height=7cm]{thesis/figures/artificial-neural-network-input-layer_cropped.pdf}
+    \caption{Input layer in the ANN for a $K$-dimensional vector $x$.}
     \label{fig:input_layer_ann}
 \end{figure}
 
-More formally, we define the input layer in \cref{eqn:input_layer_ann} using \cref{def:layer_ann}. The layer does not perform any changes to the incoming data and acts as a way for feeding data into the neural network. For this reason, \cref{eqn:input_layer_ann} uses the identity matrix $I_K$ as the weight matrix $W_{\layer{x}{k}}$, the $K$-dimensional bias vector $b_{\layer{x}{k}}$ consisting of all zeros and the identity function $id(x)=x$ as the activation function.
+More formally, we define the input layer in \cref{eqn:input_layer_ann} using \cref{def:layer_ann}. The layer does not perform any changes to the incoming data and acts as a way for feeding data into the neural network. For this reason, \cref{eqn:input_layer_ann} uses the identity matrix $I_K$ as the weight matrix $W_{\layer{x}{k}}$, no bias (i.e. bias equal to zero vector) the identity function $id(x)=x$ as the activation function.
 \begin{align}
     \label{eqn:input_layer_ann}
     \layer{x}{k}
-    &= f_{\layer{x}{k}}(W_{\layer{x}{k}} \cdot x + b_{\layer{x}{k}}) \\
+    &= f_{\layer{x}{k}}(W_{\layer{x}{k}} \cdot x) \\
     &= id(I_K \cdot x) \\
     &= I_K \cdot x \\
     &= x
@@ -71,17 +69,17 @@ The hidden layer is the second layer in the ANN $\layer{h}{i} = \left\{ h_1, h_2
 
 \begin{figure}[H]
     \centering
-    \includegraphics[height=7cm]{thesis/figures/ann-input-hidden-layer-rong-2014.png}
-    \caption{Input to hidden layer in the ANN for a $K$-dimensional vector $x$, $N\times K$ dimensional weight matrix $\left\{ w_{ki} \right\}$ and a $N$-dimensional hidden layer $h$. Illustration is taken from \cite[Figure 6]{rong2016word2vec}.}
+    \includegraphics[height=7cm]{thesis/figures/artificial-neural-network-input-hidden-layer_cropped.pdf}
+    \caption{Input to hidden layer in the ANN for a $K$-dimensional vector $x$, $N\times K$ dimensional weight matrix $\left\{ W_{h_i} \right\}$ and a $N$-dimensional hidden layer $h$.}
     \label{fig:hidden_layer_ann}
 \end{figure}
 
 We formalize the description of the hidden layer in \cref{eqn:hidden-layer-ann}
 \begin{align}
     \label{eqn:hidden-layer-ann}
-    \layer{h}{i} &= f_{\layer{h}{i}}(W_{\layer{h}{i}} \cdot \layer{x}{k} + b_{\layer{h}{i}})
+    \layer{h}{i} &= f_{\layer{h}{i}}(W_{\layer{h}{i}} \cdot \layer{x}{k} + b_h)
 \end{align}
-where $f_{\layer{h}{i}}$ is a user-specified activation function, $W_{\layer{h}{i}}$ is an $N \times K$-dimensional weight matrix and $b_{\layer{h}{i}}$ is an $N$-dimensional bias vector.
+where $f_{\layer{h}{i}}$ is a user-specified activation function, $W_{\layer{h}{i}}$ is an $N \times K$-dimensional weight matrix and $b_h$ is an $N$-dimensional bias vector.
 
 The hidden layer tries to learn a latent representation of the input data $x$. We will explain how the neural network learns the latent representation when introducing optimizers in \cref{sec:optimizers-ann}. Assuming that we have some $N$-dimensional latent representation of the data, we would like to connect it to the final layer in the neural network, namely the output layer.
 
@@ -90,16 +88,16 @@ The last layer in the ANN is the output layer $\layer{y}{j} = \left\{ y_1, y_2, 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=8cm]{thesis/figures/multi-layer-neural-network-one-hidden-rong-2014.png}
-    \caption{Multilayered neural network (MLNN) with one hidden layer, as illustrated by \cite[Figure 6]{rong2016word2vec}.}
+    \includegraphics[width=9cm]{thesis/figures/artificial-neural-network_cropped.pdf}
+    \caption{Multilayered neural network (MLNN) with one hidden layer.}
     \label{fig:mlnn-one-hidden}
 \end{figure}
 
-More formally, we define the output layer $\layer{y}{j}$ using a $M \times N$ weight matrix $W_{\layer{y}{j}}$, an $M$-dimensional bias vector $b_{\layer{y}{j}}$ and an activation function $f_{\layer{y}{j}}$, as seen in \cref{eqn:output-layer-ann}.
+More formally, we define the output layer $\layer{y}{j}$ using a $M \times N$ weight matrix $W_{\layer{y}{j}}$, an $M$-dimensional bias vector $b_y$ and an activation function $f_{\layer{y}{j}}$, as seen in \cref{eqn:output-layer-ann}.
 
 \begin{align}
     \label{eqn:output-layer-ann}
-    \layer{y}{j} &= f_{\layer{y}{j}}(W_{\layer{y}{j}} \cdot \layer{h}{i} + b_{\layer{y}{j}})
+    \layer{y}{j} &= f_{\layer{y}{j}}(W_{\layer{y}{j}} \cdot \layer{h}{i} + b_y)
 \end{align}
 
 We have now covered the different layers in an MLNN, but have yet to cover the different choices of activation function $f$ in the neural network and how the MLNN learns.
@@ -178,26 +176,26 @@ So far, we have discussed what we call the forward pass (or phase). A forward pa
 To give an example of forward and backward passes in an ANN, consider the example in \cref{fig:neural-network-example-backprop}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=11cm]{thesis/figures/neural-network-example-backprop-aggarwal-2018.png}
-    \caption{Neural network with one input node, one hidden layer with two nodes and a single output layer (as illustrated by \cite[Figure 1.13]{Aggarwal18}).}
+    \includegraphics[width=12cm]{thesis/figures/artificial-neural-network-backprop-example_cropped.pdf}
+    \caption{Neural network with one input node, one hidden layer with two nodes and a single output layer.}
     \label{fig:neural-network-example-backprop}
 \end{figure}
 
-In this example, we are given a network with one input node (neuron), a hidden layer with two nodes and a single output layer with one node. The input to the network is denoted as $w$ and is the product of the input data and the weights in the input layer. The activation functions of the network are denoted as $f$, $g$ and $h$. Moreover, the results of the activation functions are denoted as $y$, $z$, $p$, $q$, and the function $K$ combines the result of $p$ and $q$ resulting in the output value $o$. We assume that the weights of the hidden layer is applied to the previous layer's output values during $g$ and $h$ and the weights of the output layer is applied at $K$. The forward pass in this network is pretty straight forward; we start the input node, pass the data on to $g$ and $h$ and combine the results in the output layer. Now, for the backwards pass we first need to compute the loss at the output node using a loss function $L$. Furthermore, we compute the derivative of $L$ with respect to the input value, $w$ in this case. More formally, we need to compute
+In this example, we are given a network with one input node (neuron), a hidden layer with two nodes and a single output layer with one node. The input to the network is denoted as $u$ and is the product of the input data and the weights in the input layer. The activation functions of the network are denoted as $f$, $g$ and $h$. Moreover, the results of the activation functions are denoted as $y$, $z$, $p$, $q$, and the function $K$ combines the result of $p$ and $q$ resulting in the output value $O$. We assume that the weights of the hidden layer is applied to the previous layer's output values during $g$ and $h$ and the weights of the output layer is applied at $K$. The forward pass in this network is pretty straight forward; we start the input node, pass the data on to $g$ and $h$ and combine the results in the output layer. Now, for the backwards pass we first need to compute the loss at the output node using a loss function $L$. Furthermore, we compute the derivative of $L$ with respect to the input $u$. More formally, we need to compute
 \begin{align}
-    \parder{L}{w}
-    &= \parder{L}{o} \cdot \parder{o}{w} \\
-    &= \parder{L}{o} \cdot \left[
-    \parder{o}{p} \cdot \parder{p}{w} +
-    \parder{o}{q} \cdot \parder{q}{w}
+    \parder{L}{u}
+    &= \parder{L}{O} \cdot \parder{O}{u} \\
+    &= \parder{L}{O} \cdot \left[
+    \parder{O}{p} \cdot \parder{p}{u} +
+    \parder{O}{q} \cdot \parder{q}{u}
     \right] \text{(chain rule)} \\
-    &= \parder{L}{o} \cdot \left[
-    \parder{o}{p} \cdot \parder{p}{y} \cdot \parder{y}{w} + 
-    \parder{o}{q} \cdot \parder{q}{z} \cdot \parder{z}{w}
+    &= \parder{L}{O} \cdot \left[
+    \parder{O}{p} \cdot \parder{p}{y} \cdot \parder{y}{u} + 
+    \parder{O}{q} \cdot \parder{q}{z} \cdot \parder{z}{u}
     \right] \text{(chain rule)} \\
-    &= \parder{L}{o} \cdot \left[
-    \undertext{\parder{K(p, q)}{p} \cdot g'(y) \cdot f'(w)}{Path on top} + 
-    \undertext{\parder{K(p, q)}{q} \cdot h'(z) \cdot f'(w)}{Path on bottom}
+    &= \parder{L}{O} \cdot \left[
+    \undertext{\parder{K(p, q)}{p} \cdot g'(y) \cdot f'(u)}{Path on top} + 
+    \undertext{\parder{K(p, q)}{q} \cdot h'(z) \cdot f'(u)}{Path on bottom}
     \right]
 \end{align}
 
@@ -288,7 +286,7 @@ Hierarchical clustering is a group of clustering algorithms which constructs clu
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\textwidth]{thesis/figures/dendrogram-example.pdf}
-    \caption{Example of a dendrogram plot using the Iris dataset \cite{Fisher1936}.}
+    \caption{Example of a dendrogram plot using the Iris data set \cite{Fisher1936}.}
     \label{fig:dendrogram-example}
 \end{figure}
 
@@ -337,19 +335,120 @@ HDBSCAN is a density-based clustering algorithm and, for this reason, requires a
 \end{align}
 where $d(x, y)$ is the distance between data point $x$ and data point $y$ using the original distance metric. Under the MRD metric, data points in dense regions will not change their distances, but sparser data points will be pushed away such that the distance is at least their core distance to other points.
 
-Next, given the MRD metric, we use it to find dense areas in the data. To find such areas, we create a minimal spanning tree (MST) where each node represents a data point $x \in X$ and edges connecting pairs of nodes is weighted by the MRD between the two nodes. By using an MST, we get a graph with the minimal set of edges between nodes such that the weight between the nodes is minimized. Also, by dropping one edge, we graph becomes disconnected, i.e., each pair of nodes is connected by exactly one edge. Using these two facts, we can create a clustering hierarchy in a single-linkage clustering manner. First, the weights of the edges of the MST is sorted in increasing order. Following, we iterate over the sorted edges of the MST and merge data points into clusters (note that each individual data point is its own cluster initially). Now, from the hierarchical clustering we are left with a dendrogram, similar to the one from \cref{fig:dendrogram-example}, but are left with a critical question; how should we define the cut in order to get a flat clustering?
+Next, given the MRD metric, we use it to find dense areas in the data. To find such areas, we create a minimal spanning tree (MST) where each node represents a data point $x \in X$ and edges connecting pairs of nodes is weighted by the MRD between the two nodes. By using an MST, we get a graph with the minimal set of edges between nodes such that the weight between the nodes is minimized. Also, by dropping one edge, we graph becomes disconnected, i.e., each pair of nodes is connected by exactly one edge. Using these two facts, we can create a clustering hierarchy in a single-linkage clustering manner. First, the weights of the edges of the MST is sorted in increasing order. Following, we iterate over the sorted edges of the MST and merge data points into clusters (note that each individual data point is its own cluster initially). Now, from the hierarchical clustering we are left with a dendrogram, as illustrated in \cref{fig:hdbscan-dendrogram-example}, but are left with a critical question; how should we define the cut in order to get a flat clustering?
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=10cm]{thesis/figures/hdbscan-single-linage-tree-example.pdf}
+    \caption{Single-linkage dendrogram plot from HDBSCAN on the Iris data set \cite{Fisher1936}.}
+    \label{fig:hdbscan-dendrogram-example}
+\end{figure}
 
-Dendrograms can be very difficult to interpret once a certain number of data points is reached. For this reason, the authors of HDBSCAN condense (or compact) the dendrogram from the hierarchical clustering such that a flat clustering can be obtained rather easily. First, the notion of \textbf{minimum cluster size} is defined and is a hyperparameter controlling the minimal cluster size at any time. Following, we walk down the dendrogram, starting from the root cluster, and at each split we check whether or not the new cluster created by the split has at least \textbf{minimum cluster size} data points in them. If the new cluster has at least \textbf{minimum cluster size} data points in them, we let that cluster be in the tree. If the new cluster has less than the \textbf{minimum cluster size}, then we let the parent cluster identify the new cluster and the node is removed from the tree. As we walk through the dendrogram in order to condense it, we also include at what distance clusters merge into the parent cluster, i.e., "fall out of clusters". An example of a condensed diagram is down in \textbf{TODO}.
+Dendrograms can be very difficult to interpret once a certain number of data points is reached. For this reason, the authors of HDBSCAN condense (or compact) the dendrogram from the hierarchical clustering such that a flat clustering can be obtained rather easily. First, the notion of \textbf{minimum cluster size} is defined and is a hyperparameter controlling the minimal cluster size at any time. Following, we walk down the dendrogram, starting from the root cluster, and at each split we check whether or not the new cluster created by the split has at least \textbf{minimum cluster size} data points in them. If the new cluster has at least \textbf{minimum cluster size} data points in them, we let that cluster be in the tree. If the new cluster has less than the \textbf{minimum cluster size}, then we let the parent cluster identify the new cluster and the node is removed from the tree. As we walk through the dendrogram in order to condense it, we also include at what distance clusters merge into the parent cluster, i.e., "fall out of clusters". An example of a condensed diagram is down in \cref{fig:hdbscan-condensed-dendrogram-example}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=10cm]{thesis/figures/hdbscan-condensed-tree-example.pdf}
+    \caption{Condensed dendrogram plot from HDBSCAN on the Iris data set \cite{Fisher1936}.}
+    \label{fig:hdbscan-condensed-dendrogram-example}
+\end{figure}
 
-Now, to define the flat cut in the condensed diagram, we select the clusters such that the largest total area of "ink" is maximized, under an additional constraint that we can not select clusters that are descendants of an already selected cluster. Any clusters which are not selected are marked as noise, as they are merely artifacts of the initial hierarchical clustering. The final clustering is then decided, as illustrated from the example in \textbf{TODO}.
+Now, to define the flat cut in the condensed diagram, we select the clusters such that the largest total area of "ink" is maximized, under an additional constraint that we can not select clusters that are descendants of an already selected cluster. Any clusters which are not selected are marked as noise, as they are merely artifacts of the initial hierarchical clustering. The final clustering is then decided, as illustrated from the example in \cref{fig:hdbscan-condensed-dendrogram-final-cut-example}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=10cm]{thesis/figures/hdbscan-condensed-tree-final-cut-example.pdf}
+    \caption{Condensed dendrogram plot from HDBSCAN on the Iris data set \cite{Fisher1936}. The "final cut" is shown in the red circles. All data points below the circled clusters are considered noise.}
+    \label{fig:hdbscan-condensed-dendrogram-final-cut-example}
+\end{figure}
 
 \textbf{TODO: Write cons/pros.}
 
+\subsection{ToMATo}
+Topological Mode Analysis Tool (ToMATo) \cite[2. ToMATo]{Oudot2015} is a clustering algorithm based on concepts from topological data analysis (TDA). In particular, ToMATo uses the concepts of persistence diagrams and prominence to perform clustering. We refer to \cite[2. ToMATo]{Oudot2015} when explaining the algorithm. The ToMATo clustering algorithm can be divided into three parts: density estimation and neighbour graph creation (1), mode-seeking (2) and merging (3).
+
+First (1), any density estimation scheme is used in order to find dense areas in our data. A common choice is to use kernel density estimation with some kernel (e.g. gaussian). Let $\Tilde{f}(x_i)$ denote the estimated density of data point $x_i \in X, i = 1, 2, \ldots, n$. In addition to density estimation, a neighbourhood graph $G$ is computed in order to determine neighbours of data points. In the graph $G$, each vertex is a data point and edges represent neighbours. To compute $G$, it is common to use a $k$-nearest neighbour graph, where $k$ represents the number of neighbours.
+
+Given the density estimator $\Tilde{f}$ and neighbourhood graph $G$, ToMATo uses mode-seeking (2) in order compute initial clusters. First, the vertices of $G$ are sorted by decreasing $\Tilde{f}$-value and iterated over. At each vertex $i$, compare the $\Tilde{f}$ values of vertex $i$ and its neighbours. If $\Tilde{f}(x_i)$ is greater than $\Tilde{f}$ of its neighbours, then vertex $i$ is denoted as a peak of $\Tilde{f}$. Otherwise, vertex $i$ is connected to the neighbour with the greatest  $\Tilde{f}$-value. By doing so, we create a spanning forest, where each spanning tree represent peaks of the underlying true density function. Given this spanning forest, the next step is to merge the trees to obtain a clustering.
+
+The last step is the merging (3) of the spanning forest from (2). To do this, ToMATo iterates over the vertices of $G$ again (in the same order as in (2)) and a union-find data structure (denoted $\mathcal{U}$) is used to keep track of the merged spanning trees. The entries $e \in \mathcal{U}$ correspond to the union of spanning trees. The root of an entry $r(e)$, is the vertex in $e$ whose $\Tilde{f}$-value is the highest, i.e., a local peak of $\Tilde{f}$ in $G$. Now, iterating over the vertices of $G$, we check whether or not vertex $i$ is a peak of $\Tilde{f}$. If vertex $i$ is a peak of $\Tilde{f}$, i.e., root of some spanning tree $S$, a new entry $e$ is created in $\mathcal{U}$, in which $S$ is stored. The root of entry $e$ is set to the vertex itself, i.e., $r(e) = i$. If vertex $i$ is not a peak of $\Tilde{f}$, it means that it belongs to some existing entry $e_i \in \mathcal{U}$ and we look for potential merges of $e_i$ with other entries in $\mathcal{U}$. In particular, we iterate over neighbours $e \in \mathcal{E}$, $e \neq e_i$, of $i$ in $G$ and check whether $\min \enclc{ \Tilde{f}(x_{r(e)}), \Tilde{f}(x_{r(e_i)}) } < \Tilde{f}(x_i) + \tau$, where $\tau$ is the prominence threshold parameter. In other words, we check whether or not two entries have different $\Tilde{f}$-value and at least one of them has root with less than $\tau$ prominence. If this is true, $e$ and $e_i$ gets merged into a single entry in $\mathcal{U}$, i.e., $e \cup e_i$, and the entry with the lower root is merged into the one with the higher root.
+
+Once the merging step is complete, we are left with a union-find structure $\mathcal{U}$. Every entry $e$ of $\mathcal{U}$ is connected to its parent entry $p(e)$ such that $\Tilde{f}(x_{p(e)}) > \Tilde{f}(x_e)$. In other words, by iteratively searching for the topmost parent, we can determine which cluster each entry (i.e. data point) is connected to. The ToMATo clustering algorithm can be seen as a combination of mode-seeking (from step (2)) and hierarchical clustering (from step (3)). As a result from the hierarchical structure, it is possible to visualize when entries in $\mathcal{U}$ gets merged into other entries, and thus, explain the lifespans of entries. More precisely, an entry in $\mathcal{U}$ is "born" when it is created in $\mathcal{U}$ and "dies" when it gets merged into another entry with higher root. Using persistence diagrams we can naturally explain the lifespans of entries and determine which entries live the longest (i.e. entries that never dies). The persistence diagram is also used to determine which value for $\tau$ we should use. Different values of $\tau$ results in different numbers of clusters. In practice, let $\tau = +\inf$ and use the persistence diagram of $\mathcal{U}$ to find a suitable threshold $\hat{\tau}$ such that the desired number of clusters is returned. Then, run ToMATo again using $\hat{\tau}$ as the threshold parameter to get the final clustering.
+
+What is great about ToMATo is that it gives you a way to determine the numbers of clusters automatically (e.g. using some heuristic on the first persistence diagram to determine $\hat{\tau}$). In addition to this, ToMATo works with any metric, as long as a neighbourhood graph can be created using it (e.g. using euclidean distance or similar metrics).
+
+\section{Cluster validation}
+TODO: Introduce internal cluster validation
+
+\subsection{Silhouette Coefficient}
+TODO
+
+\subsection{Davies-Bouldin index}
+TODO
+
+\subsection{DBCV}
+TODO
+
 \section{Dimensionality reduction techniques}
-TODO 
+Working with data in high dimensions can be a difficult task at hand. Imagine that we have gathered some data, containing several features, and we would like to deepen our understanding of it. One approach we could do would be to visualize each feature by plotting them against each other, looking for bivariate relationships. Unfortunately, this is a rather cumbersome task and is hard to employ once a certain number of features is met (e.g. 10 features). Thankfully, dimensionality reduction techniques can help us to reduce the dimensionality of data into some lower dimension where relevant properties of the original data are preserved. A typical application of dimensionality reduction techniques is to lower the dimensionality to 2 or 3 such that one can visualize the data at ease. We will introduce two dimensionality reduction methods and explain how they work. In both subsections below, we assume that we are given some data $X \in \R^{n \times d}$ and that we want to reduce the dimensionality to some chosen hyperparameter $k$.
 
 \subsection{Principal Component Analysis (PCA)}
-TODO
+Principal Component Analysis (PCA) is one of the most common dimensionality reduction techniques. PCA performs a linear mapping of the original data $X \in \R^{n \times d}$ to a (possibly) lower dimensional space $Y \in \R^{n \times k}$ ($k \leq d$) such that the variance is maximized in $Y$. One typically selects $k$ to a relatively low value, e.g., 2 or 3 if we would like to visualize the most varying part of the data or to a value such that a given variance threshold is met, e.g., explaining 90\% of the variance of the data.
+
+The PCA algorithm consists of several steps and we will go through them briefly. First, the mean of $X$ is computed, denoted $\overline{X} = \frac{1}{n} \sumlim{i=1}{n} x_i$, and subtracted from $X$, i.e., $X' = X - \overline{X} = \enclc{x'_1, x'_2, \ldots, x'_n}$. Next, the covariance matrix of $X'$ is computed, denoted $C \in \R^{d \times d}$, and the corresponding eigenvectors and eigenvalues of $C$ are computed, denoted $C_\text{eig} = \enclc{c_1, c_2, \ldots, c_d}$. Furthermore, the eigenvectors $C_\text{eig}$ are sorted by its corresponding eigenvalues in a descending manner. By doing so, we get a set of ordered eigenvectors such that the first eigenvector corresponds with the largest value, the second eigenvector corresponds with the second largest value and so forth. We denote this set of ordered eigenvectors as $C'_\text{eig} = \enclc{c'_1, c'_2, \ldots, c'_d}$. We then pick the $k$ first eigenvectors of $C'_\text{eig}$ and project the data onto them, essentially performing a change of basis. In addition to this, the mean of $X$ is added to complete the reconstruction, as shown in \cref{eqn:pca-projection}.
+\begin{align}
+    \label{eqn:pca-projection}
+    Y = X' \trans{\begin{pmatrix}
+    c'_1 & c'_2 & \ldots & c'_k
+    \end{pmatrix}} + \overline{X}
+\end{align}
+The newly created matrix $Y = \enclc{y_1, y_2, \ldots, y_n}$ represents the original data $X$ in (a possibly) lower dimension $k$, such that the variance in the vectors are maximized. The vectors $\enclc{y_1, y_2, \ldots, y_n}$ are also referred to as principal components (PC), where PC1 is $y_1$, PC2 is $y_2$ and so forth.
+
+\textbf{TODO:} Add citation?
 
 \subsection{Uniform Manifold Approximation and Projection (UMAP)}
-TODO
+Uniform Manifold Approximation and Projection (UMAP) is a dimensionality reduction algorithm based on, among other things, ideas from topological data analysis \cite{2018arXivUMAP}. In particular, UMAP uses a fuzzy version of simplicial complexes in order to create a weighted graph representing the topological structure of the data in higher dimension. To explain how the fuzzy version works, we will illustrate with the example from the "How UMAP Works" documentation page \cite{how-umap-works-2018}.
+
+Imagine that we are given some data from a noisy sine, $X = \enclc{x_1, x_2, \ldots, x_n} \in \R^{n \times d}$, as illustrated in \cref{fig:how_umap_works_raw_data}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=10cm]{thesis/figures/how_umap_works_raw_data.png}
+    \caption{Noisy sine wave (as illustrated by \cite{how-umap-works-2018}).}
+    \label{fig:how_umap_works_raw_data}
+\end{figure}
+
+We would like to capture the topological structure of $X$, and we can do so by creating a simplicial complex built on $X$, illustrated in \cref{fig:how_umap_works_basic_graph}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=10cm]{thesis/figures/how_umap_works_basic_graph.png}
+    \caption{Simplicial complex built on a noisy sine wave (as illustrated by \cite{how-umap-works-2018}).}
+    \label{fig:how_umap_works_basic_graph}
+\end{figure}
+We would like to capture the topological structure of all data points in $X$ and want a graph connecting all points. This, however is a problem, as there are some data points in \cref{fig:how_umap_works_basic_graph} which are disconnected from the simplicial complex, due to a small $\epsilon$ radius around each data point. In real word data, the data points are not uniformly distributed and selecting perfect $\epsilon$ to create a good simplicial complex is hard. The authors of UMAP overcome this problem by creating fuzzy open sets around each data point in order to create local connectivity in the graph, illustrated in \cref{fig:how_umap_works_umap_open_cover}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=10cm]{thesis/figures/how_umap_works_umap_open_cover.png}
+    \caption{Fuzzy open sets around each data point of a noisy sine wave in order to create local connectivity (as illustrated by \cite{how-umap-works-2018}).}
+    \label{fig:how_umap_works_umap_open_cover}
+\end{figure}
+To create the fuzzy open sets, the distance to the nearest neighbour of each data point is computed and the level of fuzziness decreases in terms of the distance beyond it, starting from 1 decreasing all the way to 0. If a data point has fuzziness level greater than zero, and edge is defined between the two data points, with fuzziness level as weight. We can also interpret the fuzziness level as the probability of the edge existing. We illustrate the connected graph in \cref{fig:how_umap_works_raw_graph}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=10cm]{thesis/figures/how_umap_works_raw_graph.png}
+    \caption{Connected graph where nodes are data points and edges between them are constructed given the fuzziness level between any two data point (as illustrated by \cite{how-umap-works-2018}).}
+    \label{fig:how_umap_works_raw_graph}
+\end{figure}
+To finalize the connected graph from \cref{fig:how_umap_works_raw_graph}, the edges between any two data points gets converted into a single edge. We do this because we want the distance between two data points $a$ and $b$ to be the same; currently it depends locally on the distance to the nearest neighbour, as the fuzziness level decreases beyond it. To merge the edges between any two data points $a$ and $b$, the combined weight is computed by taking the union between them $w(a) + w(b) - w(a)w(b)$. This new combined weight is then used as weight of the single edge between $a$ and $b$. If we apply this process, unioning edges together, we end up with a fuzzy simplicial complex, illustrated in \cref{fig:how_umap_works_umap_graph}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=10cm]{thesis/figures/how_umap_works_umap_graph.png}
+    \caption{Fuzzy simplicial complex of some sine wave data (as illustrated by \cite{how-umap-works-2018}).}
+    \label{fig:how_umap_works_umap_graph}
+\end{figure}
+Now, given the fuzzy simplicial complex of \cref{fig:how_umap_works_umap_graph}, we have a topological representation of $X$, capturing the topology of the manifold. We denote the set of all possible 1-simplices (i.e. edges) as $E$. The weight of a 1-simplex (i.e. edge) $e$ is computed using $w_h(e)$ in the high dimensional case. To get a good low dimensional representation of the high dimensional fuzzy simplicial complex, a low dimensional fuzzy simplicial complex is initialized and has weights denoted as $w_l(e)$ for edge $e$. To determine the weights $w_l(e)$, an iterative process is employed, where a loss function $L$ is optimized in a gradient descent fashion. Since we can interpret the weights of the 1-simplices of $E$ as probabilities of the edge existing (i.e. Bernoulli variables), the authors of UMAP uses cross-entropy as the loss function. More formally, the loss function $L$ is defined as
+\begin{align}
+    L = \sumlim{e \in E}{} \undertext{w_h(e) \log \enclp{\frac{w_h(e)}{w_l(e)}}}{Attractive force} + \undertext{(1 - w_h(e)) \log \enclp{\frac{1 - w_h(e)}{1 - w_l(e)}}}{Repulsive force}
+    \label{eqn:umap-loss-function}
+\end{align}
+
+In the first term of \cref{eqn:umap-loss-function}, we have have an attractive force between the data points which $e$ spans, pulling them together; when $w_l(e)$ is large, the distance (i.e. weight) between any two data points becomes small. In the second term of \cref{eqn:umap-loss-function}, there is an opposite, repulsive force between the data points which $e$ spans, repelling them apart; when $w_h(e)$ is small (i.e. distance in high dimensional space), $w_l(e)$ will be small since we want to minimize the term. The process of pulling and repelling the weights makes the low dimensional representation of the data settle into a balanced state, such that it represents the high dimensional topological structure of the original data in a fairly accurate way. In practice, the UMAP algorithm uses a number of different tricks to optimize it, but we will not go into them here.
