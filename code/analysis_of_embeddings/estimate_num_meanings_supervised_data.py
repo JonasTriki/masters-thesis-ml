@@ -1,4 +1,5 @@
 import sys
+from os.path import isfile
 from typing import Optional
 
 import joblib
@@ -38,7 +39,7 @@ if gpus:
 
 # Constants
 lpca_n_neighbors = 100
-tps_neighbourhood_size = 50
+tps_neighbourhood_sizes = [40, 50, 60]
 compute_words_to_num_synsets = False
 compute_id = False
 compute_tps = False
@@ -103,40 +104,49 @@ else:
 
 if compute_tps and compute_word_meaning_features:
     print("Computing TPS scores...")
-    tps_scores = []
-    tps_pds = []
     last_embedding_weights_scann_instance = w2v_training_output[
         "last_embedding_weights_scann_instance"
     ]
-    for i, word in enumerate(tqdm(data_words)):
-        word_i = word_to_int[word]
-        tps_score, tps_pd = tps(
-            target_word=word,
-            word_to_int=word_to_int,
-            neighbourhood_size=tps_neighbourhood_size,
-            words_vocabulary=data_words,
-            word_embeddings_normalized=last_embedding_weights_normalized,
-            ann_instance=last_embedding_weights_scann_instance,
-            return_persistence_diagram=True,
+    for tps_neighbourhood_size in tps_neighbourhood_sizes:
+        print(f"Neighbourhood size: {tps_neighbourhood_size}")
+        tps_scores_filepath = (
+            f"data/tps_{tps_neighbourhood_size}_scores_wordnet_enwiki.npy"
         )
+        tps_pds_filepath = f"data/tps_{tps_neighbourhood_size}_pds_wordnet_enwiki.npy"
+        if isfile(tps_scores_filepath) and isfile(tps_pds_filepath):
+            continue
 
-        # Create Nx2 array from zero dimensional homology
-        tps_pd_zero_dim = np.array(
-            [
+        tps_scores = []
+        tps_pds = []
+        for i, word in enumerate(tqdm(data_words)):
+            word_i = word_to_int[word]
+            tps_score, tps_pd = tps(
+                target_word=word,
+                word_to_int=word_to_int,
+                neighbourhood_size=tps_neighbourhood_size,
+                words_vocabulary=data_words,
+                word_embeddings_normalized=last_embedding_weights_normalized,
+                ann_instance=last_embedding_weights_scann_instance,
+                return_persistence_diagram=True,
+            )
+
+            # Create Nx2 array from zero dimensional homology
+            tps_pd_zero_dim = np.array(
                 [
-                    [birth, death]
-                    for dim, (birth, death) in tps_pd
-                    if dim == 0 and death != np.inf
+                    [
+                        [birth, death]
+                        for dim, (birth, death) in tps_pd
+                        if dim == 0 and death != np.inf
+                    ]
                 ]
-            ]
-        )
+            )
 
-        tps_scores.append(tps_score)
-        tps_pds.append(tps_pd_zero_dim)
+            tps_scores.append(tps_score)
+            tps_pds.append(tps_pd_zero_dim)
 
-    # Save result
-    np.save("data/tps_50_scores_wordnet_enwiki.npy", np.array(tps_scores))
-    np.save("data/tps_50_pds_wordnet_enwiki.npy", np.array(tps_pds))
+        # Save result
+        np.save(tps_scores_filepath, np.array(tps_scores))
+        np.save(tps_pds_filepath, np.array(tps_pds))
     print("Done!")
 else:
     tps_scores = np.load("data/tps_50_scores_wordnet_enwiki.npy")
