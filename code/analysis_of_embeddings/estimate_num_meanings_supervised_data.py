@@ -206,14 +206,8 @@ def create_word_meaning_model_data_features(
             data_features[f"tps_{n_size}"].append(tps_scores[n_size][i])
             data_features[f"tps_{n_size}_bottle"].append(tps_pds[n_size][i, :, 1].max())
 
-    # Create df and scale features
+    # Create df and return it
     data_features_df = pd.DataFrame(data_features)
-    feature_cols = [
-        "estimated_id",
-        *[f"tps_{n_size}" for n_size in tps_neighbourhood_sizes],
-        *[f"tps_{n_size}_bottle" for n_size in tps_neighbourhood_sizes],
-    ]
-    data_features_df[feature_cols] = minmax_scale(data_features_df[feature_cols].values)
 
     return data_features_df
 
