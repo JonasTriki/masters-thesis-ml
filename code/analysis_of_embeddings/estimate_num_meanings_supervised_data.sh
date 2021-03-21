@@ -1,3 +1,0 @@
-#!/bin/bash
-screen -dmS estimate_num_meanings_supervised_data -L -Logfile estimate_num_meanings_supervised_data.logs python estimate_num_meanings_supervised_data.py
-screen -r estimate_num_meanings_supervised_data

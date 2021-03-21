@@ -1,0 +1,3 @@
+#!/bin/bash
+screen -dmS prepare_num_word_meanings_supervised_data -L -Logfile prepare_num_word_meanings_supervised_data.logs python prepare_num_word_meanings_supervised_data.py
+screen -r prepare_num_word_meanings_supervised_data

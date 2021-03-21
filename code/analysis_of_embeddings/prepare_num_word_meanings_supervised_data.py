@@ -1,3 +1,4 @@
+import argparse
 import sys
 from os.path import isfile, join
 from typing import Optional
@@ -7,7 +8,6 @@ import numpy as np
 import pandas as pd
 from nltk.corpus import wordnet as wn
 from skdim.id import lPCA
-from sklearn.preprocessing import minmax_scale
 from tqdm import tqdm
 
 sys.path.append("..")
@@ -17,6 +17,83 @@ from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
 rng_seed = 399
 np.random.seed(rng_seed)
+
+
+def parse_args() -> argparse.Namespace:
+    """
+    Parses arguments sent to the python script.
+
+    Returns
+    -------
+    parsed_args : argparse.Namespace
+        Parsed arguments
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--raw_data_dir",
+        type=str,
+        default="",
+        help="Directory where raw data will be saved to",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="",
+        help="Output directory",
+    )
+    return parser.parse_args()
+
+
+def find_synset_words(word: str) -> Optional[int]:
+    """
+    TODO: Docs
+    """
+    num_synsets = len(wn.synsets(word))
+    if num_synsets > 0:
+        return word, num_synsets
+    else:
+        return None
+
+
+def create_word_meaning_model_data_features(
+    target_words: list,
+    all_words: list,
+    word_to_int: dict,
+    tps_scores: dict,
+    tps_pds: dict,
+    words_estimated_ids: np.array,
+    words_to_meanings: dict,
+) -> pd.DataFrame:
+    """
+    TODO: Docs
+    """
+    data_features = {
+        "word": [],
+        "word_int": [],
+        "estimated_id": [],
+        "y": [],
+    }
+    for n_size in tps_neighbourhood_sizes:
+        data_features[f"tps_{n_size}"] = []
+        data_features[f"tps_{n_size}_bottle"] = []
+
+    for target_word in tqdm(target_words):
+        i = all_words.index(target_word)
+
+        # Add word and word integer
+        data_features["word"].append(target_word)  # Word
+        data_features["word_int"].append(word_to_int[target_word])  # Word integer
+        data_features["estimated_id"].append(words_estimated_ids[i])  # Estimated ID
+        data_features["y"].append(words_to_meanings[target_word])
+
+        for n_size in tps_neighbourhood_sizes:
+            data_features[f"tps_{n_size}"].append(tps_scores[n_size][i])
+            data_features[f"tps_{n_size}_bottle"].append(tps_pds[n_size][i, :, 1].max())
+
+    # Create df and return it
+    data_features_df = pd.DataFrame(data_features)
+
+    return data_features_df
 
 
 # Constants
@@ -63,17 +140,6 @@ semeval_gs_clusters_dict = {
         semeval_target_words_in_vocab, semeval_gs_clusters_in_vocab
     )
 }
-
-
-def find_synset_words(word: str) -> Optional[int]:
-    """
-    TODO: Docs
-    """
-    num_synsets = len(wn.synsets(word))
-    if num_synsets > 0:
-        return word, num_synsets
-    else:
-        return None
 
 
 # Find words in Wordnet that are in the word2vec model's vocabulary.
@@ -171,47 +237,6 @@ else:
     print("Loaded tps_scores and tps_pds!")
 
 
-def create_word_meaning_model_data_features(
-    target_words: list,
-    all_words: list,
-    word_to_int: dict,
-    tps_scores: dict,
-    tps_pds: dict,
-    words_estimated_ids: np.array,
-    words_to_meanings: dict,
-) -> pd.DataFrame:
-    """
-    TODO: Docs
-    """
-    data_features = {
-        "word": [],
-        "word_int": [],
-        "estimated_id": [],
-        "y": [],
-    }
-    for n_size in tps_neighbourhood_sizes:
-        data_features[f"tps_{n_size}"] = []
-        data_features[f"tps_{n_size}_bottle"] = []
-
-    for target_word in tqdm(target_words):
-        i = all_words.index(target_word)
-
-        # Add word and word integer
-        data_features["word"].append(target_word)  # Word
-        data_features["word_int"].append(word_to_int[target_word])  # Word integer
-        data_features["estimated_id"].append(words_estimated_ids[i])  # Estimated ID
-        data_features["y"].append(words_to_meanings[target_word])
-
-        for n_size in tps_neighbourhood_sizes:
-            data_features[f"tps_{n_size}"].append(tps_scores[n_size][i])
-            data_features[f"tps_{n_size}_bottle"].append(tps_pds[n_size][i, :, 1].max())
-
-    # Create df and return it
-    data_features_df = pd.DataFrame(data_features)
-
-    return data_features_df
-
-
 if compute_word_meaning_features:
     train_data_df = create_word_meaning_model_data_features(
         target_words=data_words,
@@ -238,3 +263,15 @@ else:
     test_data_df = pd.read_csv("data/word_meaning_test_data.csv")
 print("Train", train_data_df)
 print("Test", test_data_df)
+
+
+def prepare_num_word_meanings_supervised_data() -> None:
+    """
+    TODO
+    """
+    pass
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    prepare_num_word_meanings_supervised_data()
