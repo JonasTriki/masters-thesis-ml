@@ -5,11 +5,13 @@ from os.path import join
 
 import joblib
 import numpy as np
-from geometric_anomaly_detection import GeometricAnomalyDetection
 from sklearn.metrics import euclidean_distances
 
 sys.path.append("..")
 
+from topological_data_analysis.geometric_anomaly_detection import (  # noqa: E402
+    GeometricAnomalyDetection,
+)
 from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
 

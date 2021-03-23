@@ -18,6 +18,7 @@ code/output
 code/.gitconfig
 code/.ssh
 code/.vscode-server
+code/inf399-uib-ripser-plus-plus
 
 # Excel temporary
 ~$*.xls*

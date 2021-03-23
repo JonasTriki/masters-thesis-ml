@@ -5,5 +5,5 @@ screen -dmS save_nearest_neighbours_word_embeddings -L -Logfile save_nearest_nei
 --dataset_name enwiki \
 --vocab_size 10000 \
 --num_nearest_neighbours 100 \
---num_cpus 10
+--num_cpus -1
 screen -r save_nearest_neighbours_word_embeddings
