@@ -5,15 +5,16 @@ from typing import Callable
 import annoy
 import numpy as np
 from ripser import ripser
-from ripser_utils import run_ripser_plus_plus
 from sklearn.metrics import euclidean_distances
 from tqdm.auto import tqdm
 
 sys.path.append("..")
 
+from topological_data_analysis.ripser_utils import run_ripser_plus_plus  # noqa: E402
 from utils import batch_list_gen  # noqa: E402
 
 
+# TODO: Remove
 def grid_search_prepare_word_ints_within_radii(
     word_ints: list,
     num_radii_per_parameter: int,

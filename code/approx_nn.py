@@ -105,7 +105,7 @@ class ApproxNN:
             if distance_measure is None:
                 distance_measure = "euclidean"
 
-            # Add word embeddings to index and build it
+            # Add data to index and build it
             self._ann_index = annoy.AnnoyIndex(f=d, metric=distance_measure)
             self._ann_index.set_seed(rng_seed)
             if verbose == 1:
@@ -231,3 +231,26 @@ class ApproxNN:
             return neighbours, distances
         else:
             return neighbours
+
+    def get_distance(self, i: int, j: int) -> float:
+        """
+        Gets distance between items i and j.
+
+        Parameters
+        ----------
+        i : int
+            Index of first item.
+        j : int
+            Index of second item.
+
+        Returns
+        -------
+        i_j_dist : float
+            Distance between items i and j.
+        """
+        if self._ann_alg == "annoy":
+            return self._ann_index.get_distance(i, j)
+        else:
+            raise ValueError(
+                "get_distance() method is only available if ANN algorithm is set to 'annoy'."
+            )
