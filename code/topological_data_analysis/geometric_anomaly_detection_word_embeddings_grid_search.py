@@ -10,7 +10,7 @@ from sklearn.metrics import euclidean_distances
 sys.path.append("..")
 
 from topological_data_analysis.geometric_anomaly_detection import (  # noqa: E402
-    GeometricAnomalyDetection,
+    grid_search_gad_annulus_radii,
 )
 from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
@@ -178,14 +178,9 @@ def geometric_anomaly_detection_grid_search(
     print("Done!")
 
     # Compute pairwise distances for grid search using specified vocab size
-    vocabulary_word_ints = list(range(vocab_size))
+    vocabulary_word_ints = np.arange(vocab_size)
     word_embeddings_pairwise_dists_grid_search = euclidean_distances(
         last_embedding_weights_normalized[vocabulary_word_ints]
-    )
-
-    # Initialize GAD instance
-    gad_instance = GeometricAnomalyDetection(
-        word_embeddings=last_embedding_weights_normalized
     )
 
     # Do grid search
@@ -194,17 +189,21 @@ def geometric_anomaly_detection_grid_search(
         P_man_counts,
         gad_results,
         annulus_radii_grid,
-    ) = gad_instance.grid_search_radii(
-        word_ints=vocabulary_word_ints,
+    ) = grid_search_gad_annulus_radii(
+        data_points=last_embedding_weights_normalized,
         manifold_dimension=manifold_dimension,
-        num_radii_per_parameter=num_radii_to_use,
-        annoy_index_filepath=annoy_index_filepath,
+        num_search_radii=num_radii_to_use,
+        outer_inner_radii_max_diff=max_annulus_radii_diff,
         min_outer_annulus_radius=min_outer_annulus_radius,
         max_outer_annulus_radius=max_outer_annulus_radius,
-        outer_inner_radii_max_diff=max_annulus_radii_diff,
-        word_embeddings_pairwise_dists=word_embeddings_pairwise_dists_grid_search,
+        data_point_ints=vocabulary_word_ints,
+        data_points_pairwise_distances=word_embeddings_pairwise_dists_grid_search,
+        # data_points_approx_nn=...,  # TODO: annoy_index_filepath
         use_ripser_plus_plus=use_ripser_plus_plus,
-        num_cpus=num_cpus,
+        ripser_plus_plus_threshold=200,
+        return_annlus_persistence_diagrams=True,
+        progressbar_enabled=True,
+        n_jobs=num_cpus,
     )
     grid_search_result = {
         "best_gad_result_idx": best_gad_result_idx,

@@ -9,7 +9,7 @@ screen -dmS gad_word_embeddings_grid_search -L -Logfile gad_word_embeddings_grid
 --num_radii_to_use 10 \
 --min_outer_annulus_radius 1.142065 \
 --max_outer_annulus_radius 1.446615 \
---num_cpus 10 \
+--num_cpus -1 \
 --output_dir data \
 --output_filepath_suffix zoomed
 screen -r gad_word_embeddings_grid_search

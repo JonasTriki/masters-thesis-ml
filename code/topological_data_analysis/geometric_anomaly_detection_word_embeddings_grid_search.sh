@@ -5,11 +5,12 @@ screen -dmS gad_word_embeddings_grid_search -L -Logfile gad_word_embeddings_grid
 --dataset_name enwiki \
 --vocab_size 10000 \
 --annoy_index_filepath ../output/word2vec_training/word2vec_enwiki_jan_2021_word2phrase/word2vec_enwiki_05_10_weights_annoy_index.ann \
---manifold_dimension 67 \
+--manifold_dimension 25 \
 --num_radii_to_use 100 \
 --min_outer_annulus_radius 0 \
 --max_outer_annulus_radius -1 \
 --max_annulus_radii_diff 0.5 \
+--num_cpus -1 \
 --output_dir data
 screen -r gad_word_embeddings_grid_search
 
