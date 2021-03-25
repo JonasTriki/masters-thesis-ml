@@ -1,8 +1,9 @@
 import sys
 from multiprocessing import Array, Pool, cpu_count
-from typing import Callable
+from typing import Callable, Tuple
 
 import numpy as np
+from fastdist import fastdist
 from ripser import ripser
 from sklearn.metrics import euclidean_distances
 from tqdm.auto import tqdm
@@ -16,11 +17,16 @@ from utils import batch_list_gen  # noqa: E402
 # Multiprocessing variable dict
 mp_var_dict = {}
 
+# Type aliases
+DistanceFunc = Callable[[int, int], float]
+KnnFunc = Callable[[int, int], Tuple[np.ndarray, np.ndarray]]
+
 
 def compute_gad_mp_init(
     data_points: Array,
     data_points_shape: tuple,
-    distance_func: Callable[[int, int], float],
+    distance_func: DistanceFunc,
+    knn_func: KnnFunc = None,
 ) -> None:
     """
     Initializes multiprocessing variable dict for GAD.
@@ -31,19 +37,23 @@ def compute_gad_mp_init(
         Multiprocessing array representing the data points.
     data_points_shape : tuple
         Shape of the data points.
-    distance_func : Callable[[int, int], float]
+    distance_func : DistanceFunc
         Distance function.
+    knn_func : KnnFunc
+        K-nearest neighbour function.
     """
     mp_var_dict["data_points"] = data_points
     mp_var_dict["data_points_shape"] = data_points_shape
     mp_var_dict["distance_func"] = distance_func
+    if knn_func is not None:
+        mp_var_dict["knn_func"] = knn_func
 
 
 def get_point_distance_func(
     data_points: np.ndarray,
     pairwise_distances: np.ndarray = None,
     approx_nn: ApproxNN = None,
-) -> Callable[[int, int], float]:
+) -> DistanceFunc:
     """
     Gets function for computing distance between two points by specifying its indices.
     Either pairwise distances or ApproxNN instance has to be specified, else, we
@@ -60,7 +70,7 @@ def get_point_distance_func(
 
     Returns
     -------
-    distance_func : Callable[[int, int], float]
+    distance_func : DistanceFunc
         Distance function, taking in two point indices i and j and returns the distance
         between the points.
     """
@@ -78,13 +88,63 @@ def get_point_distance_func(
         )
 
 
+def get_nearest_neighbours(
+    distances: np.ndarray = None,
+    k_neighbours: int = None,
+) -> Tuple[float, float]:
+    """
+    TODO: Docs
+    """
+    sorted_k_distances_indices = np.argsort(distances)[1 : k_neighbours + 1]
+    sorted_k_distances = distances[sorted_k_distances_indices]
+    return sorted_k_distances, sorted_k_distances_indices
+
+
+def get_point_knn_func(
+    data_points: np.ndarray,
+    pairwise_distances: np.ndarray = None,
+    approx_nn: ApproxNN = None,
+    metric: Callable = fastdist.euclidean,
+    metric_name: str = "euclidean",
+) -> KnnFunc:
+    """
+    TODO: Docs
+    """
+    if pairwise_distances is not None:
+        return lambda point_idx, k_neighbours: get_nearest_neighbours(
+            distances=pairwise_distances[point_idx],
+            k_neighbours=k_neighbours,
+        )
+    elif approx_nn is not None:
+        return lambda point_idx, k_neighbours: approx_nn.search(
+            query_vector=data_points[point_idx],
+            k_neighbours=k_neighbours,
+            excluded_neighbour_indices=[point_idx],
+            return_distances=True,
+        )
+    else:
+        return lambda point_idx, k_neighbours: get_nearest_neighbours(
+            distances=fastdist.vector_to_matrix_distance(
+                u=data_points[point_idx],
+                m=data_points,
+                metric=metric,
+                metric_name=metric_name,
+            ),
+            k_neighbours=k_neighbours,
+        )
+
+
 def compute_gad_point_indices(
     data_point_indices: list,
     data_points: np.ndarray,
     data_point_ints: list,
     annulus_inner_radius: float,
     annulus_outer_radius: float,
-    distance_func: Callable[[int, int], float],
+    distance_func: DistanceFunc,
+    use_knn_annulus: bool,
+    knn_func: KnnFunc,
+    knn_annulus_inner: int,
+    knn_annulus_outer: int,
     target_homology_dim: int,
     use_ripser_plus_plus: bool,
     ripser_plus_plus_threshold: int,
@@ -121,16 +181,31 @@ def compute_gad_point_indices(
 
         # Find A_y ⊂ data_points containing all points in data_points
         # which satisfy r ≤ ||x − y|| ≤ s (*).
-        A_y_indices = np.array(
-            [
-                j
-                for j in data_point_ints
-                if annulus_inner_radius
-                <= distance_func(j, data_point_index)
-                <= annulus_outer_radius
-            ],
-            dtype=int,
-        )
+        if use_knn_annulus:
+            annulus_outer_distances, annulus_outer_indices = knn_func(
+                data_point_index, knn_annulus_outer
+            )
+            annulus_inner_distances, annulus_inner_indices = (
+                annulus_outer_distances[:knn_annulus_inner],
+                annulus_outer_indices[:knn_annulus_inner],
+            )
+
+            # Set annulus inner and outer radii and A_y_indices
+            annulus_inner_radius = annulus_inner_distances.max()
+            annulus_outer_radius = annulus_outer_distances.max()
+            A_y_indices = np.setdiff1d(annulus_outer_indices, annulus_inner_indices)
+        else:
+            A_y_indices = np.array(
+                [
+                    j
+                    for j in data_point_ints
+                    if annulus_inner_radius
+                    <= distance_func(j, data_point_index)
+                    <= annulus_outer_radius
+                ],
+                dtype=int,
+            )
+        print(len(A_y_indices))
 
         # Return already if there are no points satisfying condition in (*).
         N_y = 0
@@ -200,6 +275,9 @@ def compute_gad_point_indices_mp(args: tuple) -> dict:
         data_point_ints,
         annulus_inner_radius,
         annulus_outer_radius,
+        use_knn_annulus,
+        knn_annulus_inner,
+        knn_annulus_outer,
         target_homology_dim,
         use_ripser_plus_plus,
         ripser_plus_plus_threshold,
@@ -211,6 +289,9 @@ def compute_gad_point_indices_mp(args: tuple) -> dict:
         mp_var_dict["data_points_shape"]
     )
     distance_func = mp_var_dict["distance_func"]
+    knn_func = None
+    if use_knn_annulus:
+        knn_func = mp_var_dict["knn_func"]
 
     # Compute GAD and return
     return compute_gad_point_indices(
@@ -220,6 +301,10 @@ def compute_gad_point_indices_mp(args: tuple) -> dict:
         annulus_inner_radius=annulus_inner_radius,
         annulus_outer_radius=annulus_outer_radius,
         distance_func=distance_func,
+        use_knn_annulus=use_knn_annulus,
+        knn_func=knn_func,
+        knn_annulus_inner=knn_annulus_inner,
+        knn_annulus_outer=knn_annulus_outer,
         target_homology_dim=target_homology_dim,
         use_ripser_plus_plus=use_ripser_plus_plus,
         ripser_plus_plus_threshold=ripser_plus_plus_threshold,
@@ -231,13 +316,18 @@ def compute_gad_point_indices_mp(args: tuple) -> dict:
 def compute_gad(
     data_points: np.ndarray,
     manifold_dimension: int,
-    annulus_inner_radius: float,
-    annulus_outer_radius: float,
+    annulus_inner_radius: float = None,
+    annulus_outer_radius: float = None,
     data_point_ints: list = None,
     data_points_pairwise_distances: np.ndarray = None,
     data_points_approx_nn: ApproxNN = None,
     use_ripser_plus_plus: bool = False,
     ripser_plus_plus_threshold: int = 200,
+    use_knn_annulus: bool = False,
+    knn_annulus_inner: int = None,
+    knn_annulus_outer: int = None,
+    knn_annulus_metric: Callable = fastdist.euclidean,
+    knn_annulus_metric_name: str = "euclidean",
     return_annlus_persistence_diagrams: bool = False,
     progressbar_enabled: bool = False,
     n_jobs: int = 1,
@@ -277,6 +367,17 @@ def compute_gad(
         approx_nn=data_points_approx_nn,
     )
 
+    # Get KNN annulus function, use_knn_annulus is True
+    knn_func = None
+    if use_knn_annulus:
+        knn_func = get_point_knn_func(
+            data_points=data_points,
+            pairwise_distances=data_points_pairwise_distances,
+            approx_nn=data_points_approx_nn,
+            metric=knn_annulus_metric,
+            metric_name=knn_annulus_metric_name,
+        )
+
     target_homology_dim = manifold_dimension - 1
     if n_jobs == -1:
         n_jobs = cpu_count()
@@ -311,6 +412,9 @@ def compute_gad(
                 data_point_ints,
                 annulus_inner_radius,
                 annulus_outer_radius,
+                use_knn_annulus,
+                knn_annulus_inner,
+                knn_annulus_outer,
                 target_homology_dim,
                 use_ripser_plus_plus,
                 ripser_plus_plus_threshold,
@@ -327,7 +431,7 @@ def compute_gad(
         with Pool(
             processes=n_jobs,
             initializer=compute_gad_mp_init,
-            initargs=(data_points_raw_np, data_points_shape, distance_func),
+            initargs=(data_points_raw_np, data_points_shape, distance_func, knn_func),
         ) as pool:
             for result in tqdm(
                 pool.imap_unordered(compute_gad_point_indices_mp, grid_search_args),
@@ -351,6 +455,10 @@ def compute_gad(
             annulus_inner_radius=annulus_inner_radius,
             annulus_outer_radius=annulus_outer_radius,
             distance_func=distance_func,
+            use_knn_annulus=use_knn_annulus,
+            knn_func=knn_func,
+            knn_annulus_inner=knn_annulus_inner,
+            knn_annulus_outer=knn_annulus_outer,
             target_homology_dim=target_homology_dim,
             use_ripser_plus_plus=use_ripser_plus_plus,
             ripser_plus_plus_threshold=ripser_plus_plus_threshold,
