@@ -205,7 +205,7 @@ def compute_gad_point_indices(
                 ],
                 dtype=int,
             )
-        print(len(A_y_indices))
+            print(len(A_y_indices))
 
         # Return already if there are no points satisfying condition in (*).
         N_y = 0
@@ -438,8 +438,8 @@ def compute_gad(
                 total=n_jobs,
                 disable=not progressbar_enabled,
             ):
-                results["P_bnd"].extend(result["P_bnd"])
                 results["P_man"].extend(result["P_man"])
+                results["P_bnd"].extend(result["P_bnd"])
                 results["P_int"].extend(result["P_int"])
                 if return_annlus_persistence_diagrams:
                     results["annulus_pds"].update(result["annulus_pds"])
