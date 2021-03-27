@@ -73,13 +73,13 @@ def parse_args() -> argparse.Namespace:
         "--min_annulus_parameter",
         type=float,
         default=0,
-        help="Minimal outer annulus radius to search over",
+        help="Minimal annulus radius to search over",
     )
     parser.add_argument(
         "--max_annulus_parameter",
         type=float,
         default=-1,
-        help="Maximal outer annulus radius to search over",
+        help="Maximal annulus radius to search over",
     )
     parser.add_argument(
         "--search_params_max_diff",
@@ -155,12 +155,11 @@ def geometric_anomaly_detection_grid_search(
     use_knn_annulus : bool
         Whether or not to use KNN version of the GAD algorithm.
     min_annulus_parameter : float
-        Minimal outer annulus radius to search over.
+        Minimal annulus radius to search over.
     max_annulus_parameter : float
-        Maximal outer annulus radius to search over.
+        Maximal annulus radius to search over.
     search_params_max_diff : float
-
-        Maximal difference between outer and inner radii for annulus
+        Maximal difference between outer and inner radii for annulus.
     use_ripser_plus_plus : bool
         Whether or not to use Ripser++ and GPUs for computing Rips complices.
     num_cpus : int

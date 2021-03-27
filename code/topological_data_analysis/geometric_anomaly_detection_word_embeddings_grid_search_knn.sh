@@ -11,7 +11,7 @@ screen -dmS gad_word_embeddings_grid_search_knn -L -Logfile gad_word_embeddings_
 --min_annulus_parameter 10 \
 --max_annulus_parameter 500 \
 --search_params_max_diff 250 \
---num_cpus -1 \
+--num_cpus 15 \
 --output_dir data \
 --output_filepath_suffix knn
 screen -r gad_word_embeddings_grid_search_knn

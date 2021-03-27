@@ -89,18 +89,32 @@ def get_point_distance_func(
 
 
 def get_nearest_neighbours(
-    distances: np.ndarray = None,
-    k_neighbours: int = None,
+    distances: np.ndarray,
+    k_neighbours: int,
 ) -> Tuple[float, float]:
     """
-    TODO: Docs
+    Gets nearest K neighbours from an array of distances.
+
+    Parameters
+    ----------
+    distances : np.ndarray
+        Array of distances.
+    k_neighbours : int
+        Number of neighbours to find.
+
+    Returns
+    -------
+    sorted_k_distances : np.ndarray
+        K distances, sorted from smallest to largest.
+    sorted_k_distances_indices : np.ndarray
+        Indices of K distances, similarly sorted as `sorted_k_distances`.
     """
     sorted_k_distances_indices = np.argsort(distances)[1 : k_neighbours + 1]
     sorted_k_distances = distances[sorted_k_distances_indices]
     return sorted_k_distances, sorted_k_distances_indices
 
 
-def get_point_knn_func(
+def get_knn_func_data_points(
     data_points: np.ndarray,
     pairwise_distances: np.ndarray = None,
     approx_nn: ApproxNN = None,
@@ -108,7 +122,26 @@ def get_point_knn_func(
     metric_name: str = "euclidean",
 ) -> KnnFunc:
     """
-    TODO: Docs
+    Gets a K-nearest neighbour callable for data points, used in `compute_gad`.
+
+    Parameters
+    ----------
+    data_points : np.ndarray
+        Data points.
+    pairwise_distances : np.ndarray, optional
+        Pairwise distances of data points (defaults to None).
+    approx_nn : ApproxNN, optional
+        ApproxNN instance.
+    metric : Callable, optional
+        fastdist metric; only required if `pairwise_distances` and `approx_nn` are None
+        (defaults to fastdist.euclidean).
+    metric_name : str, optional
+        String name of the `metric` callable (defaults to "euclidean").
+
+    Returns
+    -------
+    knn_func : KnnFunc
+        K-nearest neighbour callable for data points.
     """
     if pairwise_distances is not None:
         return lambda point_idx, k_neighbours: get_nearest_neighbours(
@@ -157,11 +190,51 @@ def compute_gad_point_indices(
 
     Parameters
     ----------
-    TODO
+    data_point_indices : list
+        List consising of indices of data points to compute GAD for.
+    data_points : np.ndarray
+        All data points.
+    data_point_ints : np.ndarray
+        Array specifying which data point indices are used from all the data points.
+    annulus_inner_radius : float
+        Inner annulus radius.
+    annulus_outer_radius : float
+        Outer annulus radius.
+    distance_func : DistanceFunc
+        Distance function to measure distances between any two data points.
+    use_knn_annulus : bool
+        Whether or not to use the KNN verison of GAD.
+    knn_func : KnnFunc
+        K-nearest neighbour function to find K nearest neighbour of any data point.
+    knn_annulus_inner : int
+        Number of neighbours to determine inner annulus radius.
+    knn_annulus_outer : int
+        Number of neighbours to determine outer annulus radius.
+    target_homology_dim : int
+        Target homology dimension (k parameter in [1]).
+    use_ripser_plus_plus : bool
+        Whether or not to use Ripser++ (GPU acceleration).
+    ripser_plus_plus_threshold : int
+        The least number of data points in order to use Ripser++, only has an effect
+        if `use_ripser_plus_plus` is set to True.
+    return_annlus_persistence_diagrams : bool
+        Whether or not to return annulus persistence diagrams.
+    progressbar_enabled : bool
+        Whether or not the tqdm progressbar is enabled.
 
     Returns
     -------
-    TODO
+    result : dict
+        Result dictionary consisting of:
+            "P_man" : list
+                List of point indices of k-manifold points.
+            "P_bnd" : list
+                List of point indices of boundary points.
+            "P_int" : list
+                List of point indices of intersection points.
+            "annlus_persistence_diagrams" : list
+                List of persistence diagrams of annulus points, if
+                `return_annlus_persistence_diagrams` is set to True.
 
     References
     ----------
@@ -205,7 +278,6 @@ def compute_gad_point_indices(
                 ],
                 dtype=int,
             )
-            print(len(A_y_indices))
 
         # Return already if there are no points satisfying condition in (*).
         N_y = 0
@@ -258,11 +330,45 @@ def compute_gad_point_indices_mp(args: tuple) -> dict:
 
     Parameters
     ----------
-    TODO
+    args : tuple
+        Multiprocessing argument tuple:
+            data_point_indices : list
+                List consising of indices of data points to compute GAD for.
+            data_point_ints : np.ndarray
+                Array specifying which data point indices are used from all the data points.
+            annulus_inner_radius : float
+                Inner annulus radius.
+            annulus_outer_radius : float
+                Outer annulus radius.
+            use_knn_annulus : bool
+                Whether or not to use the KNN verison of GAD.
+            knn_annulus_inner : int
+                Number of neighbours to determine inner annulus radius.
+            knn_annulus_outer : int
+                Number of neighbours to determine outer annulus radius.
+            target_homology_dim : int
+                Target homology dimension (k parameter in [1]).
+            use_ripser_plus_plus : bool
+                Whether or not to use Ripser++ (GPU acceleration).
+            ripser_plus_plus_threshold : int
+                The least number of data points in order to use Ripser++, only has an effect
+                if `use_ripser_plus_plus` is set to True.
+            return_annlus_persistence_diagrams : bool
+                Whether or not to return annulus persistence diagrams.
 
     Returns
     -------
-    TODO
+    result : dict
+        Result dictionary consisting of:
+            "P_man" : list
+                List of point indices of k-manifold points.
+            "P_bnd" : list
+                List of point indices of boundary points.
+            "P_int" : list
+                List of point indices of intersection points.
+            "annlus_persistence_diagrams" : list
+                List of persistence diagrams of annulus points, if
+                `return_annlus_persistence_diagrams` is set to True.
 
     References
     ----------
@@ -338,19 +444,58 @@ def compute_gad(
 
     Parameters
     ----------
-    TODO
+    data_points : np.ndarray
+        All data points.
+    manifold_dimension : int
+        Manifold homology dimension (k parameter in [1]).
+    annulus_inner_radius : float
+        Inner annulus radius.
+    annulus_outer_radius : float
+        Outer annulus radius.
+    data_point_ints : np.ndarray
+        Array specifying which data point indices are used from all the data points.
+    data_points_pairwise_distances : np.ndarray, optional
+        Pairwise distances of data points (defaults to None).
+    data_points_approx_nn : ApproxNN, optional
+        ApproxNN instance (defaults to None).
+    use_ripser_plus_plus : bool
+        Whether or not to use Ripser++ (GPU acceleration).
+    ripser_plus_plus_threshold : int
+        The least number of data points in order to use Ripser++, only has an effect
+        if `use_ripser_plus_plus` is set to True.
+    use_knn_annulus : bool
+        Whether or not to use the KNN verison of GAD.
+    knn_annulus_inner : int
+        Number of neighbours to determine inner annulus radius.
+    knn_annulus_outer : int
+        Number of neighbours to determine outer annulus radius.
+    knn_annulus_metric : Callable
+        fastdist metric; only required if `data_points_pairwise_distances` and
+        `data_points_approx_nn` are None (defaults to fastdist.euclidean).
+    knn_annulus_metric_name : str
+        String name of the `knn_annulus_metric` callable (defaults to "euclidean").
+    return_annlus_persistence_diagrams : bool
+        Whether or not to return annulus persistence diagrams.
+    progressbar_enabled : bool
+        Whether or not the tqdm progressbar is enabled.
+    n_jobs : int, optional
+        Number of processes to use (defaults 1, -1 denotes all processes).
+    verbose : int, optional
+        Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose). Defaults to 1 (verbose).
 
     Returns
     -------
-    P_man : list
-        List of point indices of k-manifold points.
-    P_bnd : list
-        List of point indices of boundary points.
-    P_int : list
-        List of point indices of intersection points.
-    annlus_persistence_diagrams : list
-        List of persistence diagrams of annulus points, if
-        return_annlus_persistence_diagrams is set to True.
+    result : dict
+        Result dictionary consisting of:
+            "P_man" : list
+                List of point indices of k-manifold points.
+            "P_bnd" : list
+                List of point indices of boundary points.
+            "P_int" : list
+                List of point indices of intersection points.
+            "annlus_persistence_diagrams" : list
+                List of persistence diagrams of annulus points, if
+                `return_annlus_persistence_diagrams` is set to True.
 
     References
     ----------
@@ -370,7 +515,7 @@ def compute_gad(
     # Get KNN annulus function, use_knn_annulus is True
     knn_func = None
     if use_knn_annulus:
-        knn_func = get_point_knn_func(
+        knn_func = get_knn_func_data_points(
             data_points=data_points,
             pairwise_distances=data_points_pairwise_distances,
             approx_nn=data_points_approx_nn,
@@ -488,7 +633,56 @@ def grid_search_gad_annulus_radii(
     verbose: int = 1,
 ) -> tuple:
     """
-    TODO: Docs
+    Performs hyperparameter search to find the best set of inner and outer
+    annulus radii for the geometric anomaly detection (GAD) Procedure 1 from [1].
+
+    Parameters
+    ----------
+    data_points : np.ndarray
+        All data points.
+    manifold_dimension : int
+        Manifold homology dimension (k parameter in [1]).
+    search_size : int
+        Number of radii parameters to use at most (all for outer radius and (all - 1)
+        for inner radius).
+    use_knn_annulus : bool
+        Whether or not to use the KNN verison of GAD.
+    search_params_max_diff : float
+        Maximal difference between outer and inner radii for annulus.
+    min_annulus_parameter : float
+        Minimal annulus radius to search over.
+    max_annulus_parameter : float
+        Maximal annulus radius to search over.
+    data_point_ints : np.ndarray
+        Array specifying which data point indices are used from all the data points.
+    data_points_pairwise_distances : np.ndarray, optional
+        Pairwise distances of data points (defaults to None).
+    data_points_approx_nn : ApproxNN, optional
+        ApproxNN instance (defaults to None).
+    use_ripser_plus_plus : bool
+        Whether or not to use Ripser++ (GPU acceleration).
+    ripser_plus_plus_threshold : int
+        The least number of data points in order to use Ripser++, only has an effect
+        if `use_ripser_plus_plus` is set to True.
+    return_annlus_persistence_diagrams : bool
+        Whether or not to return annulus persistence diagrams.
+    progressbar_enabled : bool
+        Whether or not the tqdm progressbar is enabled.
+    n_jobs : int, optional
+        Number of processes to use (defaults 1, -1 denotes all processes).
+    verbose : int, optional
+        Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose). Defaults to 1 (verbose).
+
+    Returns
+    -------
+    result : tuple
+        Tuple containing best result index, P_man counts in a list, results
+        from geometric anomaly detection and annulus radii grid.
+
+    References
+    ----------
+    .. [1] Bernadette J Stolz, Jared Tanner, Heather A Harrington, & Vidit Nanda.
+       (2019). Geometric anomaly detection in data.
     """
     if max_annulus_parameter == -1:
         if use_knn_annulus:
