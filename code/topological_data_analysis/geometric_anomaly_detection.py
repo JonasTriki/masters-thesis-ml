@@ -472,10 +472,11 @@ def compute_gad(
 def grid_search_gad_annulus_radii(
     data_points: np.ndarray,
     manifold_dimension: int,
-    num_search_radii: int,
-    outer_inner_radii_max_diff: float = np.inf,
-    min_outer_annulus_radius: float = 0,
-    max_outer_annulus_radius: float = -1,
+    search_size: int,
+    use_knn_annulus: bool,
+    search_params_max_diff: float = np.inf,
+    min_annulus_parameter: float = 0,
+    max_annulus_parameter: float = -1,
     data_point_ints: list = None,
     data_points_pairwise_distances: np.ndarray = None,
     data_points_approx_nn: ApproxNN = None,
@@ -489,52 +490,80 @@ def grid_search_gad_annulus_radii(
     """
     TODO: Docs
     """
-    if max_outer_annulus_radius == -1:
-        if data_points_pairwise_distances is not None:
-            max_outer_annulus_radius = np.max(data_points_pairwise_distances)
+    if max_annulus_parameter == -1:
+        if use_knn_annulus:
+            max_annulus_parameter = len(data_points) - 1
         else:
-            raise ValueError("Maximum pairwise distance must be specified.")
+            if data_points_pairwise_distances is not None:
+                max_annulus_parameter = np.max(data_points_pairwise_distances)
+            else:
+                raise ValueError("Maximum pairwise distance must be specified.")
 
     # Find values for radii to use during search
     radii_space = np.linspace(
-        start=min_outer_annulus_radius,
-        stop=max_outer_annulus_radius,
-        num=num_search_radii + 1,
+        start=min_annulus_parameter,
+        stop=max_annulus_parameter,
+        num=search_size + 1,
+        dtype=int if use_knn_annulus else None,
     )[1:]
 
     # Grid-search best set of annulus radii to optimize number of P_man data points
     annulus_radii_grid = []
-    for inner_idx in range(num_search_radii):
-        for outer_idx in range(inner_idx + 1, num_search_radii):
-            inner_radius = radii_space[inner_idx]
-            outer_radius = radii_space[outer_idx]
+    for inner_idx in range(search_size):
+        for outer_idx in range(inner_idx + 1, search_size):
+            inner_param = radii_space[inner_idx]
+            outer_param = radii_space[outer_idx]
 
-            if outer_radius - inner_radius <= outer_inner_radii_max_diff:
-                annulus_radii_grid.append((inner_radius, outer_radius))
+            if outer_param - inner_param <= search_params_max_diff:
+                annulus_radii_grid.append((inner_param, outer_param))
 
     if verbose == 1:
         print("Grid searching...")
     gad_results = []
     P_man_counts = []
-    for inner_radius, outer_radius in tqdm(
+    for inner_param, outer_param in tqdm(
         annulus_radii_grid, disable=not progressbar_enabled
     ):
-        if verbose == 1:
-            print(f"Inner radius: {inner_radius:.3f}, outer radius: {outer_radius:.3f}")
+        if use_knn_annulus:
+            if verbose == 1:
+                print(
+                    f"Inner radius neighbours: {inner_param}, outer radius neighbours: {outer_param}"
+                )
+            gad_params = {
+                "knn_annulus_inner": inner_param,
+                "knn_annulus_outer": outer_param,
+            }
+        else:
+            if verbose == 1:
+                print(
+                    f"Inner radius: {inner_param:.3f}, outer radius: {outer_param:.3f}"
+                )
+            gad_params = {
+                "annulus_inner_radius": inner_param,
+                "annulus_outer_radius": outer_param,
+            }
         gad_result = compute_gad(
             data_points=data_points,
             manifold_dimension=manifold_dimension,
-            annulus_inner_radius=inner_radius,
-            annulus_outer_radius=outer_radius,
             data_point_ints=data_point_ints,
             data_points_pairwise_distances=data_points_pairwise_distances,
             data_points_approx_nn=data_points_approx_nn,
             use_ripser_plus_plus=use_ripser_plus_plus,
             ripser_plus_plus_threshold=ripser_plus_plus_threshold,
+            use_knn_annulus=use_knn_annulus,
             return_annlus_persistence_diagrams=return_annlus_persistence_diagrams,
             progressbar_enabled=progressbar_enabled,
             n_jobs=n_jobs,
             verbose=verbose,
+            **gad_params,
+        )
+        print(
+            "P_man:",
+            len(gad_result["P_man"]),
+            "P_int:",
+            len(gad_result["P_int"]),
+            "P_bnd:",
+            len(gad_result["P_bnd"]),
         )
         P_man_counts.append(len(gad_result["P_man"]))
         gad_results.append(gad_result)

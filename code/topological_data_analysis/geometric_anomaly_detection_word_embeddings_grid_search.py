@@ -59,24 +59,30 @@ def parse_args() -> argparse.Namespace:
         help="Manifold dimension to be passed to geometric anomaly detection algorithm",
     )
     parser.add_argument(
-        "--num_radii_to_use",
+        "--search_size",
         type=int,
         help="Number of radii parameters to use at most (all for outer radius and (all - 1) for inner radius)",
     )
     parser.add_argument(
-        "--min_outer_annulus_radius",
+        "--use_knn_annulus",
+        default=False,
+        action="store_true",
+        help="Whether or not to use KNN version of the GAD algorithm",
+    )
+    parser.add_argument(
+        "--min_annulus_parameter",
         type=float,
         default=0,
         help="Minimal outer annulus radius to search over",
     )
     parser.add_argument(
-        "--max_outer_annulus_radius",
+        "--max_annulus_parameter",
         type=float,
         default=-1,
         help="Maximal outer annulus radius to search over",
     )
     parser.add_argument(
-        "--max_annulus_radii_diff",
+        "--search_params_max_diff",
         type=float,
         default=np.inf,
         help="Maximal difference between outer and inner radii for annulus",
@@ -115,10 +121,11 @@ def geometric_anomaly_detection_grid_search(
     annoy_index_filepath: str,
     vocab_size: int,
     manifold_dimension: int,
-    num_radii_to_use: int,
-    min_outer_annulus_radius: float,
-    max_outer_annulus_radius: float,
-    max_annulus_radii_diff: float,
+    search_size: int,
+    use_knn_annulus: bool,
+    min_annulus_parameter: float,
+    max_annulus_parameter: float,
+    search_params_max_diff: float,
     use_ripser_plus_plus: bool,
     num_cpus: int,
     output_dir: str,
@@ -142,14 +149,17 @@ def geometric_anomaly_detection_grid_search(
         Filepath of Annoy index fit on word embeddings.
     manifold_dimension : int
         Manifold dimension to be passed to geometric anomaly detection algorithm.
-    num_radii_to_use : int
+    search_size : int
         Number of radii parameters to use at most
         (all for outer radius and (all - 1) for inner radius).
-    min_outer_annulus_radius : float
+    use_knn_annulus : bool
+        Whether or not to use KNN version of the GAD algorithm.
+    min_annulus_parameter : float
         Minimal outer annulus radius to search over.
-    max_outer_annulus_radius : float
+    max_annulus_parameter : float
         Maximal outer annulus radius to search over.
-    max_annulus_radii_diff : float
+    search_params_max_diff : float
+
         Maximal difference between outer and inner radii for annulus
     use_ripser_plus_plus : bool
         Whether or not to use Ripser++ and GPUs for computing Rips complices.
@@ -192,10 +202,11 @@ def geometric_anomaly_detection_grid_search(
     ) = grid_search_gad_annulus_radii(
         data_points=last_embedding_weights_normalized,
         manifold_dimension=manifold_dimension,
-        num_search_radii=num_radii_to_use,
-        outer_inner_radii_max_diff=max_annulus_radii_diff,
-        min_outer_annulus_radius=min_outer_annulus_radius,
-        max_outer_annulus_radius=max_outer_annulus_radius,
+        search_size=search_size,
+        use_knn_annulus=use_knn_annulus,
+        search_params_max_diff=search_params_max_diff,
+        min_annulus_parameter=min_annulus_parameter,
+        max_annulus_parameter=max_annulus_parameter,
         data_point_ints=vocabulary_word_ints,
         data_points_pairwise_distances=word_embeddings_pairwise_dists_grid_search,
         # data_points_approx_nn=...,  # TODO: annoy_index_filepath
@@ -226,10 +237,11 @@ if __name__ == "__main__":
         annoy_index_filepath=args.annoy_index_filepath,
         vocab_size=args.vocab_size,
         manifold_dimension=args.manifold_dimension,
-        num_radii_to_use=args.num_radii_to_use,
-        min_outer_annulus_radius=args.min_outer_annulus_radius,
-        max_outer_annulus_radius=args.max_outer_annulus_radius,
-        max_annulus_radii_diff=args.max_annulus_radii_diff,
+        search_size=args.search_size,
+        use_knn_annulus=args.use_knn_annulus,
+        min_annulus_parameter=args.min_annulus_parameter,
+        max_annulus_parameter=args.max_annulus_parameter,
+        search_params_max_diff=args.search_params_max_diff,
         use_ripser_plus_plus=args.use_ripser_plus_plus,
         num_cpus=args.num_cpus,
         output_dir=args.output_dir,
