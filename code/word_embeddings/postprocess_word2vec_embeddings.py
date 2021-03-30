@@ -48,6 +48,18 @@ def parse_args() -> argparse.Namespace:
         default=-1,
         help="Size of the vocabulary to use, -1 denotes all words",
     )
+    parser.add_argument(
+        "--annoy_index_n_trees",
+        type=int,
+        default="",
+        help="Number of trees to pass to Annoy's build method. More trees => higher precision",
+    )
+    parser.add_argument(
+        "--scann_num_leaves_scaling",
+        type=int,
+        default="",
+        help="Number of leaves scaling to pass to ScaNNs build method. Higher scaling => higher precision",
+    )
     return parser.parse_args()
 
 
@@ -56,6 +68,8 @@ def postprocess_word2vec_embeddings(
     model_name: str,
     dataset_name: str,
     vocab_size: int,
+    annoy_index_n_trees: int,
+    scann_num_leaves_scaling: int,
 ) -> None:
     """
     Applies post-processing to trained word2vec word embeddings:
@@ -71,7 +85,11 @@ def postprocess_word2vec_embeddings(
     dataset_name : str
         Name of the dataset the model is trained on.
     vocab_size : int
-        Size of the vocabulary to use, -1 denotes all words
+        Size of the vocabulary to use, -1 denotes all words.
+    annoy_index_n_trees : int
+        Number of trees to pass to Annoys build method. More trees => higher precision.
+    scann_num_leaves_scaling : int
+        Number of leaves scaling to pass to ScaNNs build method. Higher scaling => higher precision.
     """
     # Load output from training word2vec
     w2v_training_output = load_model_training_output(
@@ -161,7 +179,7 @@ def postprocess_word2vec_embeddings(
             ann_index_annoy = ApproxNN(ann_alg="annoy")
             ann_index_annoy.build(
                 data=last_embedding_weights_normalized_in_vocab,
-                annoy_n_trees=500,
+                annoy_n_trees=annoy_index_n_trees,
                 distance_measure="euclidean",
             )
             ann_index_annoy.save(model_annoy_index_filepath)
@@ -171,7 +189,7 @@ def postprocess_word2vec_embeddings(
             scann_instance.build(
                 data=last_embedding_weights_normalized_in_vocab,
                 distance_measure="dot_product",
-                scann_num_leaves_scaling=5,
+                scann_num_leaves_scaling=scann_num_leaves_scaling,
             )
             scann_instance.save(model_scann_artifacts_dir)
 
@@ -183,4 +201,6 @@ if __name__ == "__main__":
         model_name=args.model_name,
         dataset_name=args.dataset_name,
         vocab_size=args.vocab_size,
+        annoy_index_n_trees=args.annoy_index_n_trees,
+        scann_num_leaves_scaling=args.scann_num_leaves_scaling,
     )

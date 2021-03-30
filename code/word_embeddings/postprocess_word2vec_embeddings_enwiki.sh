@@ -3,5 +3,7 @@ screen -dmS postprocess_word2vec_enwiki -L -Logfile postprocess_word2vec_enwiki.
 --model_training_output_dir ../output/word2vec_training/word2vec_enwiki_jan_2021_word2phrase \
 --model_name word2vec \
 --dataset_name enwiki \
---vocab_size -1
+--vocab_size -1 \
+--annoy_index_n_trees 300 \
+--scann_num_leaves_scaling 5
 screen -r postprocess_word2vec_enwiki
