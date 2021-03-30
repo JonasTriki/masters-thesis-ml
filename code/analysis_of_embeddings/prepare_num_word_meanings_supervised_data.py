@@ -18,7 +18,6 @@ sys.path.append("..")
 from approx_nn import ApproxNN  # noqa: E402
 from topological_data_analysis.geometric_anomaly_detection import (  # noqa: E402
     compute_gad,
-    grid_search_gad_annulus_radii,
 )
 from topological_data_analysis.topological_polysemy import tps  # noqa: E402
 from word_embeddings.word2vec import load_model_training_output  # noqa: E402
@@ -141,9 +140,11 @@ def create_word_meaning_model_data_features(
         data_features[f"X_tps_{n_size}_pd_std"] = []
     for id_estimator_name in words_estimated_ids.keys():
         data_features[f"X_estimated_id_{id_estimator_name}"] = []
-    for gad_category in gad_features_dict.keys():
-        if gad_category.startswith("P_"):
-            data_features[f"X_gad_{gad_category}"] = []
+    for gad_config in gad_features_dict.keys():
+        gad_features = gad_features_dict[gad_config]
+        for gad_category in gad_features.keys():
+            if gad_category.startswith("P_"):
+                data_features[f"X_{gad_config}_{gad_category}"] = []
 
     for target_word in tqdm(target_words):
         word_int = word_to_int[target_word]
@@ -169,10 +170,14 @@ def create_word_meaning_model_data_features(
             data_features[f"X_tps_{n_size}_pd_std"].append(tps_pd_zero_dim_deaths.std())
 
         # Features from GAD (P_man, P_int, P_bnd)
-        for gad_category in gad_features_dict.keys():
-            if gad_category.startswith("P_"):
-                word_in_gad_category = int(word_int in gad_features_dict[gad_category])
-                data_features[f"X_gad_{gad_category}"].append(word_in_gad_category)
+        for gad_config in gad_features_dict.keys():
+            gad_features = gad_features_dict[gad_config]
+            for gad_category in gad_features.keys():
+                if gad_category.startswith("P_"):
+                    word_in_gad_category = int(word_int in gad_features[gad_category])
+                    data_features[f"X_{gad_config}_{gad_category}"].append(
+                        word_in_gad_category
+                    )
 
     # Create df and return it
     data_features_df = pd.DataFrame(data_features)
@@ -413,37 +418,58 @@ def prepare_num_word_meanings_supervised_data(
         print("Loaded tps_scores and tps_pds!")
 
     # (5) -- Compute GAD features --
-    gad_knn_features_filepath = join(task_raw_data_dir, "gad_knn_features.joblib")
-    if not isfile(gad_knn_features_filepath):
+    gad_features_dir = join(task_raw_data_dir, "gad_features")
+    makedirs(gad_features_dir, exist_ok=True)
+    gad_features_params = {
+        "radius": [(0.5, 1), (1, 1.5), (1.5, 2.5)],
+        "knn": [(25, 250), (50, 250), (50, 550)],
+    }
+    approx_nn = None
+    gad_features_dict = {}
+    for gad_type, gad_params in gad_features_params.items():
+        use_knn_annulus = gad_type == "knn"
+        for inner_param, outer_param in gad_params:
+            gad_features_id = f"gad_{gad_type}_{inner_param}_{outer_param}"
+            gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
+            if isfile(gad_features_filepath):
+                gad_features_dict[gad_features_id] = joblib.load(gad_features_filepath)
+                print(
+                    "P_man:",
+                    len(gad_features_dict[gad_features_id]["P_man"]),
+                    "P_int:",
+                    len(gad_features_dict[gad_features_id]["P_int"]),
+                    "P_bnd:",
+                    len(gad_features_dict[gad_features_id]["P_bnd"]),
+                )
+                continue
 
-        # Load ANN index
-        approx_nn = ApproxNN(ann_alg="scann")
-        approx_nn.load(ann_path=approx_nn_index_dir)
+            # Load ANN index if None
+            if approx_nn is None:
+                approx_nn = ApproxNN(ann_alg="scann")
+                approx_nn.load(ann_path=approx_nn_index_dir)
 
-        # Compute features
-        gad_features_dict = compute_gad(
-            data_points=word_embeddings_wordnet_words,
-            manifold_dimension=2,
-            data_points_approx_nn=approx_nn,
-            use_knn_annulus=True,
-            knn_annulus_inner=50,
-            knn_annulus_outer=250,
-            return_annlus_persistence_diagrams=False,
-            progressbar_enabled=True,
-            n_jobs=-1,
-        )
-        joblib.dump(gad_features_dict, gad_knn_features_filepath, protocol=4)
-    else:
-        gad_features_dict = joblib.load(gad_knn_features_filepath)
-
-    # print(
-    #     "P_man:",
-    #     len(gad_features_dict["P_man"]),
-    #     "P_int:",
-    #     len(gad_features_dict["P_int"]),
-    #     "P_bnd:",
-    #     len(gad_features_dict["P_bnd"]),
-    # )
+            # Compute features
+            gad_result = compute_gad(
+                data_points=word_embeddings_wordnet_words,
+                manifold_dimension=2,
+                data_points_approx_nn=approx_nn,
+                use_knn_annulus=use_knn_annulus,
+                knn_annulus_inner=inner_param,
+                knn_annulus_outer=outer_param,
+                return_annlus_persistence_diagrams=False,
+                progressbar_enabled=True,
+                n_jobs=-1,
+            )
+            gad_features_dict[gad_features_id] = gad_result
+            print(
+                "P_man:",
+                len(gad_features_dict[gad_features_id]["P_man"]),
+                "P_int:",
+                len(gad_features_dict[gad_features_id]["P_int"]),
+                "P_bnd:",
+                len(gad_features_dict[gad_features_id]["P_bnd"]),
+            )
+            joblib.dump(gad_result, gad_features_filepath, protocol=4)
 
     # gad_grid_search_filepath = join(
     #     task_raw_data_dir, "gad_features_grid_search.joblib"
