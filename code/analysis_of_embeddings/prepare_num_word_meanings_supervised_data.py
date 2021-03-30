@@ -15,6 +15,11 @@ from tqdm import tqdm
 
 sys.path.append("..")
 
+from approx_nn import ApproxNN  # noqa: E402
+from topological_data_analysis.geometric_anomaly_detection import (  # noqa: E402
+    compute_gad,
+    grid_search_gad_annulus_radii,
+)
 from topological_data_analysis.topological_polysemy import tps  # noqa: E402
 from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
@@ -91,6 +96,7 @@ def create_word_meaning_model_data_features(
     tps_neighbourhood_sizes: list,
     words_estimated_ids: dict,
     words_to_meanings: dict,
+    gad_features_dict: dict,
 ) -> pd.DataFrame:
     """
     Creates a Pandas DataFrame with columns containing data features for the supervised
@@ -116,6 +122,8 @@ def create_word_meaning_model_data_features(
     words_to_meanings : dict
         Dictionary mapping a word to its number of meanings; serves as the labels (y) for
         the supervised task.
+    gad_features_dict : dict
+        Dictionary containing features from GAD.
 
     Returns
     -------
@@ -128,12 +136,14 @@ def create_word_meaning_model_data_features(
     }
     for n_size in tps_neighbourhood_sizes:
         data_features[f"X_tps_{n_size}"] = []
-        data_features[f"X_tps_{n_size}_pd_min"] = []
         data_features[f"X_tps_{n_size}_pd_max"] = []
         data_features[f"X_tps_{n_size}_pd_avg"] = []
         data_features[f"X_tps_{n_size}_pd_std"] = []
     for id_estimator_name in words_estimated_ids.keys():
         data_features[f"X_estimated_id_{id_estimator_name}"] = []
+    for gad_category in gad_features_dict.keys():
+        if gad_category.startswith("P_"):
+            data_features[f"X_gad_{gad_category}"] = []
 
     for target_word in tqdm(target_words):
         word_int = word_to_int[target_word]
@@ -153,13 +163,16 @@ def create_word_meaning_model_data_features(
             data_features[f"X_tps_{n_size}"].append(tps_scores[n_size][word_int])
             tps_pd_zero_dim_deaths = tps_pds[n_size][word_int, :, 1]
             data_features[f"X_tps_{n_size}_pd_max"].append(tps_pd_zero_dim_deaths.max())
-            data_features[f"X_tps_{n_size}_pd_min"].append(tps_pd_zero_dim_deaths.min())
             data_features[f"X_tps_{n_size}_pd_avg"].append(
                 tps_pd_zero_dim_deaths.mean()
             )
             data_features[f"X_tps_{n_size}_pd_std"].append(tps_pd_zero_dim_deaths.std())
 
-        # TODO: Features from GAD (P_man, P_int, P_bnd)
+        # Features from GAD (P_man, P_int, P_bnd)
+        for gad_category in gad_features_dict.keys():
+            if gad_category.startswith("P_"):
+                word_in_gad_category = int(word_int in gad_features_dict[gad_category])
+                data_features[f"X_gad_{gad_category}"].append(word_in_gad_category)
 
     # Create df and return it
     data_features_df = pd.DataFrame(data_features)
@@ -267,8 +280,40 @@ def prepare_num_word_meanings_supervised_data(
     ]
     data_word_to_int = {word: i for i, word in enumerate(data_words)}
 
-    # (2) -- Estimate the intrinsic dimension (ID) for each word vector --
+    # Filter out word embeddings using Wordnet words (data_words)
     data_words_to_full_vocab_ints = np.array([word_to_int[word] for word in data_words])
+    word_embeddings_wordnet_words = last_embedding_weights_normalized[
+        data_words_to_full_vocab_ints
+    ]
+
+    # (2) -- Create ApproxNN index of data_words word embeddings --
+    approx_nn_index_dir = join(task_raw_data_dir, "approx_nn")
+    if not isdir(approx_nn_index_dir):
+        print("Building ApproxNN index...")
+        approx_nn = ApproxNN(ann_alg="scann")
+        approx_nn.build(
+            data=word_embeddings_wordnet_words,
+            scann_num_leaves_scaling=10,
+            scann_default_num_neighbours=1000,
+            distance_measure="squared_l2",
+        )
+        print("Saving ApproxNN index...")
+        approx_nn.save(output_path=approx_nn_index_dir)
+        print("Done!")
+
+    approx_nn_index_annoy_filepath = join(task_raw_data_dir, "annoy.ann")
+    if not isfile(approx_nn_index_annoy_filepath):
+        approx_nn = ApproxNN(ann_alg="annoy")
+        approx_nn.build(
+            data=word_embeddings_wordnet_words,
+            annoy_n_trees=500,
+            distance_measure="euclidean",
+        )
+        print("Saving ApproxNN index...")
+        approx_nn.save(output_path=approx_nn_index_annoy_filepath)
+        print("Done!")
+
+    # (3) -- Estimate the intrinsic dimension (ID) for each word vector --
     words_estimated_ids_dir = join(task_raw_data_dir, "estimated_ids")
     id_estimators: List[Tuple[str, GlobalEstimator, dict]] = [
         ("lpca", lPCA, {}),
@@ -288,7 +333,7 @@ def prepare_num_word_meanings_supervised_data(
 
         print(f"Estimating IDs using {id_estimator_cls.__name__}...")
         estimated_ids = id_estimator.fit_predict_pw(
-            X=last_embedding_weights_normalized[data_words_to_full_vocab_ints],
+            X=word_embeddings_wordnet_words,
             n_neighbors=id_estimation_neighbours,
             n_jobs=-1,
         )
@@ -305,7 +350,7 @@ def prepare_num_word_meanings_supervised_data(
     }
     print("Loaded words_estimated_ids!")
 
-    # (3) -- Compute TPS_n for train/test words --
+    # (4) -- Compute TPS_n for train/test words --
     if not isdir(task_raw_data_tps_dir):
         makedirs(task_raw_data_tps_dir, exist_ok=True)
         print("Computing TPS scores...")
@@ -367,7 +412,69 @@ def prepare_num_word_meanings_supervised_data(
         }
         print("Loaded tps_scores and tps_pds!")
 
-    # (4) -- Combine data into data (features and labels) for WME task --
+    # (5) -- Compute GAD features --
+    gad_knn_features_filepath = join(task_raw_data_dir, "gad_knn_features.joblib")
+    if not isfile(gad_knn_features_filepath):
+
+        # Load ANN index
+        approx_nn = ApproxNN(ann_alg="scann")
+        approx_nn.load(ann_path=approx_nn_index_dir)
+
+        # Compute features
+        gad_features_dict = compute_gad(
+            data_points=word_embeddings_wordnet_words,
+            manifold_dimension=2,
+            data_points_approx_nn=approx_nn,
+            use_knn_annulus=True,
+            knn_annulus_inner=50,
+            knn_annulus_outer=250,
+            return_annlus_persistence_diagrams=False,
+            progressbar_enabled=True,
+            n_jobs=-1,
+        )
+        joblib.dump(gad_features_dict, gad_knn_features_filepath, protocol=4)
+    else:
+        gad_features_dict = joblib.load(gad_knn_features_filepath)
+
+    # print(
+    #     "P_man:",
+    #     len(gad_features_dict["P_man"]),
+    #     "P_int:",
+    #     len(gad_features_dict["P_int"]),
+    #     "P_bnd:",
+    #     len(gad_features_dict["P_bnd"]),
+    # )
+
+    # gad_grid_search_filepath = join(
+    #     task_raw_data_dir, "gad_features_grid_search.joblib"
+    # )
+    # if not isfile(gad_grid_search_filepath):
+
+    #     # Load ANN index
+    #     approx_nn = ApproxNN(ann_alg="annoy")
+    #     approx_nn.load(
+    #         ann_path=approx_nn_index_annoy_filepath,
+    #         annoy_data_dimensionality=300,
+    #         annoy_mertic="euclidean",
+    #         annoy_prefault=False,
+    #     )
+
+    #     gad_result = grid_search_gad_annulus_radii(
+    #         data_points=word_embeddings_wordnet_words,
+    #         manifold_dimension=2,
+    #         search_size=20,
+    #         use_knn_annulus=True,
+    #         search_params_max_diff=250,
+    #         min_annulus_parameter=1,
+    #         max_annulus_parameter=500,
+    #         data_points_approx_nn=approx_nn,
+    #         return_annlus_persistence_diagrams=True,
+    #         progressbar_enabled=True,
+    #         n_jobs=-1,
+    #     )
+    #     joblib.dump(gad_result, gad_grid_search_filepath)
+
+    # (6) -- Combine data into data (features and labels) for WME task --
     word_meaning_train_data_filepath = join(output_dir, "word_meaning_train_data.csv")
     word_meaning_test_data_filepath = join(output_dir, "word_meaning_test_data.csv")
     if not isfile(word_meaning_train_data_filepath) and not isfile(
@@ -381,6 +488,7 @@ def prepare_num_word_meanings_supervised_data(
             tps_neighbourhood_sizes=tps_neighbourhood_sizes,
             words_estimated_ids=words_estimated_ids,
             words_to_meanings=words_to_num_meanings,
+            gad_features_dict=gad_features_dict,
         )
         train_data_df.to_csv(word_meaning_train_data_filepath, index=False)
         test_data_df = create_word_meaning_model_data_features(
@@ -391,6 +499,7 @@ def prepare_num_word_meanings_supervised_data(
             tps_neighbourhood_sizes=tps_neighbourhood_sizes,
             words_estimated_ids=words_estimated_ids,
             words_to_meanings=words_to_num_meanings,
+            gad_features_dict=gad_features_dict,
         )
         test_data_df.to_csv(word_meaning_test_data_filepath, index=False)
     else:

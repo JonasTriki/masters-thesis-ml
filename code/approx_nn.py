@@ -43,6 +43,7 @@ class ApproxNN:
         data: np.ndarray,
         distance_measure: Optional[str] = None,
         scann_num_leaves_scaling: float = 2.5,
+        scann_default_num_neighbours: int = 100,
         annoy_n_trees: int = 250,
         verbose: int = 1,
     ) -> None:
@@ -61,6 +62,9 @@ class ApproxNN:
         scann_num_leaves_scaling : float, optional
             Scaling to use when computing the number of leaves for building ScaNN (defaults
             to 2.5). Only has an effect if ann_alg is set to "scann".
+        scann_default_num_neighbours : int, optional
+            Default number of neighbours to use for building ScaNN (defaults to 1). Only has
+            an effect if ann_alg is set to "scann".
         annoy_n_trees : int, optional
             Number of trees to use for building Annoy index (defaults to 250). Only has an
             effect if ann_alg is set to "annoy".
@@ -85,7 +89,7 @@ class ApproxNN:
             self._ann_index = (
                 scann.scann_ops_pybind.builder(
                     db=data,
-                    num_neighbors=1,
+                    num_neighbors=scann_default_num_neighbours,
                     distance_measure=distance_measure,
                 )
                 .tree(
@@ -186,7 +190,7 @@ class ApproxNN:
             List of neighbour indices to exclude (defaults to []).
         scann_pre_reorder_num_neighbors : int, optional
             `pre_reorder_num_neighbors` argument sent to ScaNNs search method (defaults to None).
-        scann_pre_reorder_num_neighbors : int, optional
+        scann_leaves_to_search : int, optional
             `scann_leaves_to_search` argument sent to ScaNNs search method (defaults to None).
         return_distances : bool, optional
             Whether or not to return distances, in addition to neighbour indices (defaults to False).
@@ -210,14 +214,16 @@ class ApproxNN:
             )
         elif self._ann_alg == "annoy":
             annoy_result = self._ann_index.get_nns_by_vector(
-                v=query_vector,
+                vector=query_vector,
                 n=k_neighbours_search,
                 include_distances=return_distances,
             )
             if return_distances:
                 neighbours, distances = annoy_result
+                distances = np.array(distances)
             else:
                 neighbours = annoy_result
+            neighbours = np.array(neighbours)
 
         if num_excluded_indices > 0:
             accepted_indices_filter = np.array(

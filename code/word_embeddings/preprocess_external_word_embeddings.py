@@ -3,19 +3,19 @@ import gzip
 import sys
 import zipfile
 from os import makedirs
-from os.path import isfile, join
+from os.path import isdir, isfile, join
 
-import annoy
 import numpy as np
 from tqdm import tqdm
-from word_embeddings_utils import (
-    load_word2vec_binary_format,
-    load_word_embeddings_text_format,
-)
 
 sys.path.append("..")
 
+from approx_nn import ApproxNN  # noqa: E402
 from utils import download_from_url  # noqa: E402
+from word_embeddings.word_embeddings_utils import (  # noqa: E402
+    load_word2vec_binary_format,
+    load_word_embeddings_text_format,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -46,11 +46,20 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Number of trees to pass to Annoy's build method. More trees => higher precision",
     )
+    parser.add_argument(
+        "--scann_num_leaves_scaling",
+        type=int,
+        default="",
+        help="Number of leaves scaling to pass to ScaNNs build method. Higher scaling => higher precision",
+    )
     return parser.parse_args()
 
 
 def preprocess_google_news(
-    raw_data_dir: str, output_dir: str, annoy_index_n_trees: int
+    raw_data_dir: str,
+    output_dir: str,
+    annoy_index_n_trees: int,
+    scann_num_leaves_scaling: int,
 ) -> None:
     """
     Downloads and preprocessed external word embeddings from [1].
@@ -63,6 +72,8 @@ def preprocess_google_news(
         Output directory to save processed data.
     annoy_index_n_trees : int
         Number of trees to pass to Annoys build method. More trees => higher precision.
+    scann_num_leaves_scaling : int
+        Number of leaves scaling to pass to ScaNNs build method. Higher scaling => higher precision.
 
     References
     ----------
@@ -94,6 +105,9 @@ def preprocess_google_news(
     )
     google_news_vectors_annoy_index_filepath = join(
         output_dir, "GoogleNews-vectors-negative300_annoy_index.ann"
+    )
+    google_news_vectors_scann_artifacts_dir = join(
+        output_dir, "GoogleNews-vectors-negative300_scann_artifacts"
     )
 
     # -- GoogleNews-vectors-negative300.bin.gz --
@@ -148,31 +162,37 @@ def preprocess_google_news(
             google_news_word_embeddings_normalized,
         )
 
-    if not isfile(google_news_vectors_annoy_index_filepath):
+    annoy_index_created = isfile(google_news_vectors_annoy_index_filepath)
+    scann_instance_created = isdir(google_news_vectors_scann_artifacts_dir)
+    if not annoy_index_created or not scann_instance_created:
         if google_news_word_embeddings_normalized is None:
             google_news_word_embeddings_normalized = np.load(
                 google_news_normalized_vectors_filepath
             )
-        vocab_size, embedding_dim = google_news_word_embeddings_normalized.shape
 
-        # Add word embeddings to index and build it
-        ann_index = annoy.AnnoyIndex(f=embedding_dim, metric="euclidean")
-        print("Adding word embeddings to index...")
-        for i in tqdm(range(vocab_size)):
-            ann_index.add_item(i, google_news_word_embeddings_normalized[i])
-        print("Done!")
+        if not annoy_index_created:
+            ann_index_annoy = ApproxNN(ann_alg="annoy")
+            ann_index_annoy.build(
+                data=google_news_word_embeddings_normalized,
+                annoy_n_trees=annoy_index_n_trees,
+                distance_measure="euclidean",
+            )
+            ann_index_annoy.save(google_news_vectors_annoy_index_filepath)
 
-        print("Building index...")
-        ann_index.build(n_trees=annoy_index_n_trees, n_jobs=-1)
-        print("Done!")
-
-        print("Saving to file...")
-        ann_index.save(google_news_vectors_annoy_index_filepath)
-        print("Done!")
+        if not scann_instance_created:
+            ann_index_scann = ApproxNN(ann_alg="scann")
+            ann_index_scann.build(
+                data=google_news_word_embeddings_normalized,
+                scann_num_leaves_scaling=scann_num_leaves_scaling,
+            )
+            ann_index_scann.save(google_news_vectors_scann_artifacts_dir)
 
 
 def preprocess_glove(
-    raw_data_dir: str, output_dir: str, annoy_index_n_trees: int
+    raw_data_dir: str,
+    output_dir: str,
+    annoy_index_n_trees: int,
+    scann_num_leaves_scaling: int,
 ) -> None:
     """
     Downloads and preprocessed external word embeddings from [1].
@@ -185,6 +205,8 @@ def preprocess_glove(
         Output directory to save processed data.
     annoy_index_n_trees : int
         Number of trees to pass to Annoys build method. More trees => higher precision.
+    scann_num_leaves_scaling : int
+        Number of leaves scaling to pass to ScaNNs build method. Higher scaling => higher precision.
 
     References
     ----------
@@ -215,6 +237,9 @@ def preprocess_glove(
     )
     glove_word_vectors_annoy_index_filepath = join(
         output_dir, f"{glove_data_filename}_annoy_index.ann"
+    )
+    glove_word_vectors_scann_artifacts_dir = join(
+        output_dir, f"{glove_data_filename}_scann_artifacts"
     )
 
     if not isfile(glove_word_vectors_raw_zip_filepath):
@@ -267,31 +292,37 @@ def preprocess_glove(
             glove_word_embeddings_normalized,
         )
 
-    if not isfile(glove_word_vectors_annoy_index_filepath):
+    annoy_index_created = isfile(glove_word_vectors_annoy_index_filepath)
+    scann_instance_created = isdir(glove_word_vectors_scann_artifacts_dir)
+    if not annoy_index_created or not scann_instance_created:
         if glove_word_embeddings_normalized is None:
             glove_word_embeddings_normalized = np.load(
                 glove_word_vectors_normalized_filepath
             )
-        vocab_size, embedding_dim = glove_word_embeddings_normalized.shape
 
-        # Add word embeddings to index and build it
-        ann_index = annoy.AnnoyIndex(f=embedding_dim, metric="euclidean")
-        print("Adding word embeddings to index...")
-        for i in tqdm(range(vocab_size)):
-            ann_index.add_item(i, glove_word_embeddings_normalized[i])
-        print("Done!")
+        if not annoy_index_created:
+            ann_index_annoy = ApproxNN(ann_alg="annoy")
+            ann_index_annoy.build(
+                data=glove_word_embeddings_normalized,
+                annoy_n_trees=annoy_index_n_trees,
+                distance_measure="euclidean",
+            )
+            ann_index_annoy.save(glove_word_vectors_annoy_index_filepath)
 
-        print("Building index...")
-        ann_index.build(n_trees=annoy_index_n_trees, n_jobs=-1)
-        print("Done!")
-
-        print("Saving to file...")
-        ann_index.save(glove_word_vectors_annoy_index_filepath)
-        print("Done!")
+        if not scann_instance_created:
+            ann_index_scann = ApproxNN(ann_alg="scann")
+            ann_index_scann.build(
+                data=glove_word_embeddings_normalized,
+                scann_num_leaves_scaling=scann_num_leaves_scaling,
+            )
+            ann_index_scann.save(glove_word_vectors_scann_artifacts_dir)
 
 
 def preprocess_fasttext(
-    raw_data_dir: str, output_dir: str, annoy_index_n_trees: int
+    raw_data_dir: str,
+    output_dir: str,
+    annoy_index_n_trees: int,
+    scann_num_leaves_scaling: int,
 ) -> None:
     """
     Downloads and preprocessed external word embeddings from [1].
@@ -304,6 +335,8 @@ def preprocess_fasttext(
         Output directory to save processed data.
     annoy_index_n_trees : int
         Number of trees to pass to Annoys build method. More trees => higher precision.
+    scann_num_leaves_scaling : int
+        Number of leaves scaling to pass to ScaNNs build method. Higher scaling => higher precision.
 
     References
     ----------
@@ -331,6 +364,9 @@ def preprocess_fasttext(
     )
     fasttext_word_vectors_annoy_index_filepath = join(
         output_dir, f"{fasttext_data_filename}_annoy_index.ann"
+    )
+    fasttext_word_vectors_scann_artifacts_dir = join(
+        output_dir, f"{fasttext_data_filename}_scann_artifacts"
     )
 
     if not isfile(fasttext_word_vectors_raw_gzip_filepath):
@@ -386,31 +422,37 @@ def preprocess_fasttext(
             fasttext_word_embeddings_normalized,
         )
 
-    if not isfile(fasttext_word_vectors_annoy_index_filepath):
+    annoy_index_created = isfile(fasttext_word_vectors_annoy_index_filepath)
+    scann_instance_created = isdir(fasttext_word_vectors_scann_artifacts_dir)
+    if not annoy_index_created or not scann_instance_created:
         if fasttext_word_embeddings_normalized is None:
             fasttext_word_embeddings_normalized = np.load(
                 fasttext_word_vectors_normalized_filepath
             )
-        vocab_size, embedding_dim = fasttext_word_embeddings_normalized.shape
 
-        # Add word embeddings to index and build it
-        ann_index = annoy.AnnoyIndex(f=embedding_dim, metric="euclidean")
-        print("Adding word embeddings to index...")
-        for i in tqdm(range(vocab_size)):
-            ann_index.add_item(i, fasttext_word_embeddings_normalized[i])
-        print("Done!")
+        if not annoy_index_created:
+            ann_index_annoy = ApproxNN(ann_alg="annoy")
+            ann_index_annoy.build(
+                data=fasttext_word_embeddings_normalized,
+                annoy_n_trees=annoy_index_n_trees,
+                distance_measure="euclidean",
+            )
+            ann_index_annoy.save(fasttext_word_vectors_annoy_index_filepath)
 
-        print("Building index...")
-        ann_index.build(n_trees=annoy_index_n_trees, n_jobs=-1)
-        print("Done!")
-
-        print("Saving to file...")
-        ann_index.save(fasttext_word_vectors_annoy_index_filepath)
-        print("Done!")
+        if not scann_instance_created:
+            ann_index_scann = ApproxNN(ann_alg="scann")
+            ann_index_scann.build(
+                data=fasttext_word_embeddings_normalized,
+                scann_num_leaves_scaling=scann_num_leaves_scaling,
+            )
+            ann_index_scann.save(fasttext_word_vectors_scann_artifacts_dir)
 
 
 def preprocess_external_word_embeddings(
-    raw_data_dir: str, output_dir: str, annoy_index_n_trees: int
+    raw_data_dir: str,
+    output_dir: str,
+    annoy_index_n_trees: int,
+    scann_num_leaves_scaling: int,
 ) -> None:
     """
     Downloads and preprocesses external word embeddings:
@@ -426,6 +468,8 @@ def preprocess_external_word_embeddings(
         Output directory to save processed data.
     annoy_index_n_trees : int
         Number of trees to pass to Annoys build method. More trees => higher precision.
+    scann_num_leaves_scaling : int
+        Number of leaves scaling to pass to ScaNNs build method. Higher scaling => higher precision.
 
     References
     ----------
@@ -444,18 +488,21 @@ def preprocess_external_word_embeddings(
         raw_data_dir=raw_data_dir,
         output_dir=output_dir,
         annoy_index_n_trees=annoy_index_n_trees,
+        scann_num_leaves_scaling=scann_num_leaves_scaling,
     )
     print("-- Preprocessing GloVe... --")
     preprocess_glove(
         raw_data_dir=raw_data_dir,
         output_dir=output_dir,
         annoy_index_n_trees=annoy_index_n_trees,
+        scann_num_leaves_scaling=scann_num_leaves_scaling,
     )
     print("-- Preprocessing fastText... --")
     preprocess_fasttext(
         raw_data_dir=raw_data_dir,
         output_dir=output_dir,
         annoy_index_n_trees=annoy_index_n_trees,
+        scann_num_leaves_scaling=scann_num_leaves_scaling,
     )
 
 
@@ -465,4 +512,5 @@ if __name__ == "__main__":
         raw_data_dir=args.raw_data_dir,
         output_dir=args.output_dir,
         annoy_index_n_trees=args.annoy_index_n_trees,
+        scann_num_leaves_scaling=args.scann_num_leaves_scaling,
     )

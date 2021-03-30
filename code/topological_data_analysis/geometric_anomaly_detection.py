@@ -9,7 +9,6 @@ from sklearn.metrics import euclidean_distances
 from tqdm.auto import tqdm
 
 sys.path.append("..")
-
 from approx_nn import ApproxNN  # noqa: E402
 from topological_data_analysis.ripser_utils import run_ripser_plus_plus  # noqa: E402
 from utils import batch_list_gen  # noqa: E402
@@ -74,14 +73,14 @@ def get_point_distance_func(
         Distance function, taking in two point indices i and j and returns the distance
         between the points.
     """
-    if pairwise_distances is not None:
-        return lambda point_idx_i, point_idx_j: pairwise_distances[
-            point_idx_i, point_idx_j
-        ]
-    elif approx_nn is not None:
+    if approx_nn is not None:
         return lambda point_idx_i, point_idx_j: approx_nn.get_distance(
             point_idx_i, point_idx_j
         )
+    elif pairwise_distances is not None:
+        return lambda point_idx_i, point_idx_j: pairwise_distances[
+            point_idx_i, point_idx_j
+        ]
     else:
         return lambda point_idx_i, point_idx_j: np.linalg.norm(
             data_points[point_idx_i] - data_points[point_idx_j]
@@ -104,14 +103,14 @@ def get_nearest_neighbours(
 
     Returns
     -------
-    sorted_k_distances : np.ndarray
-        K distances, sorted from smallest to largest.
     sorted_k_distances_indices : np.ndarray
         Indices of K distances, similarly sorted as `sorted_k_distances`.
+    sorted_k_distances : np.ndarray
+        K distances, sorted from smallest to largest.
     """
     sorted_k_distances_indices = np.argsort(distances)[1 : k_neighbours + 1]
     sorted_k_distances = distances[sorted_k_distances_indices]
-    return sorted_k_distances, sorted_k_distances_indices
+    return sorted_k_distances_indices, sorted_k_distances
 
 
 def get_knn_func_data_points(
@@ -143,17 +142,17 @@ def get_knn_func_data_points(
     knn_func : KnnFunc
         K-nearest neighbour callable for data points.
     """
-    if pairwise_distances is not None:
-        return lambda point_idx, k_neighbours: get_nearest_neighbours(
-            distances=pairwise_distances[point_idx],
-            k_neighbours=k_neighbours,
-        )
-    elif approx_nn is not None:
+    if approx_nn is not None:
         return lambda point_idx, k_neighbours: approx_nn.search(
             query_vector=data_points[point_idx],
             k_neighbours=k_neighbours,
             excluded_neighbour_indices=[point_idx],
             return_distances=True,
+        )
+    elif pairwise_distances is not None:
+        return lambda point_idx, k_neighbours: get_nearest_neighbours(
+            distances=pairwise_distances[point_idx],
+            k_neighbours=k_neighbours,
         )
     else:
         return lambda point_idx, k_neighbours: get_nearest_neighbours(
@@ -254,19 +253,16 @@ def compute_gad_point_indices(
 
         # Find A_y ⊂ data_points containing all points in data_points
         # which satisfy r ≤ ||x − y|| ≤ s (*).
+        # start_time = time()
         if use_knn_annulus:
-            annulus_outer_distances, annulus_outer_indices = knn_func(
+            annulus_outer_indices, annulus_outer_distances = knn_func(
                 data_point_index, knn_annulus_outer
-            )
-            annulus_inner_distances, annulus_inner_indices = (
-                annulus_outer_distances[:knn_annulus_inner],
-                annulus_outer_indices[:knn_annulus_inner],
             )
 
             # Set annulus inner and outer radii and A_y_indices
-            annulus_inner_radius = annulus_inner_distances.max()
-            annulus_outer_radius = annulus_outer_distances.max()
-            A_y_indices = np.setdiff1d(annulus_outer_indices, annulus_inner_indices)
+            annulus_inner_radius = annulus_outer_distances[knn_annulus_inner]
+            annulus_outer_radius = annulus_outer_distances[-1]
+            A_y_indices = annulus_outer_indices[knn_annulus_inner:]
         else:
             A_y_indices = np.array(
                 [
@@ -278,6 +274,8 @@ def compute_gad_point_indices(
                 ],
                 dtype=int,
             )
+        # end_time = time()
+        # print(end_time - start_time, "\n")
 
         # Return already if there are no points satisfying condition in (*).
         N_y = 0
@@ -291,10 +289,23 @@ def compute_gad_point_indices(
         A_y = data_points[A_y_indices]
         if use_ripser_plus_plus and len(A_y) > ripser_plus_plus_threshold:
             diagrams_dict = run_ripser_plus_plus(
-                data_points=A_y, max_dim=target_homology_dim
+                point_cloud=A_y, max_dim=target_homology_dim
             )
             diagrams = list(diagrams_dict.values())
         else:
+            # rips_complex = RipsComplex(points=A_y)
+            # simplex_tree = rips_complex.create_simplex_tree(
+            #     max_dimension=target_homology_dim
+            # )
+            # barcodes = simplex_tree.persistence()
+            # target_homology_dim_diagram = np.array(
+            #     [
+            #         (birth, death)
+            #         for dim, (birth, death) in barcodes
+            #         if dim == target_homology_dim
+            #     ]
+            # )
+
             rips_complex = ripser(
                 X=euclidean_distances(A_y),
                 maxdim=target_homology_dim,
@@ -302,6 +313,7 @@ def compute_gad_point_indices(
             )
             diagrams = rips_complex["dgms"]
         target_homology_dim_diagram = diagrams[target_homology_dim]
+        # print(target_homology_dim_diagram.shape)
 
         # Calculate number of intervals in A_y_barcodes of length
         # (death - birth) > abs(annulus_outer_radius - annulus_inner_radius).
@@ -415,7 +427,7 @@ def compute_gad_point_indices_mp(args: tuple) -> dict:
         use_ripser_plus_plus=use_ripser_plus_plus,
         ripser_plus_plus_threshold=ripser_plus_plus_threshold,
         return_annlus_persistence_diagrams=return_annlus_persistence_diagrams,
-        progressbar_enabled=False,
+        progressbar_enabled=True,
     )
 
 

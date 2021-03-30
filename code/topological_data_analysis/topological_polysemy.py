@@ -1,7 +1,6 @@
 import sys
 from typing import Optional, Union
 
-import annoy
 import numpy as np
 from fastdist import fastdist
 from fastdist.fastdist import vector_to_matrix_distance
@@ -204,7 +203,7 @@ def tps_point_cloud(
     point_cloud_indices: Optional[list] = None,
     point_cloud_normalized: np.ndarray = None,
     point_cloud_pairwise_dists: np.ndarray = None,
-    annoy_index: annoy.AnnoyIndex = None,
+    ann_instance: ApproxNN = None,
     sanity_check: bool = False,
     return_persistence_diagram: bool = False,
 ) -> Union[float, tuple]:
@@ -228,10 +227,10 @@ def tps_point_cloud(
         (Defaults to None).
     point_cloud_pairwise_dists : np.ndarray, optional
         Pairwise distances between points in point cloud (defaults to None).
-    annoy_index : annoy.AnnoyIndex, optional
-        Annoy index built on the point cloud (defaults to None).
-        If specified, the approximate nearest neighbour index is used to find
-        punctured neighbourhoods.
+    ann_instance : ApproxNN, optional
+        Approximate nearest neighbour (ANN) instance, built on the point cloud
+        (defaults to None). If specified, the ANN index is used to find punctured
+        neighbourhoods.
     sanity_check : bool, optional
         Whether or not to run sanity checks (defaults to False).
     return_persistence_diagram : bool, optional
@@ -266,7 +265,7 @@ def tps_point_cloud(
         word_embeddings=point_cloud,
         word_embeddings_normalized=point_cloud_normalized,
         word_embeddings_pairwise_dists=point_cloud_pairwise_dists,
-        annoy_index=annoy_index,
+        ann_instance=ann_instance,
         sanity_check=sanity_check,
         return_persistence_diagram=return_persistence_diagram,
     )

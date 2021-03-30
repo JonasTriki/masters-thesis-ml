@@ -4,7 +4,6 @@ from os import makedirs
 from os.path import isfile, join
 from typing import Optional
 
-import annoy
 import joblib
 import numpy as np
 import pandas as pd
@@ -12,11 +11,15 @@ from matplotlib import pyplot as plt
 from nltk.corpus import wordnet as wn
 from scipy.stats import pearsonr
 from sklearn.metrics.pairwise import euclidean_distances
-from topological_polysemy import tps, tps_point_cloud
 from tqdm import tqdm
 
 sys.path.append("..")
 
+from approx_nn import ApproxNN  # noqa: E402
+from topological_data_analysis.topological_polysemy import (  # noqa: E402
+    tps,
+    tps_point_cloud,
+)
 from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
 
@@ -155,7 +158,7 @@ def tps_word_embeddings(
     num_top_k_words_frequencies: int,
     output_dir: str,
     word_counts: Optional[list] = None,
-    annoy_index: annoy.AnnoyIndex = None,
+    ann_instance: ApproxNN = None,
 ) -> None:
     """
     Computes TPS for word embeddings and saves correlation plots.
@@ -182,8 +185,8 @@ def tps_word_embeddings(
         Output directory.
     word_counts : list
         List containing word counts
-    annoy_index : annoy.AnnoyIndex
-        Annoy index to use for computing TPS scores.
+    ann_instance : ApproxNN
+        ApproxNN instance to use for computing TPS scores.
     """
     # Ensure output directory exists
     output_dir_plots = join(output_dir, word_embeddings_name)
@@ -233,7 +236,7 @@ def tps_word_embeddings(
                     word_to_int=word_to_int,
                     neighbourhood_size=neighbourhood_size,
                     word_embeddings_normalized=word_embeddings_normalized,
-                    annoy_index=annoy_index,
+                    ann_instance=ann_instance,
                 )
                 tps_scores_semeval.append(tps_score_semeval)
 
@@ -280,7 +283,7 @@ def tps_word_embeddings(
                         word_to_int=word_to_int,
                         neighbourhood_size=neighbourhood_size,
                         word_embeddings_normalized=word_embeddings_normalized,
-                        annoy_index=annoy_index,
+                        ann_instance=ann_instance,
                     )
                     tps_scores_wordnet_synsets.append(tps_score_wordnet_synset)
 
@@ -325,7 +328,7 @@ def tps_word_embeddings(
                     word_to_int=word_to_int,
                     neighbourhood_size=neighbourhood_size,
                     word_embeddings_normalized=word_embeddings_normalized,
-                    annoy_index=annoy_index,
+                    ann_instance=ann_instance,
                 )
                 tps_score_word_frequencies.append(tps_score_word_frequency)
 
@@ -422,14 +425,13 @@ def topological_polysemy_pipeline(
             model_name="word2vec",
             dataset_name=dataset_name,
             return_normalized_embeddings=True,
-            return_annoy_index=True,
-            annoy_index_prefault=True,
+            return_scann_instance=True,
         )
         last_embedding_weights_normalized = w2v_training_output[
             "last_embedding_weights_normalized"
         ]
-        last_embedding_weights_annoy_index = w2v_training_output[
-            "last_embedding_weights_annoy_index"
+        last_embedding_weights_scann_instance = w2v_training_output[
+            "last_embedding_weights_scann_instance"
         ]
         words = w2v_training_output["words"]
         word_to_int = w2v_training_output["word_to_int"]
@@ -448,10 +450,10 @@ def topological_polysemy_pipeline(
             num_top_k_words_frequencies=num_top_k_words_frequencies,
             output_dir=output_dir,
             word_counts=word_counts,
-            annoy_index=last_embedding_weights_annoy_index,
+            ann_instance=last_embedding_weights_scann_instance,
         )
+        del last_embedding_weights_scann_instance
         print("Done!")
-        last_embedding_weights_annoy_index.unload()
 
     # -- Compute TPS for external word embeddings --
     # Prepare constants
@@ -481,7 +483,7 @@ def topological_polysemy_pipeline(
             model_dir, f"{model_name}_normalized.npy"
         )
         model_words_filepath = join(model_dir, f"{model_name}_words.txt")
-        model_annoy_index_filepath = join(model_dir, f"{model_name}_annoy_index.ann")
+        model_scann_artifacts_dir = join(model_dir, f"{model_name}_scann_artifacts")
 
         # Load data
         print(f"Loading {model_name} data...")
@@ -490,10 +492,8 @@ def topological_polysemy_pipeline(
         )
         with open(model_words_filepath, "r") as words_file:
             model_words = np.array(words_file.read().split("\n"))
-        model_annoy_index = annoy.AnnoyIndex(
-            f=model_weights_normalized.shape[1], metric="euclidean"
-        )
-        model_annoy_index.load(fn=model_annoy_index_filepath, prefault=True)
+        model_approx_nn = ApproxNN(ann_alg="scann")
+        model_approx_nn.load(ann_path=model_scann_artifacts_dir)
         print("Done!")
 
         print(f"Computing TPS for {model_name} word embeddings...")
@@ -507,10 +507,10 @@ def topological_polysemy_pipeline(
             word_vocabulary=model_words,
             num_top_k_words_frequencies=num_top_k_words_frequencies,
             output_dir=output_dir,
-            annoy_index=model_annoy_index,
+            ann_instance=model_approx_nn,
         )
+        del model_approx_nn
         print("Done!")
-        model_annoy_index.unload()
 
     # -- Compute TPS for custom point clouds --
     for point_cloud_name, point_cloud_filepath in zip(

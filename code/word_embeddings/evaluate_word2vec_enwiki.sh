@@ -7,6 +7,7 @@ screen -dmS eval_word2vec_enwiki -L -Logfile eval_word2vec_enwiki.logs python ev
 --msr_dataset_filepath data/msr.joblib \
 --pad_dataset_filepath data/pad.joblib \
 --vocab_size -1 \
---annoy_index_filepath ../output/word2vec_ann_indices/word2vec_enwiki_jan_2021_annoy_index.ann \
+--approx_nn_path ../output/word2vec_ann_indices/word2vec_enwiki_jan_2021_scann_artifacts \
+--approx_nn_alg scann \
 --top_n_prediction 1 \
 --output_dir ../output/word2vec_eval_analogies

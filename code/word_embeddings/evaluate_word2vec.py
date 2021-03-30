@@ -1,13 +1,17 @@
 import argparse
+import sys
 from datetime import datetime
 from os import makedirs
 from os.path import join
 
-import annoy
 import joblib
 import numpy as np
-from eval_utils import evaluate_model_word_analogies
-from word2vec import load_model_training_output
+
+sys.path.append("..")
+
+from approx_nn import ApproxNN  # noqa: E402
+from word_embeddings.eval_utils import evaluate_model_word_analogies  # noqa: E402
+from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -60,10 +64,16 @@ def parse_args() -> argparse.Namespace:
         help="Vocabulary size to use when evaluating on the test datasets",
     )
     parser.add_argument(
-        "--annoy_index_filepath",
-        type=str,
+        "--approx_nn_path",
+        type="str",
         default="",
-        help="Filepath of an Annoy index fit on the word embeddings",
+        help="Filepath of an ApproxNN instance, built on the word embeddings",
+    )
+    parser.add_argument(
+        "--approx_nn_alg",
+        type="str",
+        default="scann",
+        help="Algorithm of ApproxNN instance",
     )
     parser.add_argument(
         "--top_n_prediction",
@@ -107,7 +117,8 @@ def evaluate_word2vec(
     msr_dataset_filepath: str,
     pad_dataset_filepath: str,
     vocab_size: int,
-    annoy_index_filepath: str,
+    approx_nn_path: str,
+    approx_nn_alg: str,
     top_n_prediction: int,
     output_dir: str,
 ) -> None:
@@ -130,9 +141,10 @@ def evaluate_word2vec(
         Filepath of the PAD test dataset
     vocab_size : int
         Vocabulary size to use when evaluating on the test datasets.
-    annoy_index_filepath : str
-        Filepath of an Annoy index fit on the word embeddings (used
-        to speed up the evaluation).
+    approx_nn_path : str
+        Filepath of an ApproxNN instance, built on the word embeddings.
+    approx_nn_alg : str
+        Algorithm of ApproxNN instance.
     top_n_prediction : int
         Which top-N prediction we would like to do.
     output_dir : str
@@ -152,13 +164,16 @@ def evaluate_word2vec(
     output_dir = join(output_dir, datetime.now().strftime("%d-%b-%Y_%H-%M-%S"))
     makedirs(output_dir, exist_ok=True)
 
-    # Load Annoy index if filepath specified
-    annoy_index = None
-    if annoy_index_filepath != "":
-        annoy_index = annoy.AnnoyIndex(
-            f=last_embedding_weights.shape[1], metric="euclidean"
-        )
-        annoy_index.load(annoy_index_filepath, prefault=True)
+    # Load ApproxNN instance
+    approx_nn = None
+    if approx_nn_path != "":
+        approx_nn = ApproxNN(ann_alg=approx_nn_alg)
+        load_args = {}
+        if approx_nn_alg == "annoy":
+            load_args["annoy_data_dimensionality"] = last_embedding_weights.shape[1]
+            load_args["annoy_mertic"] = "euclidean"
+            load_args["annoy_prefault"] = True
+        approx_nn.load(approx_nn_path, **load_args)
 
     # SSWR
     print("--- Evaluating SSWR ---")
@@ -168,7 +183,7 @@ def evaluate_word2vec(
         word_to_int=word_to_int,
         words=words,
         vocab_size=vocab_size,
-        annoy_index=annoy_index,
+        ann_instance=approx_nn,
         top_n=top_n_prediction,
     )
 
@@ -195,7 +210,7 @@ def evaluate_word2vec(
         word_to_int=word_to_int,
         words=words,
         vocab_size=vocab_size,
-        annoy_index=annoy_index,
+        ann_instance=approx_nn,
         top_n=top_n_prediction,
     )
     save_analogies_accuracies_to_file("msr", output_dir, msr_accuracies)
@@ -209,7 +224,7 @@ def evaluate_word2vec(
         word_to_int=word_to_int,
         words=words,
         vocab_size=vocab_size,
-        annoy_index=annoy_index,
+        ann_instance=approx_nn,
         top_n=top_n_prediction,
     )
     save_analogies_accuracies_to_file("pad", output_dir, pad_accuracies)
@@ -228,7 +243,8 @@ if __name__ == "__main__":
         msr_dataset_filepath=args.msr_dataset_filepath,
         pad_dataset_filepath=args.pad_dataset_filepath,
         vocab_size=args.vocab_size,
-        annoy_index_filepath=args.annoy_index_filepath,
+        approx_nn_path=args.approx_nn_path,
+        approx_nn_alg=args.approx_nn_alg,
         top_n_prediction=args.top_n_prediction,
         output_dir=args.output_dir,
     )

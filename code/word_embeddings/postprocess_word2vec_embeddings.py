@@ -102,12 +102,20 @@ def postprocess_word2vec_embeddings(
             f"{last_embedding_weights_filepath_no_ext}_{vocab_size}_normalized.npy",
         )
     if use_full_vocab:
-        model_ann_index_dir = join(
+        model_annoy_index_filepath = join(
+            model_training_output_dir,
+            f"{last_embedding_weights_filepath_no_ext}_annoy_index.ann",
+        )
+        model_scann_artifacts_dir = join(
             model_training_output_dir,
             f"{last_embedding_weights_filepath_no_ext}_scann_artifacts",
         )
     else:
-        model_ann_index_dir = join(
+        model_annoy_index_filepath = join(
+            model_training_output_dir,
+            f"{last_embedding_weights_filepath_no_ext}_{vocab_size}_annoy_index.ann",
+        )
+        model_scann_artifacts_dir = join(
             model_training_output_dir,
             f"{last_embedding_weights_filepath_no_ext}_{vocab_size}_scann_artifacts",
         )
@@ -135,7 +143,9 @@ def postprocess_word2vec_embeddings(
             last_embedding_weights_normalized_filepath
         )
 
-    if not isdir(model_ann_index_dir):
+    annoy_index_created = isfile(model_annoy_index_filepath)
+    scann_instance_created = isdir(model_scann_artifacts_dir)
+    if not annoy_index_created or not scann_instance_created:
 
         # Add word embeddings to index and build it
         if use_full_vocab:
@@ -146,13 +156,24 @@ def postprocess_word2vec_embeddings(
             last_embedding_weights_normalized_in_vocab = (
                 last_embedding_weights_normalized[:vocab_size]
             )
-        scann_instance = ApproxNN(ann_alg="scann")
-        scann_instance.build(
-            data=last_embedding_weights_normalized_in_vocab,
-            distance_measure="dot_product",
-            scann_num_leaves_scaling=2.5,
-        )
-        scann_instance.save(model_ann_index_dir)
+
+        if not isfile(model_annoy_index_filepath):
+            ann_index_annoy = ApproxNN(ann_alg="annoy")
+            ann_index_annoy.build(
+                data=last_embedding_weights_normalized_in_vocab,
+                annoy_n_trees=500,
+                distance_measure="euclidean",
+            )
+            ann_index_annoy.save(model_annoy_index_filepath)
+
+        if not isdir(model_scann_artifacts_dir):
+            scann_instance = ApproxNN(ann_alg="scann")
+            scann_instance.build(
+                data=last_embedding_weights_normalized_in_vocab,
+                distance_measure="dot_product",
+                scann_num_leaves_scaling=5,
+            )
+            scann_instance.save(model_scann_artifacts_dir)
 
 
 if __name__ == "__main__":

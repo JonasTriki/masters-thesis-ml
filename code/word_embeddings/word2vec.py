@@ -5,7 +5,6 @@ from os.path import isfile
 from time import time
 from typing import List, Optional, TextIO
 
-import annoy
 import joblib
 import numpy as np
 import tensorflow as tf
@@ -631,8 +630,8 @@ def load_model_training_output(
     model_name: str,
     dataset_name: str,
     return_normalized_embeddings: bool = False,
-    return_annoy_index: bool = False,
-    annoy_index_prefault: bool = False,
+    return_annoy_instance: bool = False,
+    annoy_instance_prefault: bool = False,
     return_scann_instance: bool = False,
 ) -> dict:
     """
@@ -649,12 +648,12 @@ def load_model_training_output(
     return_normalized_embeddings : bool, optional
         Whether or not to return last embedding weights, normalized, if they
         are present (defaults to False).
-    return_annoy_index : bool, optional
+    return_annoy_instance : bool, optional
         Whether or not to return Annoy index fit on last embedding weights, if they
         are present (defaults to False).
-    annoy_index_prefault : bool, optional
+    annoy_instance_prefault : bool, optional
         Whether or not to enable the `prefault` option when loading
-        Annoy index. return_annoy_index must be set to True to have an affect.
+        Annoy index. `return_annoy_instance` must be set to True to have an affect.
         (Defaults to False).
     return_scann_instance : bool, optional
         Whether or not to return the ScaNN instance fit on the last embedding weights,
@@ -707,20 +706,20 @@ def load_model_training_output(
         )
 
     # Annoy index
-    last_embedding_weights_annoy_index = None
+    last_embedding_weights_annoy_instance = None
     if (
-        return_annoy_index
+        return_annoy_instance
         and "intermediate_embedding_weight_annoy_index_filepaths"
         in checkpoint_filepaths_dict
     ):
-        last_embedding_weights_annoy_index = annoy.AnnoyIndex(
-            f=last_embedding_weights.shape[1], metric="euclidean"
-        )
-        last_embedding_weights_annoy_index.load(
-            fn=checkpoint_filepaths_dict[
+        last_embedding_weights_annoy_instance = ApproxNN(ann_alg="annoy")
+        last_embedding_weights_annoy_instance.load(
+            ann_path=checkpoint_filepaths_dict[
                 "intermediate_embedding_weight_annoy_index_filepaths"
             ][-1],
-            prefault=annoy_index_prefault,
+            annoy_data_dimensionality=last_embedding_weights.shape[1],
+            annoy_mertic="euclidean",
+            annoy_prefault=annoy_instance_prefault,
         )
 
     # ScaNN instance
@@ -732,7 +731,7 @@ def load_model_training_output(
     ):
         last_embedding_weights_scann_instance = ApproxNN(ann_alg="scann")
         last_embedding_weights_scann_instance.load(
-            checkpoint_filepaths_dict[
+            ann_path=checkpoint_filepaths_dict[
                 "intermediate_embedding_weight_scann_artifact_dirs"
             ][-1]
         )
@@ -741,7 +740,7 @@ def load_model_training_output(
         "last_embedding_weights": last_embedding_weights,
         "last_embedding_weights_filepath": last_embedding_weights_filepath,
         "last_embedding_weights_normalized": last_embedding_weights_normalized,
-        "last_embedding_weights_annoy_index": last_embedding_weights_annoy_index,
+        "last_embedding_weights_annoy_instance": last_embedding_weights_annoy_instance,
         "last_embedding_weights_scann_instance": last_embedding_weights_scann_instance,
         "words": words,
         "word_to_int": word_to_int,

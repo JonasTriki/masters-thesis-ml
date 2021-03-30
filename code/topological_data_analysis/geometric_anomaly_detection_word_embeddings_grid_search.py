@@ -49,11 +49,6 @@ def parse_args() -> argparse.Namespace:
         help="Size of the vocabulary to use",
     )
     parser.add_argument(
-        "--annoy_index_filepath",
-        type=str,
-        help="Filepath of Annoy index fit on word embeddings",
-    )
-    parser.add_argument(
         "--manifold_dimension",
         type=int,
         help="Manifold dimension to be passed to geometric anomaly detection algorithm",
@@ -118,7 +113,6 @@ def geometric_anomaly_detection_grid_search(
     model_dir: str,
     model_name: str,
     dataset_name: str,
-    annoy_index_filepath: str,
     vocab_size: int,
     manifold_dimension: int,
     search_size: int,
@@ -145,8 +139,6 @@ def geometric_anomaly_detection_grid_search(
         Name of the dataset the model is trained on.
     vocab_size : int
         Size of the vocabulary to use.
-    annoy_index_filepath : str
-        Filepath of Annoy index fit on word embeddings.
     manifold_dimension : int
         Manifold dimension to be passed to geometric anomaly detection algorithm.
     search_size : int
@@ -208,7 +200,6 @@ def geometric_anomaly_detection_grid_search(
         max_annulus_parameter=max_annulus_parameter,
         data_point_ints=vocabulary_word_ints,
         data_points_pairwise_distances=word_embeddings_pairwise_dists_grid_search,
-        # data_points_approx_nn=...,  # TODO: annoy_index_filepath
         use_ripser_plus_plus=use_ripser_plus_plus,
         ripser_plus_plus_threshold=200,
         return_annlus_persistence_diagrams=True,
@@ -233,7 +224,6 @@ if __name__ == "__main__":
         model_dir=args.model_dir,
         model_name=args.model_name,
         dataset_name=args.dataset_name,
-        annoy_index_filepath=args.annoy_index_filepath,
         vocab_size=args.vocab_size,
         manifold_dimension=args.manifold_dimension,
         search_size=args.search_size,
