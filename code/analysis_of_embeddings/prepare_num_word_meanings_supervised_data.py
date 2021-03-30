@@ -421,55 +421,69 @@ def prepare_num_word_meanings_supervised_data(
     gad_features_dir = join(task_raw_data_dir, "gad_features")
     makedirs(gad_features_dir, exist_ok=True)
     gad_features_params = {
-        "radius": [(0.5, 1), (1, 1.5), (1.5, 2.5)],
+        "radius": [(0.5, 1.0), (1.0, 1.5), (1.5, 2.5)],
         "knn": [(25, 250), (50, 250), (50, 550)],
     }
-    approx_nn = None
+    for gad_type, gad_params in gad_features_params.items():
+        use_knn_annulus = gad_type == "knn"
+        if use_knn_annulus:
+            approx_nn = ApproxNN(ann_alg="scann")
+            approx_nn.load(ann_path=approx_nn_index_dir)
+        else:
+            approx_nn = ApproxNN(ann_alg="annoy")
+            approx_nn.load(
+                ann_path=approx_nn_index_annoy_filepath,
+                annoy_data_dimensionality=word_embeddings_wordnet_words.shape[1],
+                annoy_mertic="euclidean",
+                annoy_prefault=False,
+            )
+        for inner_param, outer_param in gad_params:
+            gad_features_id = f"gad_{gad_type}_{inner_param}_{outer_param}"
+            print(f"-- {gad_features_id} -- ")
+
+            gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
+            if isfile(gad_features_filepath):
+                continue
+
+            # Compute features
+            if use_knn_annulus:
+                gad_params_kwargs = {
+                    "knn_annulus_inner": inner_param,
+                    "knn_annulus_outer": outer_param,
+                }
+            else:
+                gad_params_kwargs = {
+                    "annulus_inner_radius": inner_param,
+                    "annulus_outer_radius": outer_param,
+                }
+            gad_result = compute_gad(
+                data_points=word_embeddings_wordnet_words,
+                manifold_dimension=2,
+                data_points_approx_nn=approx_nn,
+                use_knn_annulus=use_knn_annulus,
+                return_annlus_persistence_diagrams=False,
+                progressbar_enabled=True,
+                n_jobs=-1,
+                **gad_params_kwargs,
+            )
+            print(
+                "P_man:",
+                len(gad_result["P_man"]),
+                "P_int:",
+                len(gad_result["P_int"]),
+                "P_bnd:",
+                len(gad_result["P_bnd"]),
+            )
+            joblib.dump(gad_result, gad_features_filepath, protocol=4)
+        del approx_nn
+
     gad_features_dict = {}
     for gad_type, gad_params in gad_features_params.items():
         use_knn_annulus = gad_type == "knn"
         for inner_param, outer_param in gad_params:
             gad_features_id = f"gad_{gad_type}_{inner_param}_{outer_param}"
             gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
-            if isfile(gad_features_filepath):
-                gad_features_dict[gad_features_id] = joblib.load(gad_features_filepath)
-                print(
-                    "P_man:",
-                    len(gad_features_dict[gad_features_id]["P_man"]),
-                    "P_int:",
-                    len(gad_features_dict[gad_features_id]["P_int"]),
-                    "P_bnd:",
-                    len(gad_features_dict[gad_features_id]["P_bnd"]),
-                )
-                continue
-
-            # Load ANN index if None
-            if approx_nn is None:
-                approx_nn = ApproxNN(ann_alg="scann")
-                approx_nn.load(ann_path=approx_nn_index_dir)
-
-            # Compute features
-            gad_result = compute_gad(
-                data_points=word_embeddings_wordnet_words,
-                manifold_dimension=2,
-                data_points_approx_nn=approx_nn,
-                use_knn_annulus=use_knn_annulus,
-                knn_annulus_inner=inner_param,
-                knn_annulus_outer=outer_param,
-                return_annlus_persistence_diagrams=False,
-                progressbar_enabled=True,
-                n_jobs=-1,
-            )
-            gad_features_dict[gad_features_id] = gad_result
-            print(
-                "P_man:",
-                len(gad_features_dict[gad_features_id]["P_man"]),
-                "P_int:",
-                len(gad_features_dict[gad_features_id]["P_int"]),
-                "P_bnd:",
-                len(gad_features_dict[gad_features_id]["P_bnd"]),
-            )
-            joblib.dump(gad_result, gad_features_filepath, protocol=4)
+            gad_features_dict[gad_features_id] = joblib.load(gad_features_filepath)
 
     # gad_grid_search_filepath = join(
     #     task_raw_data_dir, "gad_features_grid_search.joblib"

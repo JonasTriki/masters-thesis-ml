@@ -253,7 +253,6 @@ def compute_gad_point_indices(
 
         # Find A_y ⊂ data_points containing all points in data_points
         # which satisfy r ≤ ||x − y|| ≤ s (*).
-        # start_time = time()
         if use_knn_annulus:
             annulus_outer_indices, annulus_outer_distances = knn_func(
                 data_point_index, knn_annulus_outer
@@ -274,8 +273,6 @@ def compute_gad_point_indices(
                 ],
                 dtype=int,
             )
-        # end_time = time()
-        # print(end_time - start_time, "\n")
 
         # Return already if there are no points satisfying condition in (*).
         N_y = 0
