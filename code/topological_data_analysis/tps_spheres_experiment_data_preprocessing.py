@@ -7,7 +7,8 @@ import numpy as np
 from tqdm import tqdm
 
 rng_seed = 399
-np.random(rng_seed)
+np.random.seed(rng_seed)
+
 sys.path.append("..")
 
 from topological_data_analysis.tda_utils import generate_points_in_spheres  # noqa: E402
@@ -98,7 +99,7 @@ def prepare_spheres_data(output_dir: str) -> list:
         )
 
         # Get sampled sphere points
-        num_closest_to_intersection = (
+        num_closest_to_intersection = int(
             num_points_in_spheres
             * points_frac_closest_to_intersection
             * min(sphere_dimensionality, points_max_dim_closest_to_intersection)
@@ -150,6 +151,7 @@ def compute_tps_scores(
         Output directory where processed files will be saved to.
     """
     for sphere_dimensionality, filepath in sphere_data_filepaths:
+        print(f"Sphere dimensionality: {sphere_dimensionality}")
         sampled_sphere_points_data = np.load(filepath)
         sphere_points = sampled_sphere_points_data[:, :-2]
         sphere_points_normalized = normalize_array(sphere_points)
