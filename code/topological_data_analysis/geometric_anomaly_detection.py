@@ -51,10 +51,11 @@ def compute_gad_mp_init(
 def get_point_distance_func(
     data_points: np.ndarray,
     pairwise_distances: np.ndarray = None,
-    approx_nn: ApproxNN = None,
+    metric_callable: Callable = fastdist.euclidean,
 ) -> DistanceFunc:
     """
     Gets function for computing distance between two points by specifying its indices.
+    Uses pairwise distances if specified, else, defaulting to
     Either pairwise distances or ApproxNN instance has to be specified, else, we
     default to the L2 norm of data points.
 
@@ -73,17 +74,13 @@ def get_point_distance_func(
         Distance function, taking in two point indices i and j and returns the distance
         between the points.
     """
-    if approx_nn is not None:
-        return lambda point_idx_i, point_idx_j: approx_nn.get_distance(
-            point_idx_i, point_idx_j
-        )
-    elif pairwise_distances is not None:
+    if pairwise_distances is not None:
         return lambda point_idx_i, point_idx_j: pairwise_distances[
             point_idx_i, point_idx_j
         ]
     else:
-        return lambda point_idx_i, point_idx_j: np.linalg.norm(
-            data_points[point_idx_i] - data_points[point_idx_j]
+        return lambda point_idx_i, point_idx_j: metric_callable(
+            data_points[point_idx_i], data_points[point_idx_j]
         )
 
 
@@ -436,6 +433,7 @@ def compute_gad(
     data_point_ints: list = None,
     data_points_pairwise_distances: np.ndarray = None,
     data_points_approx_nn: ApproxNN = None,
+    data_points_distance_metric: Callable = fastdist.euclidean,
     use_ripser_plus_plus: bool = False,
     ripser_plus_plus_threshold: int = 200,
     use_knn_annulus: bool = False,
@@ -467,6 +465,9 @@ def compute_gad(
         Pairwise distances of data points (defaults to None).
     data_points_approx_nn : ApproxNN, optional
         ApproxNN instance (defaults to None).
+    data_points_distance_metric : Callable, optional
+        Distance metric callable to compute exact distance between any two data
+        points (defaults to euclidean distance, `fastdist.euclidean`).
     use_ripser_plus_plus : bool
         Whether or not to use Ripser++ (GPU acceleration).
     ripser_plus_plus_threshold : int
@@ -518,7 +519,7 @@ def compute_gad(
     distance_func = get_point_distance_func(
         data_points=data_points,
         pairwise_distances=data_points_pairwise_distances,
-        approx_nn=data_points_approx_nn,
+        metric_callable=data_points_distance_metric,
     )
 
     # Get KNN annulus function, use_knn_annulus is True
@@ -634,6 +635,7 @@ def grid_search_gad_annulus_radii(
     data_point_ints: list = None,
     data_points_pairwise_distances: np.ndarray = None,
     data_points_approx_nn: ApproxNN = None,
+    data_points_distance_metric: Callable = fastdist.euclidean,
     use_ripser_plus_plus: bool = False,
     ripser_plus_plus_threshold: int = 200,
     return_annlus_persistence_diagrams: bool = False,
@@ -668,6 +670,9 @@ def grid_search_gad_annulus_radii(
         Pairwise distances of data points (defaults to None).
     data_points_approx_nn : ApproxNN, optional
         ApproxNN instance (defaults to None).
+    data_points_distance_metric : Callable, optional
+        Distance metric callable to compute exact distance between any two data
+        points (defaults to euclidean distance, `fastdist.euclidean`).
     use_ripser_plus_plus : bool
         Whether or not to use Ripser++ (GPU acceleration).
     ripser_plus_plus_threshold : int
@@ -751,6 +756,7 @@ def grid_search_gad_annulus_radii(
             data_point_ints=data_point_ints,
             data_points_pairwise_distances=data_points_pairwise_distances,
             data_points_approx_nn=data_points_approx_nn,
+            data_points_distance_metric=data_points_distance_metric,
             use_ripser_plus_plus=use_ripser_plus_plus,
             ripser_plus_plus_threshold=ripser_plus_plus_threshold,
             use_knn_annulus=use_knn_annulus,

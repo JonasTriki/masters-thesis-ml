@@ -421,22 +421,15 @@ def prepare_num_word_meanings_supervised_data(
     gad_features_dir = join(task_raw_data_dir, "gad_features")
     makedirs(gad_features_dir, exist_ok=True)
     gad_features_params = {
-        "radius": [(0.5, 1.0), (1.0, 1.5), (1.5, 2.5)],
-        "knn": [(25, 250), (50, 250), (50, 550)],
+        # "radius": [(0.5, 1.0), (1.0, 1.5), (1.5, 2.5)],
+        "knn": [(25, 250), (25, 500), (50, 250), (50, 550), (50, 750), (100, 1000)],
     }
     for gad_type, gad_params in gad_features_params.items():
         use_knn_annulus = gad_type == "knn"
+        approx_nn = None
         if use_knn_annulus:
             approx_nn = ApproxNN(ann_alg="scann")
             approx_nn.load(ann_path=approx_nn_index_dir)
-        else:
-            approx_nn = ApproxNN(ann_alg="annoy")
-            approx_nn.load(
-                ann_path=approx_nn_index_annoy_filepath,
-                annoy_data_dimensionality=word_embeddings_wordnet_words.shape[1],
-                annoy_mertic="euclidean",
-                annoy_prefault=False,
-            )
         for inner_param, outer_param in gad_params:
             gad_features_id = f"gad_{gad_type}_{inner_param}_{outer_param}"
             print(f"-- {gad_features_id} -- ")
