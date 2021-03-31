@@ -11,6 +11,7 @@ from genericpath import isdir
 from nltk.corpus import wordnet as wn
 from skdim._commonfuncs import GlobalEstimator
 from skdim.id import KNN, MLE, TwoNN, lPCA
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 sys.path.append("..")
@@ -510,36 +511,62 @@ def prepare_num_word_meanings_supervised_data(
     # (6) -- Combine data into data (features and labels) for WME task --
     word_meaning_train_data_filepath = join(output_dir, "word_meaning_train_data.csv")
     word_meaning_test_data_filepath = join(output_dir, "word_meaning_test_data.csv")
-    if not isfile(word_meaning_train_data_filepath) and not isfile(
-        word_meaning_test_data_filepath
+    word_meaning_semeval_test_data_filepath = join(
+        output_dir, "word_meaning_semeval_test_data.csv"
+    )
+    if (
+        not isfile(word_meaning_train_data_filepath)
+        or not isfile(word_meaning_test_data_filepath)
+        or not isfile(word_meaning_semeval_test_data_filepath)
     ):
-        train_data_df = create_word_meaning_model_data_features(
-            target_words=data_words_no_semeval,
-            word_to_int=data_word_to_int,
-            tps_scores=tps_scores,
-            tps_pds=tps_pds,
-            tps_neighbourhood_sizes=tps_neighbourhood_sizes,
-            words_estimated_ids=words_estimated_ids,
-            words_to_meanings=words_to_num_meanings,
-            gad_features_dict=gad_features_dict,
+        data_words_train, data_words_test = train_test_split(
+            data_words_no_semeval, test_size=0.05, random_state=rng_seed
         )
-        train_data_df.to_csv(word_meaning_train_data_filepath, index=False)
-        test_data_df = create_word_meaning_model_data_features(
-            target_words=semeval_target_words_in_vocab,
-            word_to_int=data_word_to_int,
-            tps_scores=tps_scores,
-            tps_pds=tps_pds,
-            tps_neighbourhood_sizes=tps_neighbourhood_sizes,
-            words_estimated_ids=words_estimated_ids,
-            words_to_meanings=words_to_num_meanings,
-            gad_features_dict=gad_features_dict,
-        )
-        test_data_df.to_csv(word_meaning_test_data_filepath, index=False)
+        if not isfile(word_meaning_train_data_filepath):
+            train_data_df = create_word_meaning_model_data_features(
+                target_words=data_words_train,
+                word_to_int=data_word_to_int,
+                tps_scores=tps_scores,
+                tps_pds=tps_pds,
+                tps_neighbourhood_sizes=tps_neighbourhood_sizes,
+                words_estimated_ids=words_estimated_ids,
+                words_to_meanings=words_to_num_meanings,
+                gad_features_dict=gad_features_dict,
+            )
+            train_data_df.to_csv(word_meaning_train_data_filepath, index=False)
+        if not isfile(word_meaning_test_data_filepath):
+            test_data_df = create_word_meaning_model_data_features(
+                target_words=data_words_test,
+                word_to_int=data_word_to_int,
+                tps_scores=tps_scores,
+                tps_pds=tps_pds,
+                tps_neighbourhood_sizes=tps_neighbourhood_sizes,
+                words_estimated_ids=words_estimated_ids,
+                words_to_meanings=words_to_num_meanings,
+                gad_features_dict=gad_features_dict,
+            )
+            test_data_df.to_csv(word_meaning_test_data_filepath, index=False)
+        if not isfile(word_meaning_semeval_test_data_filepath):
+            semeval_test_data_df = create_word_meaning_model_data_features(
+                target_words=semeval_target_words_in_vocab,
+                word_to_int=data_word_to_int,
+                tps_scores=tps_scores,
+                tps_pds=tps_pds,
+                tps_neighbourhood_sizes=tps_neighbourhood_sizes,
+                words_estimated_ids=words_estimated_ids,
+                words_to_meanings=words_to_num_meanings,
+                gad_features_dict=gad_features_dict,
+            )
+            semeval_test_data_df.to_csv(
+                word_meaning_semeval_test_data_filepath, index=False
+            )
     else:
         train_data_df = pd.read_csv(word_meaning_train_data_filepath)
         test_data_df = pd.read_csv(word_meaning_test_data_filepath)
+        semeval_test_data_df = pd.read_csv(word_meaning_semeval_test_data_filepath)
     print("Train", train_data_df)
     print("Test", test_data_df)
+    print("SemEval test", semeval_test_data_df)
 
 
 if __name__ == "__main__":
