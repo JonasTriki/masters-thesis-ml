@@ -53,10 +53,11 @@ log_reg_cv = LogisticRegressionCV(
 )
 log_reg_cv.fit(X_train, y_train_multi_class)
 print("Done!")
-print(f"Selected alpha: {log_reg_cv.alpha_}")
 
 print("Saving to file...")
 joblib.dump(log_reg_cv, "data/log_reg_cv.joblib", protocol=4)
 print("Done!")
+
+print(f"L1 ratios: {log_reg_cv.l1_ratio_}")
 
 # TODO: Add argparse to script and generalize
