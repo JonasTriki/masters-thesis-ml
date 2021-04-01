@@ -1,5 +1,6 @@
 import sys
-from typing import Optional, Union
+from multiprocessing import Array, Pool, cpu_count
+from typing import List, Optional, Union
 
 import numpy as np
 from fastdist import fastdist
@@ -9,11 +10,12 @@ from gudhi.persistence_graphical_tools import (
 )
 from gudhi.rips_complex import RipsComplex
 from gudhi.wasserstein import wasserstein_distance
+from tqdm import tqdm
 
 sys.path.append("..")
 
 from approx_nn import ApproxNN  # noqa: E402
-from utils import words_to_vectors  # noqa: E402
+from utils import batch_list_gen, words_to_vectors  # noqa: E402
 
 
 def punctured_neighbourhood(
@@ -269,3 +271,317 @@ def tps_point_cloud(
         sanity_check=sanity_check,
         return_persistence_diagram=return_persistence_diagram,
     )
+
+
+# Multiprocessing variable dict
+mp_var_dict = {}
+
+
+def compute_tps_mp_init(
+    data_points: Array,
+    data_points_shape: tuple,
+    data_points_pairwise_dists: Array,
+    ann_instance: ApproxNN,
+) -> None:
+    """
+    Initializes multiprocessing variable dict for TPS.
+
+    Parameters
+    ----------
+    data_points: Array
+        Multiprocessing array representing the data points.
+    data_points_shape : tuple
+        Shape of the data points.
+    data_points_pairwise_dists : Array
+        Pairwise distances between data points.
+    ann_instance : ApproxNN
+        ApproxNN instance.
+    """
+    mp_var_dict["data_points"] = data_points
+    mp_var_dict["data_points_shape"] = data_points_shape
+    mp_var_dict["data_points_pairwise_dists"] = data_points_pairwise_dists
+    mp_var_dict["ann_instance"] = ann_instance
+
+
+def tps_multiple_by_mp_args(args: tuple) -> tuple:
+    """
+    Computes the topological polysemy (TPS) [1] of words with respect
+    to some word embeddings and neighbourhood size.
+
+    Parameters
+    ----------
+    args : tuple
+        Tuple containing multiprocessing argument for computing TPS.
+            target_words : list of str
+                Target words (w)
+            word_to_int : dict of str and int
+                Dictionary mapping from word to its integer representation.
+            neighbourhood_size : int
+                Neighbourhood size (n).
+            sanity_check : bool, optional
+                Whether or not to run sanity checks (defaults to False).
+            return_persistence_diagram : bool, optional
+                Whether or not to return persistence diagram (defaults to False).
+
+    Returns
+    -------
+    tps_result : float or tuple
+        TPS of `target_word` w.r.t. word_embeddings and neighbourhood_size.
+    target_words_indices : list of str
+        Indices of target words
+
+    References
+    ----------
+    .. [1] Alexander Jakubowski, Milica Gašić, & Marcus Zibrowius. (2020).
+       Topology of Word Embeddings: Singularities Reflect Polysemy.
+    """
+    # Parse arguments
+    (
+        target_words,
+        target_words_indices,
+        word_to_int,
+        neighbourhood_size,
+        sanity_check,
+        return_persistence_diagram,
+        progressbar_enabled,
+    ) = args
+
+    # Get data_points and distance_func from MP dict
+    word_embeddings_normalized_shape = mp_var_dict["data_points_shape"]
+    word_embeddings_normalized = np.frombuffer(mp_var_dict["data_points"]).reshape(
+        word_embeddings_normalized_shape
+    )
+    word_embeddings_pairwise_dists = mp_var_dict["data_points_pairwise_dists"]
+    if word_embeddings_pairwise_dists is not None:
+        word_embeddings_pairwise_dists = np.frombuffer(
+            word_embeddings_pairwise_dists
+        ).reshape(
+            word_embeddings_normalized_shape[0], word_embeddings_normalized_shape[0]
+        )
+    ann_instance = mp_var_dict["ann_instance"]
+
+    # Prepare return values
+    tps_scores = np.zeros_like(target_words, dtype=float)
+    tps_persistence_diagrams = None
+    if return_persistence_diagram:
+        tps_persistence_diagrams = np.empty(len(target_words), dtype="object")
+
+    # Compute TPS of target words
+    for i, target_word in enumerate(
+        tqdm(target_words, disable=not progressbar_enabled)
+    ):
+        tps_result = tps(
+            target_word=target_word,
+            word_to_int=word_to_int,
+            neighbourhood_size=neighbourhood_size,
+            word_embeddings_normalized=word_embeddings_normalized,
+            word_embeddings_pairwise_dists=word_embeddings_pairwise_dists,
+            ann_instance=ann_instance,
+            sanity_check=sanity_check,
+            return_persistence_diagram=return_persistence_diagram,
+        )
+        if return_persistence_diagram:
+            tps_scores[i], tps_persistence_diagrams[i] = tps_result
+        else:
+            tps_scores[i] = tps_result
+
+    if return_persistence_diagram:
+        tps_result = tps_scores, tps_persistence_diagrams
+    else:
+        tps_result = tps_scores
+
+    return tps_result, target_words_indices
+
+
+def numpy_to_mp_array(arr: np.ndarray) -> Array:
+    """
+    Converts a Numpy array to a multiprocessing Array.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        Numpy array
+
+    Returns
+    -------
+    mp_arr : Array
+        Multiprocessing Array
+    """
+    data_points_raw = Array("d", arr.shape[0] * arr.shape[1], lock=False)
+    data_points_raw_np = np.frombuffer(data_points_raw).reshape(arr.shape)
+    np.copyto(data_points_raw_np, arr)
+    return data_points_raw_np
+
+
+def tps_multiple(
+    target_words: List[str],
+    word_to_int: dict,
+    neighbourhood_size: int,
+    words_vocabulary: Optional[list] = None,
+    word_embeddings: np.ndarray = None,
+    word_embeddings_normalized: np.ndarray = None,
+    word_embeddings_pairwise_dists: np.ndarray = None,
+    ann_instance: ApproxNN = None,
+    sanity_check: bool = False,
+    return_persistence_diagram: bool = False,
+    n_jobs: int = 1,
+    progressbar_enabled: bool = False,
+    verbose: int = 1,
+) -> Union[float, tuple]:
+    """
+    Computes the topological polysemy (TPS) [1] of words with respect
+    to some word embeddings and neighbourhood size.
+
+    Parameters
+    ----------
+    target_words : list of str
+        Target words (w)
+    word_to_int : dict of str and int
+        Dictionary mapping from word to its integer representation.
+    neighbourhood_size : int
+        Neighbourhood size (n)
+    words_vocabulary : list, optional
+        List of either words (str) or r word integer representations (int), signalizing
+        what part of the vocabulary we want to use (defaults to None, i.e., whole vocabulary).
+    word_embeddings : np.ndarray
+        Word embeddings; either word_embeddings or word_embeddings_normalized
+        must be specified (defaults to None).
+    word_embeddings_normalized : np.ndarray, optional
+        Normalized word embeddings; either word_embeddings_normalized or word_embeddings
+        must be specified (defaults to None).
+    word_embeddings_pairwise_dists : np.ndarray, optional
+        Numpy matrix containing pairwise distances between word embeddings
+        (defaults to None).
+    ann_instance : ApproxNN, optional
+        Approximate nearest neighbour (ANN) instance, built on the word embeddings
+        (defaults to None). If specified, the ANN index is used to find punctured
+        neighbourhoods.
+    sanity_check : bool, optional
+        Whether or not to run sanity checks (defaults to False).
+    return_persistence_diagram : bool, optional
+        Whether or not to return persistence diagram (defaults to False).
+    n_jobs : int, optional
+        Number of processes to use (defaults to 1).
+    progressbar_enabled: bool, optional
+        Whether or not the progressbar is enabled (defaults to False).
+    verbose : int, optional
+        Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose). Defaults to 1 (verbose).
+
+    Returns
+    -------
+    result : float or tuple
+        TPS values of `target_words` w.r.t. word_embeddings and neighbourhood_size.
+        If return_persistence_diagram is set to true, then a tuple is returned
+        with the TPS values as the first value and the zero degree persistence diagram
+        as the second value.
+
+    References
+    ----------
+    .. [1] Alexander Jakubowski, Milica Gašić, & Marcus Zibrowius. (2020).
+       Topology of Word Embeddings: Singularities Reflect Polysemy.
+    """
+    tps_scores = np.zeros_like(target_words, dtype=float)
+    tps_persistence_diagrams = None
+    if return_persistence_diagram:
+        tps_persistence_diagrams = np.empty(len(target_words), dtype="object")
+
+    # Only normalize word embeddings once
+    if word_embeddings_normalized is None:
+        if words_vocabulary is not None:
+            word_vectors = words_to_vectors(
+                words_vocabulary=words_vocabulary,
+                word_to_int=word_to_int,
+                word_embeddings=word_embeddings,
+            )
+        else:
+            word_vectors = word_embeddings
+
+        word_embeddings_normalized = word_vectors / np.linalg.norm(
+            word_vectors, axis=1
+        ).reshape(-1, 1)
+    if n_jobs == -1:
+        n_jobs = cpu_count()
+    if n_jobs > 1:
+
+        # Prepare data for multiprocessing
+        if verbose == 1:
+            print("Preparing data for multiprocessing...")
+        word_embeddings_normalized_raw_np = numpy_to_mp_array(
+            word_embeddings_normalized
+        )
+        word_embeddings_pairwise_dists_raw_np = None
+        if word_embeddings_pairwise_dists is not None:
+            word_embeddings_pairwise_dists_raw_np = numpy_to_mp_array(
+                word_embeddings_pairwise_dists
+            )
+        if verbose == 1:
+            print("Done!")
+
+        # Prepare arguments
+        num_data_points_per_process = int(len(target_words) // n_jobs)
+        mp_args = [
+            (
+                target_words[target_word_indices_chunk],
+                target_word_indices_chunk,
+                word_to_int,
+                neighbourhood_size,
+                sanity_check,
+                return_persistence_diagram,
+                progressbar_enabled,
+            )
+            for target_word_indices_chunk in batch_list_gen(
+                np.arange(len(target_words)), num_data_points_per_process
+            )
+        ]
+
+        # Run MP
+        if verbose == 1:
+            print(f"Computing TPS using {n_jobs} processes...")
+        with Pool(
+            processes=n_jobs,
+            initializer=compute_tps_mp_init,
+            initargs=(
+                word_embeddings_normalized_raw_np,
+                word_embeddings_normalized.shape,
+                word_embeddings_pairwise_dists_raw_np,
+                ann_instance,
+            ),
+        ) as pool:
+            for tps_result, target_word_indices in tqdm(
+                pool.imap_unordered(tps_multiple_by_mp_args, mp_args),
+                total=n_jobs,
+                disable=not progressbar_enabled,
+            ):
+                if return_persistence_diagram:
+                    (
+                        tps_scores[target_word_indices],
+                        tps_persistence_diagrams[target_word_indices],
+                    ) = tps_result
+                else:
+                    tps_scores[target_word_indices] = tps_result
+    else:
+        for i, target_word in enumerate(
+            tqdm(target_words, disable=not progressbar_enabled)
+        ):
+            tps_result = tps(
+                target_word=target_word,
+                word_to_int=word_to_int,
+                neighbourhood_size=neighbourhood_size,
+                word_embeddings_normalized=word_embeddings_normalized,
+                word_embeddings_pairwise_dists=word_embeddings_pairwise_dists,
+                ann_instance=ann_instance,
+                sanity_check=sanity_check,
+                return_persistence_diagram=return_persistence_diagram,
+            )
+            if return_persistence_diagram:
+                tps_scores[i], tps_persistence_diagrams[i] = tps_result
+            else:
+                tps_scores[i] = tps_result
+
+    if return_persistence_diagram:
+        return tps_scores, tps_persistence_diagrams
+    else:
+        return tps_scores
+
+
+# TODO: Look at `sharedmem` package for sharing big matrix?

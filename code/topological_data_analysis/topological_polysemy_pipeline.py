@@ -17,7 +17,7 @@ sys.path.append("..")
 
 from approx_nn import ApproxNN  # noqa: E402
 from topological_data_analysis.topological_polysemy import (  # noqa: E402
-    tps,
+    tps_multiple,
     tps_point_cloud,
 )
 from word_embeddings.word2vec import load_model_training_output  # noqa: E402
@@ -228,17 +228,16 @@ def tps_word_embeddings(
             f"tps_{neighbourhood_size}_vs_gs.npy",
         )
         if not isfile(output_plot_filepath):
-            tps_scores_semeval = []
             print("Computing TPS scores for GS words")
-            for semeval_target_word in tqdm(semeval_target_words_in_vocab):
-                tps_score_semeval = tps(
-                    target_word=semeval_target_word,
-                    word_to_int=word_to_int,
-                    neighbourhood_size=neighbourhood_size,
-                    word_embeddings_normalized=word_embeddings_normalized,
-                    ann_instance=ann_instance,
-                )
-                tps_scores_semeval.append(tps_score_semeval)
+            tps_scores_semeval = tps_multiple(
+                target_words=semeval_target_words_in_vocab,
+                word_to_int=word_to_int,
+                neighbourhood_size=neighbourhood_size,
+                word_embeddings_normalized=word_embeddings_normalized,
+                ann_instance=ann_instance,
+                n_jobs=-1,
+                progressbar_enabled=True,
+            )
 
             # Compute correlation vs GS word meanings
             tps_score_vs_gs_correlation, _ = pearsonr(
@@ -272,20 +271,25 @@ def tps_word_embeddings(
 
             # Find words in vocabulary that have synsets in Wordnet
             tps_scores_wordnet_synsets = []
+            wordnet_synsets_words_in_vocab = []
             wordnet_synsets_words_in_vocab_meanings = []
             print("Computing TPS scores for words in vocabulary with Wordnet synsets")
             for word in tqdm(word_vocabulary):
                 num_synsets_word = len(wn.synsets(word))
                 if num_synsets_word > 0:
+                    wordnet_synsets_words_in_vocab.append(word)
                     wordnet_synsets_words_in_vocab_meanings.append(num_synsets_word)
-                    tps_score_wordnet_synset = tps(
-                        target_word=word,
-                        word_to_int=word_to_int,
-                        neighbourhood_size=neighbourhood_size,
-                        word_embeddings_normalized=word_embeddings_normalized,
-                        ann_instance=ann_instance,
-                    )
-                    tps_scores_wordnet_synsets.append(tps_score_wordnet_synset)
+            wordnet_synsets_words_in_vocab = np.array(wordnet_synsets_words_in_vocab)
+
+            tps_scores_wordnet_synsets = tps_multiple(
+                target_words=wordnet_synsets_words_in_vocab,
+                word_to_int=word_to_int,
+                neighbourhood_size=neighbourhood_size,
+                word_embeddings_normalized=word_embeddings_normalized,
+                ann_instance=ann_instance,
+                n_jobs=-1,
+                progressbar_enabled=True,
+            )
 
             # Compute correlation vs Wordnet synsets
             tps_score_vs_wordnet_synsets_correlation, _ = pearsonr(
@@ -321,16 +325,15 @@ def tps_word_embeddings(
             print(
                 f"Computing TPS scores for top {num_top_k_words_frequencies} words vs. word frequencies"
             )
-            tps_score_word_frequencies = []
-            for word in tqdm(word_vocabulary[:num_top_k_words_frequencies]):
-                tps_score_word_frequency = tps(
-                    target_word=word,
-                    word_to_int=word_to_int,
-                    neighbourhood_size=neighbourhood_size,
-                    word_embeddings_normalized=word_embeddings_normalized,
-                    ann_instance=ann_instance,
-                )
-                tps_score_word_frequencies.append(tps_score_word_frequency)
+            tps_score_word_frequencies = tps_multiple(
+                target_words=word_vocabulary[:num_top_k_words_frequencies],
+                word_to_int=word_to_int,
+                neighbourhood_size=neighbourhood_size,
+                word_embeddings_normalized=word_embeddings_normalized,
+                ann_instance=ann_instance,
+                n_jobs=-1,
+                progressbar_enabled=True,
+            )
 
             # Compute correlation vs Wordnet synsets
             tps_score_vs_word_frequency_correlation, _ = pearsonr(
