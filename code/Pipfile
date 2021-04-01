@@ -54,6 +54,7 @@ jedi = "==0.17.2"
 scikit-dimension = "*"
 pervect = "*"
 scann = {file = "https://files.pythonhosted.org/packages/8d/ad/e6981da67acb1ba3e5515b59b2ce0562498dfd7124298fbfd23f35db361e/scann-1.2.1-cp36-cp36m-manylinux2014_x86_64.whl", sys_platform = "== 'linux'"}
+sharedmem = "*"
 
 [requires]
 python_version = "3.6"
