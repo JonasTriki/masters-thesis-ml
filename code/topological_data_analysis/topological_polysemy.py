@@ -3,6 +3,7 @@ from multiprocessing import Array, Pool, cpu_count
 from typing import List, Optional, Union
 
 import numpy as np
+import sharedmem
 from fastdist import fastdist
 from fastdist.fastdist import vector_to_matrix_distance
 from gudhi.persistence_graphical_tools import (
@@ -278,9 +279,9 @@ mp_var_dict = {}
 
 
 def compute_tps_mp_init(
-    data_points: Array,
-    data_points_shape: tuple,
-    data_points_pairwise_dists: Array,
+    # data_points: Array,
+    # data_points_shape: tuple,
+    # data_points_pairwise_dists: Array,
     ann_instance: ApproxNN,
 ) -> None:
     """
@@ -297,9 +298,9 @@ def compute_tps_mp_init(
     ann_instance : ApproxNN
         ApproxNN instance.
     """
-    mp_var_dict["data_points"] = data_points
-    mp_var_dict["data_points_shape"] = data_points_shape
-    mp_var_dict["data_points_pairwise_dists"] = data_points_pairwise_dists
+    # mp_var_dict["data_points"] = data_points
+    # mp_var_dict["data_points_shape"] = data_points_shape
+    # mp_var_dict["data_points_pairwise_dists"] = data_points_pairwise_dists
     mp_var_dict["ann_instance"] = ann_instance
 
 
@@ -337,6 +338,8 @@ def tps_multiple_by_mp_args(args: tuple) -> tuple:
     """
     # Parse arguments
     (
+        word_embeddings_normalized,
+        word_embeddings_pairwise_dists,
         target_words,
         target_words_indices,
         word_to_int,
@@ -345,19 +348,6 @@ def tps_multiple_by_mp_args(args: tuple) -> tuple:
         return_persistence_diagram,
         progressbar_enabled,
     ) = args
-
-    # Get data_points and distance_func from MP dict
-    word_embeddings_normalized_shape = mp_var_dict["data_points_shape"]
-    word_embeddings_normalized = np.frombuffer(mp_var_dict["data_points"]).reshape(
-        word_embeddings_normalized_shape
-    )
-    word_embeddings_pairwise_dists = mp_var_dict["data_points_pairwise_dists"]
-    if word_embeddings_pairwise_dists is not None:
-        word_embeddings_pairwise_dists = np.frombuffer(
-            word_embeddings_pairwise_dists
-        ).reshape(
-            word_embeddings_normalized_shape[0], word_embeddings_normalized_shape[0]
-        )
     ann_instance = mp_var_dict["ann_instance"]
 
     # Prepare return values
@@ -506,12 +496,10 @@ def tps_multiple(
         # Prepare data for multiprocessing
         if verbose == 1:
             print("Preparing data for multiprocessing...")
-        word_embeddings_normalized_raw_np = numpy_to_mp_array(
-            word_embeddings_normalized
-        )
-        word_embeddings_pairwise_dists_raw_np = None
+        word_embeddings_normalized_shared = sharedmem.copy(word_embeddings_normalized)
+        word_embeddings_pairwise_dists_shared = None
         if word_embeddings_pairwise_dists is not None:
-            word_embeddings_pairwise_dists_raw_np = numpy_to_mp_array(
+            word_embeddings_pairwise_dists_shared = sharedmem.copy(
                 word_embeddings_pairwise_dists
             )
         if verbose == 1:
@@ -521,6 +509,8 @@ def tps_multiple(
         num_data_points_per_process = int(len(target_words) // n_jobs)
         mp_args = [
             (
+                word_embeddings_normalized_shared,
+                word_embeddings_pairwise_dists_shared,
                 target_words[target_word_indices_chunk],
                 target_word_indices_chunk,
                 word_to_int,
@@ -537,21 +527,10 @@ def tps_multiple(
         # Run MP
         if verbose == 1:
             print(f"Computing TPS using {n_jobs} processes...")
-        with Pool(
-            processes=n_jobs,
-            initializer=compute_tps_mp_init,
-            initargs=(
-                word_embeddings_normalized_raw_np,
-                word_embeddings_normalized.shape,
-                word_embeddings_pairwise_dists_raw_np,
-                ann_instance,
-            ),
-        ) as pool:
-            for tps_result, target_word_indices in tqdm(
-                pool.imap_unordered(tps_multiple_by_mp_args, mp_args),
-                total=n_jobs,
-                disable=not progressbar_enabled,
-            ):
+        mp_var_dict["ann_instance"] = ann_instance
+        with sharedmem.MapReduce(np=n_jobs) as pool:
+            mp_results = pool.map(tps_multiple_by_mp_args, mp_args)
+            for tps_result, target_word_indices in mp_results:
                 if return_persistence_diagram:
                     (
                         tps_scores[target_word_indices],
@@ -582,6 +561,3 @@ def tps_multiple(
         return tps_scores, tps_persistence_diagrams
     else:
         return tps_scores
-
-
-# TODO: Look at `sharedmem` package for sharing big matrix?
