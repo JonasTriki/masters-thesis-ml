@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.offsetbox import AnnotationBbox, TextArea
 
 sys.path.append("..")
 
@@ -505,3 +506,147 @@ def visualize_word_cluster_groups(
         ax.set_ylabel(ylabel)
         if show_plot:
             plt.show()
+
+
+def word_group_visualization(
+    transformed_word_embeddings: np.ndarray,
+    words: np.ndarray,
+    word_groups: dict,
+    xlabel: str,
+    ylabel: str,
+    emphasis_words: list = None,
+    alpha: float = 1,
+    non_group_words_color: str = "#c44e52",
+    show_plot: bool = True,
+) -> None:
+    """
+    Visualizes one or more word groups by plotting its word embeddings in 2D.
+
+    Parameters
+    ----------
+    transformed_word_embeddings : np.ndarray
+        Transformed word embeddings.
+    words : np.ndarray
+        Numpy array containing all words from vocabulary.
+    word_groups : dict
+        Dictionary containing word groups to visualize.
+    xlabel : str
+        X-axis label.
+    ylabel : str
+        Y-axis label.
+    emphasis_words : list, optional
+        List representing words to emphasize in the visualization (defaults to None).
+        Entries can be either be strings (words) or tuples, consisting of the word, x-offset
+        and y-offset.
+    alpha : float
+        Scatter plot alpha value (defaults to 1).
+    non_group_words_color : str
+        Color for words outside groups (defaults to #c44e52).
+    show_plot : bool
+        Whether or not to call plt.show() (defaults to True).
+    """
+    # Filter and restrict words in word groups
+    word_group_words_restricted = {}
+    for group_key, group_data in word_groups.items():
+        group_words = group_data["words"]
+        group_words = np.array([word for word in group_words if word in words])
+        group_words_indices = np.array(
+            [np.where(words == word)[0][0] for word in group_words]
+        )
+        group_word_embeddings = transformed_word_embeddings[group_words_indices]
+        boundaries = group_data.get("boundaries", {})
+        if boundaries.get("xmin") is None:
+            boundaries["xmin"] = group_word_embeddings[:, 0].min()
+        if boundaries.get("xmax") is None:
+            boundaries["xmax"] = group_word_embeddings[:, 0].max()
+        if boundaries.get("ymin") is None:
+            boundaries["ymin"] = group_word_embeddings[:, 1].min()
+        if boundaries.get("ymax") is None:
+            boundaries["ymax"] = group_word_embeddings[:, 1].max()
+
+        group_word_embeddings_boundaries_mask = [
+            (boundaries["xmin"] <= word_vec[0] <= boundaries["xmax"])
+            and (boundaries["ymin"] <= word_vec[1] <= boundaries["ymax"])
+            for i, word_vec in enumerate(group_word_embeddings)
+        ]
+        word_group_words_restricted[group_key] = group_words[
+            group_word_embeddings_boundaries_mask
+        ]
+
+    # Find words not in groups
+    words_not_in_groups_mask = [
+        i
+        for i, word in enumerate(words)
+        for group_words in word_group_words_restricted.values()
+        if word not in group_words
+    ]
+
+    _, ax = plt.subplots(figsize=(12, 10))
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    # Plot non-group words
+    ax.scatter(
+        x=transformed_word_embeddings[words_not_in_groups_mask][:, 0],
+        y=transformed_word_embeddings[words_not_in_groups_mask][:, 1],
+        s=10,
+        alpha=alpha,
+        c=non_group_words_color,
+    )
+
+    # Plot group words
+    for group_key, group_words in word_group_words_restricted.items():
+        group_words_indices = np.array(
+            [np.where(words == word)[0][0] for word in group_words]
+        )
+        group_word_embeddings = transformed_word_embeddings[group_words_indices]
+
+        ax.scatter(
+            x=group_word_embeddings[:, 0],
+            y=group_word_embeddings[:, 1],
+            s=15,
+            alpha=alpha,
+            c=word_groups[group_key]["color"],
+            label=word_groups[group_key]["label"],
+        )
+
+    # Visualize emphasized words
+    if emphasis_words is not None:
+        emphasis_words = [
+            (entry, 0, 0) if type(entry) == str else entry for entry in emphasis_words
+        ]
+        for emphasis_word, x_offset, y_offset in emphasis_words:
+            word_group_key = None
+            for group_key, group_data in word_groups.items():
+                if emphasis_word in group_data["words"]:
+                    word_group_key = group_key
+                    break
+            if word_group_key is None:
+                word_color = non_group_words_color
+            else:
+                word_color = word_groups[group_key]["color"]
+
+            word_idx = [i for i, word in enumerate(words) if word == emphasis_word][0]
+            ax.scatter(
+                x=transformed_word_embeddings[word_idx, 0],
+                y=transformed_word_embeddings[word_idx, 1],
+                s=40,
+                alpha=alpha,
+                c=word_color,
+            )
+
+            # Annotate emphasis word with a text box
+            offsetbox = TextArea(emphasis_word)
+            ab = AnnotationBbox(
+                offsetbox,
+                tuple(transformed_word_embeddings[word_idx]),
+                xybox=(x_offset, 40 + y_offset),
+                xycoords="data",
+                boxcoords="offset points",
+                arrowprops=dict(arrowstyle="->", color="black", linewidth=2),
+            )
+            ax.add_artist(ab)
+
+    plt.legend()
+    if show_plot:
+        plt.show()
