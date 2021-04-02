@@ -279,9 +279,6 @@ mp_var_dict = {}
 
 
 def compute_tps_mp_init(
-    # data_points: Array,
-    # data_points_shape: tuple,
-    # data_points_pairwise_dists: Array,
     ann_instance: ApproxNN,
 ) -> None:
     """
@@ -289,18 +286,9 @@ def compute_tps_mp_init(
 
     Parameters
     ----------
-    data_points: Array
-        Multiprocessing array representing the data points.
-    data_points_shape : tuple
-        Shape of the data points.
-    data_points_pairwise_dists : Array
-        Pairwise distances between data points.
     ann_instance : ApproxNN
         ApproxNN instance.
     """
-    # mp_var_dict["data_points"] = data_points
-    # mp_var_dict["data_points_shape"] = data_points_shape
-    # mp_var_dict["data_points_pairwise_dists"] = data_points_pairwise_dists
     mp_var_dict["ann_instance"] = ann_instance
 
 
@@ -313,16 +301,24 @@ def tps_multiple_by_mp_args(args: tuple) -> tuple:
     ----------
     args : tuple
         Tuple containing multiprocessing argument for computing TPS.
+            word_embeddings_normalized : np.ndarray
+                Normalized word embeddings.
+            word_embeddings_pairwise_dists : np.ndarray
+                Pairwise distances between word embeddings.
             target_words : list of str
-                Target words (w)
+                Target words (w).
+            target_words_indices : np.ndarray
+                Indices of target words.
             word_to_int : dict of str and int
                 Dictionary mapping from word to its integer representation.
             neighbourhood_size : int
                 Neighbourhood size (n).
-            sanity_check : bool, optional
+            sanity_check : bool
                 Whether or not to run sanity checks (defaults to False).
-            return_persistence_diagram : bool, optional
+            return_persistence_diagram : bool
                 Whether or not to return persistence diagram (defaults to False).
+            progressbar_enabled : bool
+                Whether or not the progressbar is enabled.
 
     Returns
     -------
@@ -381,26 +377,6 @@ def tps_multiple_by_mp_args(args: tuple) -> tuple:
         tps_result = tps_scores
 
     return tps_result, target_words_indices
-
-
-def numpy_to_mp_array(arr: np.ndarray) -> Array:
-    """
-    Converts a Numpy array to a multiprocessing Array.
-
-    Parameters
-    ----------
-    arr : np.ndarray
-        Numpy array
-
-    Returns
-    -------
-    mp_arr : Array
-        Multiprocessing Array
-    """
-    data_points_raw = Array("d", arr.shape[0] * arr.shape[1], lock=False)
-    data_points_raw_np = np.frombuffer(data_points_raw).reshape(arr.shape)
-    np.copyto(data_points_raw_np, arr)
-    return data_points_raw_np
 
 
 def tps_multiple(
