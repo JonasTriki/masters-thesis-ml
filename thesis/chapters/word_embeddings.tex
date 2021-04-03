@@ -276,17 +276,52 @@ When training a word2vec model, we have to choose several hyperparameters. In th
 Creating word embeddings is a task which can be achieves in various ways. In this section we will briefly introduce two different models for computing word embeddings. The first model is called Global Vectors (GloVe) \cite{pennington2014glove} and is a more "explicit" model for learning vector representations for words. The second model is called fastText \cite{bojanowski2017enriching} and is an extension of the original word2vec Skip-gram model to include sub-word information. Note that we will primarily focus on word2vec using Skip-gram with negative sampling in this thesis, and for this reason, we will not go into depth when explaining GloVe and fastText.
 
 \subsection{GloVe}
-Global Vectors (GloVe) \cite{pennington2014glove} is a model for learning vector representations. In contrast to word2vec, GloVe trains on word to word co-occurrence counts, and thus, makes efficient use of statistics. In addition to this, the objective of GloVe is more explicit, as opposed to the vector representations learned by word2vec, which are merely a bi-product of the training.
+Global Vectors (GloVe) \cite{pennington2014glove} is a model for learning vector representations for words. In contrast to word2vec, GloVe trains on word to word co-occurrence counts, and thus, makes efficient use of statistics. In addition to this, the objective of GloVe is more explicit, as opposed to the vector representations learned by word2vec, which are merely a bi-product of the training.
 
-TODO \cite{pennington2014glove}.
+To understand how GloVe works, we will first introduce the notion of the word to word co-occurrence matrix, denoted $X$. $X$ is a square matrix where each element $X_{ij}$ represent the number of times word $j$ occurs in the context of word $i$. Following, let $|V|$ denote the number of unique words in the vocabulary and let $X_i=\sumlim{k=1}{|V|} X_{ik}$ be the number of times any word appears in the context of word $i$. Using $X_{ij}$ and $X_i$, we can establish a probabilistic model $P_{ij}$ of how often a given word $j$ falls in the context of word $i$. Finally, we let $P_{ij}=P(j|i)=X_{ij} / {X_i}$. To motivate the use of $P_{ij}$, imagine that we want to investigate the concept of temperatures, which can be extracted directly from the co-occurrence probabilities. Consider the words $i = \text{sunny}$ and $j = \text{cloudy}$. We can explore relationships of the words $i$ and $j$ by studying the ratios of the co-occurrence probabilities with various other words, $k$. If we set the word $k = \text{hot}$, we expect that the ratio $P_{ik} / P_{jk}$ will be large, since intuitively heat is more related to the word sunny than cloudy. If the word $k$ is set to a word unrelated to both sunny and cloudy, the ratio should be around 1, since both probabilities will become rather low. The authors of \cite{pennington2014glove} give an example of studying the ratios of co-occurrence probabilities is the foundation of how GloVe incorporates word count statistics to learn vector representations.
+
+To learn vector representations of words, Glove uses two weight matrices, denoted $W=\enclc{w_1, w_2, \ldots, w_{|V|}} \in \R^{|V| \times d}$ and $\Tilde{W}=\enclc{\Tilde{w}_1, \Tilde{w}_2, \ldots, \Tilde{w}_{|V|}} \in \R^{|V| \times d}$, similar to word2vec. That is, the weight matrix $W$ represents the word vectors, while $\Tilde{W}$ represent the context word vectors. Furthermore, the objective function of GloVe consists of a weighted squared loss $J$, as shown in \cref{eqn:glove-loss}.
+\begin{align}
+    J = \sumlim{i, j = 1}{|V|} f \enclp{X_{ij}} \enclp{\trans{w_i} \Tilde{w}_j + b_i + \Tilde{b}_j - \log X_{ij}}^2
+    \label{eqn:glove-loss}
+\end{align}
+where $f$ is a weighting function, $b_i$ is bias for $w_i$ and $\Tilde{b}_j$ is bias for $\Tilde{w}_j$. The authors of GloVe found the following class of functions for $f$ to be suitable
+\begin{align}
+    f(x) = \begin{cases}
+        \enclp{x / x_{\text{max}}}^\alpha & \mbox{if } x < x_{\text{max}} \\
+        1 & \text{otherwise}
+    \end{cases}
+    \label{eqn:glove-loss-f-function}
+\end{align}
+where $\alpha$ and $x_{\text{max}}$ are hyperparameters. In the experiments performed in \cite{pennington2014glove}, the authors let $x_{\text{max}}=100$ and $\alpha=3/4$. Furthermore, to train the GloVe model, they iteratively learn the weights over time in a gradient descent fashion, using AdaGrad \cite{Duchi2011} in particular, with an initial learning rate of $0.05$. Lastly, GloVe uses the sum of its weight matrices, i.e., $W + \Tilde{W}$, as the word vectors, leading to a minor increase in performance.
 
 \subsection{fastText}
-TODO \cite{bojanowski2017enriching}.
+fastText is an extension the word2vec Skip-gram model with negative sampling \cite{bojanowski2017enriching}. In particular, fastText represent each word using character $n$-grams, that is, sub-words of length $n$ (e.g. $\textit{que}$ is a $3$-gram of the word $\textit{quest}$). Vector representations are associated to each character $n$-gram, and following, words are vectorized using the sum of such representations. By creating vector representations of character $n$-grams, fastText is able to create representations for words which were not in the training vocabulary.
+
+Recall the objective function (\cref{eqn:skip-gram-negative-sampling-objective}) of the Skip-gram model with negative sampling. The authors of fastText generalize it by replacing the dot product between word vectors with a scoring function $s(w_I, w_O) \mapsto \R$. We generalize \cref{eqn:skip-gram-negative-sampling-objective} using scoring function $s$ in \cref{eqn:skip-gram-negative-sampling-objective-general}.
+\begin{align}
+    \frac{1}{T} \sumlim{t=1}{T} \sumlim{w_O \in cw(w_I)}{} \log \sigma \left( s(w_I, w_O) \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -s(w_I, w_i) \right)
+    \label{eqn:skip-gram-negative-sampling-objective-general}
+\end{align}
+where $s(w_I, w_O)=\trans{v'_{w_O}} v_{w_I}$ for the Skip-gram model with negative sampling.
+
+As mentioned earlier, fastText vectorizes each word $w$ using the vector representation of its character $n$-grams. To indicate the start and end of a word, the characters $<$ and $>$ are used, respectively. This is done such that the model can distinguish between pre- and post-fixes of words. Now, to give an example, let $w=\text{carbon}$ and $n=3$. The word $w$ will then be represented by the character $n$-grams:
+\begin{align*}
+    \textless\text{ca}, \text{car}, \text{arb}, \text{rbo}, \text{bon}, \text{on}\textgreater
+\end{align*}
+in addition to the word itself $\textless\text{carbon}\textgreater$. Note that the $n$-gram $\textless\text{car}\textgreater$, from the word car, is different from the $n$-gram car of the word $w$, due to the pre- and post-fix characters. Furthermore, let $\mathcal{G}_w \subset \enclc{g_1, g_2, \ldots, g_G}$ be the set of $n$-grams appearing in word $w$, where $G$ is the total number of $n$-grams of all words in the vocabulary. A vector $z_g$ is associated to each entry $g$ in $\mathcal{G}_w$. The goal of fastText is to represent each word vector as a sum of its $n$-grams, and consequently, the desired scoring function $s$ is obtained, as shown in \cref{eqn:fasttext-scoring-function}.
+\begin{align}
+    s(w_I, w_O) = \sumlim{z_g \in \mathcal{G}_{w_I}}{} \trans{z_g} v_{w_O}
+    \label{eqn:fasttext-scoring-function}
+\end{align}
+This minor change to the scoring function allows the fastText model to share vector representations of $n$-grams between words, and thus, allow to learn more accurate representations for rare words (i.e. words that occur rarely in the training vocabulary).
+
+Similar to the training of word2vec, the authors of fastText use stochastic gradient descent on the objective function in \cref{eqn:skip-gram-negative-sampling-objective-general} with \cref{eqn:fasttext-scoring-function} as scoring function. For more details of the training process, we kindly refer the reader to \cite[4 Experimental setup]{bojanowski2017enriching}.
 
 \section{Evaluating word embedding models}
 \label{sec:eval-word2vec-model}
-\textbf{TODO:} Specify that this is how one usually evaluate any word embedding model, not only word2vec.
+In typical machine learning projects, it is common to set aside some of the train data to be evaluated when we have finalized the model, e.g., the test data set. In word embedding models, however, it is more common to evaluate its word vectors on test data sets which measures word relatedness. A classical example of this is asking the question whether or not the word $\textbf{man}$ is related to $\textbf{woman}$ as the word $\textbf{king}$ is related to the word $\textbf{X}$, where $\textbf{X}$ should be the word $\textbf{queen}$. Such test data sets are usually referred to as analogy data sets in the literature and we will use two such data sets in order to assess the quality of word embeddings.
 
-In typical machine learning projects, it is common to set aside some of the train data to be evaluated when we have finalized the model, e.g., the test data set. In the word2vec model, however, it is not common to evaluate the models performance on some independent subset of the train data. Instead, test data sets which checks for word relatedness are more common (i.e., man is to woman as king is to queen).
+In the first paper introducing word2vec, they used two test data sets; the Semantic-Syntactic Word Relationship test set (SSWR) and the Microsoft Research Syntactic Analogies Dataset (MSR). SSWR was first introduced in \cite{mikolov2013a}, consists of 8869 semantic and 10675 syntactic questions and is widely used as a test dataset. The MSR dataset was first introduced in \cite{mikolov-etal-2013-linguistic} and consists of 8000 analogy questions. For the sake of simplicity, we will only use the SSWR and the MSR test data sets when evaluating the word embedding models on word analogy questions. It should be noted, however, that there are other common test data sets as well, such as the Bigger analogy test set (BATS) from \cite{gladkova-etal-2016-analogy}.
 
-In the first paper introducing word2vec, they used two test data sets; the Semantic-Syntactic Word Relationship test set (SSWR) and the Microsoft Research Syntactic Analogies Dataset (MSR). SSWR was first introduced in \cite{mikolov2013a}, consists of 8869 semantic and 10675 syntactic questions and is widely used as a test dataset. The MSR dataset was first introduced in \cite{mikolov-etal-2013-linguistic} and consists of 8000 analogy questions. For the sake of simplicity, we will only use the SSWR and the MSR test data sets when evaluating the word2vec model on word analogy questions. It should be noted, however, that there are other common test data sets as well, such as the Bigger analogy test set (BATS) from \cite{gladkova-etal-2016-analogy}.
+\textbf{TODO:} Mention PAD test data set (for evaluating word embeddings of phrases)
