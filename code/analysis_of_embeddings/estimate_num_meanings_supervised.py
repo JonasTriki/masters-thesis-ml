@@ -4,7 +4,10 @@ from os.path import join
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegressionCV
+from matplotlib import pyplot as plt
+from scipy.stats import pearsonr
+from sklearn.linear_model import LassoCV, LogisticRegressionCV
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import minmax_scale
 
 rng_seed = 399
@@ -38,8 +41,20 @@ def parse_args() -> argparse.Namespace:
 
 def create_multi_class_labels(labels: np.ndarray, max_label: int) -> np.ndarray:
     """
+    Converts labels into multi-class labels, where `max_label` denotes the maximum label.
+    Any label greater than max_label will be categorized using the same label.
 
-    TODO: Docs
+    Parameters
+    ----------
+    labels : np.ndarray
+        Labels to convert.
+    max_label : int
+        Maximum label.
+
+    Returns
+    -------
+    multi_class_labels : np.ndarray
+        Multi-class labels.
     """
     multi_class_labels = np.zeros_like(labels)
     for i, label in enumerate(labels):
@@ -50,9 +65,44 @@ def create_multi_class_labels(labels: np.ndarray, max_label: int) -> np.ndarray:
     return multi_class_labels
 
 
-def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str):
+def plot_pred_vs_true_labels(
+    pred_labels: np.ndarray,
+    true_labels: np.ndarray,
+    xlabel: str,
+    ylabel: str,
+    show_plot: bool = True,
+) -> None:
     """
-    TODO: Docs
+    Plots predicted labels (x-axis) vs true labels (y-axis).
+
+    Parameters
+    ----------
+    pred_labels : np.ndarray
+        Predicted labels.
+    true_labels : np.ndarray
+        True labels.
+    xlabel : str
+        Label for the x-axis.
+    ylabel : str
+        Label for the y-axis.
+    show_plot : bool, optional
+        Whether or not to call `plt.show()` to show the plot (defaults to True).
+    """
+    pred_true_corr, _ = pearsonr(pred_labels, true_labels)
+    pred_true_mse = mean_squared_error(true_labels, pred_labels)
+
+    plt.figure(figsize=(10, 7))
+    plt.scatter(pred_labels, true_labels)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(f"Pred/True: correlation: {pred_true_corr:.3f}, MSE: {pred_true_mse:.3f}")
+    if show_plot:
+        plt.show()
+
+
+def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) -> None:
+    """
+    Estimates number of word meanings using supervised models.
 
     Parameters
     ----------
@@ -75,40 +125,55 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str):
         word_meaning_train_data[word_meaning_data_feature_cols].values
     )
     y_train = word_meaning_train_data["y"].values
-
-    # Create multi-class labels
     max_y_multi = np.quantile(y_train, q=0.9)
-    print(f"Max label: {max_y_multi}")
+    print(f"Max label for multi-class: {max_y_multi}")
     y_train_multi_class = create_multi_class_labels(
         labels=y_train, max_label=max_y_multi
     )
-    print("Done!")
 
-    # Parameters
-    cv = 20
-    max_iter = 1000000
-    l1_alphas = np.linspace(0.00000001, 0.1, 10000)
-    print("Running LogisticRegressionCV...")
-    log_reg_cv = LogisticRegressionCV(
-        Cs=1 / l1_alphas,
-        cv=cv,
-        max_iter=max_iter,
-        penalty="l1",
-        solver="saga",
-        n_jobs=-1,
-        random_state=rng_seed,
-        verbose=0,
-    )
-    log_reg_cv.fit(X_train, y_train_multi_class)
-    print("Done!")
+    # Prepare train params
+    num_folds = 20
+    model_classes = [LassoCV, LogisticRegressionCV]
+    model_names = ["lasso_reg", "multi_class_logistic_reg"]
+    models_params = [
+        {
+            "alphas": np.linspace(0.00001, 0.99999, 10000),
+            "cv": num_folds,
+            "max_iter": 100000,
+            "n_jobs": -1,
+            "random_state": rng_seed,
+        },
+        {
+            "Cs": 1 / np.linspace(0.00000001, 0.1, 10000),
+            "cv": num_folds,
+            "max_iter": 1000000,
+            "penalty": "l1",
+            "solver": "saga",
+            "verbose": 0,
+            "n_jobs": -1,
+            "random_state": rng_seed,
+        },
+    ]
+    models_train_params = [{"multi_class": False}, {"multi_class": True}]
 
-    print("Saving to file...")
-    joblib.dump(log_reg_cv, join(output_dir, "log_reg_cv.joblib"), protocol=4)
-    print("Done!")
+    for model_cls, model_name, model_params, model_train_params in zip(
+        model_classes, model_names, models_params, models_train_params
+    ):
+        model_instance = model_cls(**model_params)
+        multi_class = model_train_params["multi_class"]
 
-    print(f"L1 ratios: {log_reg_cv.l1_ratio_}")
+        print(f"Training {model_cls.__name__}...")
+        if multi_class:
+            model_instance.fit(X_train, y_train_multi_class)
+        else:
+            model_instance.fit(X_train, y_train)
+        print("Done!")
 
-    # TODO: Add argparse to script and generalize
+        print("Saving to file...")
+        joblib.dump(
+            model_instance, join(output_dir, f"{model_name}.joblib"), protocol=4
+        )
+        print("Done!")
 
 
 if __name__ == "__main__":
