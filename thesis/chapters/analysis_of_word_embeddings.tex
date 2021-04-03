@@ -94,7 +94,7 @@ Furthermore, we set the embedding dimension to 300, the maximal window size to 5
 
 Using the preprocessing steps from \cref{sec:data-preprocessing} on our data and the hyperparameters from \cref{table:word2vec-hyperparameter-choices}, we get a vocabulary size of 1682564 ($\sim$1.7M) and corpus size of 2514127336 ($\sim$2.5B).
 
-\subsection{Empirical results}
+\section{Empirical results}
 We evaluated a word2vec model trained on the hyperparameters from \cref{sec:hyperparameter-choices} on a machine with a single GPU (GeForce RTX 2080 Ti), one CPU (Intel i9-7900X @ 3.30GHz) and 64 GB of RAM. We evaluated the trained model using the SSWR and MSR test datasets and compare the results to models from \cite{mikolov2013a, mikolov2013b, mikolov-etal-2013-linguistic, bojanowski2017enriching}. In particular, we compare to the Skip-gram models from \cite[Table 3]{mikolov2013a} and \cite[Table 6]{mikolov2013a} (denoted SG 300 and 1000 respectively), the NEG-15 model from \cite[Table 1]{mikolov2013b}, the RNN-1600 model from \cite[Table 2]{mikolov-etal-2013-linguistic} and the fastText model from \cite[Table 2]{bojanowski2017enriching}. The results are shown in \cref{table:word2vec-eval-empirical-results} (a dash denotes that the model has not been evaluated on the particular subset/data set).
 
 \begin{table}[ht]
