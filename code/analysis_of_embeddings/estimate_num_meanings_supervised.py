@@ -1,13 +1,16 @@
 import argparse
-from os.path import join
+from os import makedirs
+from os.path import isfile, join
 
 import joblib
 import numpy as np
 import pandas as pd
+import xgboost as xgb
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import minmax_scale
 
 rng_seed = 399
@@ -39,10 +42,11 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def create_multi_class_labels(labels: np.ndarray, max_label: int) -> np.ndarray:
+def create_classification_labels(labels: np.ndarray, max_label: int) -> np.ndarray:
     """
-    Converts labels into multi-class labels, where `max_label` denotes the maximum label.
-    Any label greater than max_label will be categorized using the same label.
+    Converts real-valued labels into classfication labels, where `max_label` denotes the
+    maximum real-valued label. Any label greater than max_label will be categorized using the
+    same label.
 
     Parameters
     ----------
@@ -53,16 +57,16 @@ def create_multi_class_labels(labels: np.ndarray, max_label: int) -> np.ndarray:
 
     Returns
     -------
-    multi_class_labels : np.ndarray
-        Multi-class labels.
+    classification_labels : np.ndarray
+        Classification labels.
     """
-    multi_class_labels = np.zeros_like(labels)
+    classification_labels = np.zeros_like(labels)
     for i, label in enumerate(labels):
         if label > max_label:
-            multi_class_labels[i] = max_label
+            classification_labels[i] = max_label
         else:
-            multi_class_labels[i] = label - 1
-    return multi_class_labels
+            classification_labels[i] = label - 1
+    return classification_labels
 
 
 def plot_pred_vs_true_labels(
@@ -111,6 +115,9 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
     output_dir : str
         Output directory.
     """
+    # Create output directory
+    output_dir = join(output_dir, "estimate_num_meanings_supervised")
+    makedirs(output_dir, exist_ok=True)
 
     # Load data
     print("Preparing data...")
@@ -126,15 +133,31 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
     )
     y_train = word_meaning_train_data["y"].values
     max_y_multi = np.quantile(y_train, q=0.9)
-    print(f"Max label for multi-class: {max_y_multi}")
-    y_train_multi_class = create_multi_class_labels(
+    print(f"Max label for multi classifcation: {max_y_multi}")
+    y_train_binary_classes = create_classification_labels(labels=y_train, max_label=1)
+    y_train_multi_classes = create_classification_labels(
         labels=y_train, max_label=max_y_multi
     )
+    num_y_train_multi_classes = len(np.unique(y_train_multi_classes))
 
     # Prepare train params
     num_folds = 20
-    model_classes = [LassoCV, LogisticRegressionCV]
-    model_names = ["lasso_reg", "multi_class_logistic_reg"]
+    model_classes = [
+        LassoCV,
+        LogisticRegressionCV,
+        LogisticRegressionCV,
+        GridSearchCV,
+        GridSearchCV,
+        GridSearchCV,
+    ]
+    model_names = [
+        "lasso_reg",
+        "binary_logistic_reg",
+        "multi_class_logistic_reg",
+        "xgb_reg",
+        "xgb_binary_classification",
+        "xgb_multi_classification",
+    ]
     models_params = [
         {
             "alphas": np.linspace(0.00001, 0.99999, 10000),
@@ -153,26 +176,74 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
             "n_jobs": -1,
             "random_state": rng_seed,
         },
+        {
+            "Cs": 1 / np.linspace(0.00000001, 0.1, 10000),
+            "cv": num_folds,
+            "max_iter": 1000000,
+            "penalty": "l1",
+            "solver": "saga",
+            "verbose": 0,
+            "n_jobs": -1,
+            "random_state": rng_seed,
+        },
+        {
+            "estimator": xgb.XGBRegressor(objective="reg:squarederror"),
+            "param_grid": {
+                "eta": np.arange(0.1, 0.26, 0.05),
+                "alpha": np.linspace(0.00001, 0.99999, 10000),
+            },
+            "n_jobs": -1,
+            "cv": num_folds,
+        },
+        {
+            "estimator": xgb.XGBClassifier(objective="binary:logistic"),
+            "param_grid": {
+                "eta": np.arange(0.1, 0.26, 0.05),
+                "alpha": np.linspace(0.00001, 0.99999, 10000),
+            },
+            "n_jobs": -1,
+            "cv": num_folds,
+        },
+        {
+            "estimator": xgb.XGBClassifier(objective="multi:softmax"),
+            "param_grid": {
+                "num_class": [num_y_train_multi_classes],
+                "eta": np.arange(0.1, 0.26, 0.05),
+                "alpha": np.linspace(0.00001, 0.99999, 10000),
+            },
+            "n_jobs": -1,
+            "cv": num_folds,
+        },
     ]
-    models_train_params = [{"multi_class": False}, {"multi_class": True}]
+    models_train_params = [
+        {"model_type": "regression"},
+        {"model_type": "binary_classification"},
+        {"model_type": "multi_classification"},
+        {"model_type": "regression"},
+        {"model_type": "binary_classification"},
+        {"model_type": "multi_classification"},
+    ]
 
     for model_cls, model_name, model_params, model_train_params in zip(
         model_classes, model_names, models_params, models_train_params
     ):
+        model_filepath = join(output_dir, f"{model_name}.joblib")
+        if isfile(model_filepath):
+            continue
         model_instance = model_cls(**model_params)
-        multi_class = model_train_params["multi_class"]
+        model_type = model_train_params["model_type"]
 
-        print(f"Training {model_cls.__name__}...")
-        if multi_class:
-            model_instance.fit(X_train, y_train_multi_class)
-        else:
+        print(f"Training {model_name}...")
+        if model_type == "regression":
             model_instance.fit(X_train, y_train)
+        elif model_type == "binary_classification":
+            model_instance.fit(X_train, y_train_binary_classes)
+        elif model_type == "multi_classification":
+            model_instance.fit(X_train, y_train_multi_classes)
         print("Done!")
 
         print("Saving to file...")
-        joblib.dump(
-            model_instance, join(output_dir, f"{model_name}.joblib"), protocol=4
-        )
+        joblib.dump(model_instance, model_filepath, protocol=4)
         print("Done!")
 
 
