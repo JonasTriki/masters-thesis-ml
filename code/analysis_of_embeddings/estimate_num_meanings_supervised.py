@@ -187,7 +187,9 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
             "random_state": rng_seed,
         },
         {
-            "estimator": xgb.XGBRegressor(objective="reg:squarederror"),
+            "estimator": xgb.XGBRegressor(
+                objective="reg:squarederror", random_state=rng_seed
+            ),
             "param_grid": {
                 "eta": np.arange(0.1, 0.26, 0.05),
                 "alpha": np.linspace(0.00001, 0.99999, 10000),
@@ -196,7 +198,9 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
             "cv": num_folds,
         },
         {
-            "estimator": xgb.XGBClassifier(objective="binary:logistic"),
+            "estimator": xgb.XGBClassifier(
+                objective="binary:logistic", random_state=rng_seed
+            ),
             "param_grid": {
                 "eta": np.arange(0.1, 0.26, 0.05),
                 "alpha": np.linspace(0.00001, 0.99999, 10000),
@@ -205,7 +209,9 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
             "cv": num_folds,
         },
         {
-            "estimator": xgb.XGBClassifier(objective="multi:softmax"),
+            "estimator": xgb.XGBClassifier(
+                objective="multi:softmax", random_state=rng_seed
+            ),
             "param_grid": {
                 "num_class": [num_y_train_multi_classes],
                 "eta": np.arange(0.1, 0.26, 0.05),
