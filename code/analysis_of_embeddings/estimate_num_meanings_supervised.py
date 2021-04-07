@@ -10,8 +10,9 @@ from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import minmax_scale
+from skopt import BayesSearchCV
+from skopt.space import Categorical, Integer, Real
 
 rng_seed = 399
 np.random.seed(rng_seed)
@@ -146,9 +147,9 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
         LassoCV,
         LogisticRegressionCV,
         LogisticRegressionCV,
-        GridSearchCV,
-        GridSearchCV,
-        GridSearchCV,
+        BayesSearchCV,
+        BayesSearchCV,
+        BayesSearchCV,
     ]
     model_names = [
         "lasso_reg",
@@ -190,35 +191,44 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
             "estimator": xgb.XGBRegressor(
                 objective="reg:squarederror", random_state=rng_seed
             ),
-            "param_grid": {
-                "eta": np.arange(0.1, 0.26, 0.05),
-                "alpha": np.linspace(0.00001, 0.99999, 10000),
+            "search_spaces": {
+                "eta": Real(0.00001, 0.3, prior="uniform"),
+                "alpha": Real(0.001, 0.999, prior="uniform"),
             },
-            "n_jobs": -1,
             "cv": num_folds,
+            "n_iter": 25,
+            "random_state": rng_seed,
+            "verbose": 50,
+            "n_jobs": 1,
         },
         {
             "estimator": xgb.XGBClassifier(
                 objective="binary:logistic", random_state=rng_seed
             ),
-            "param_grid": {
-                "eta": np.arange(0.1, 0.26, 0.05),
-                "alpha": np.linspace(0.00001, 0.99999, 10000),
+            "search_spaces": {
+                "eta": Real(0.00001, 0.3, prior="uniform"),
+                "alpha": Real(0.001, 0.999, prior="uniform"),
             },
-            "n_jobs": -1,
             "cv": num_folds,
+            "n_iter": 25,
+            "random_state": rng_seed,
+            "verbose": 50,
+            "n_jobs": 1,
         },
         {
             "estimator": xgb.XGBClassifier(
                 objective="multi:softmax", random_state=rng_seed
             ),
-            "param_grid": {
-                "num_class": [num_y_train_multi_classes],
-                "eta": np.arange(0.1, 0.26, 0.05),
-                "alpha": np.linspace(0.00001, 0.99999, 10000),
+            "search_spaces": {
+                # "num_class": Integer(num_y_train_multi_classes, num_y_train_multi_classes, prior="uniform"),
+                "eta": Real(0.00001, 0.3, prior="uniform"),
+                "alpha": Real(0.001, 0.999, prior="uniform"),
             },
-            "n_jobs": -1,
             "cv": num_folds,
+            "n_iter": 25,
+            "random_state": rng_seed,
+            "verbose": 50,
+            "n_jobs": 1,
         },
     ]
     models_train_params = [
