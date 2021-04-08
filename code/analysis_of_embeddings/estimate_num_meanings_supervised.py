@@ -5,14 +5,16 @@ from os.path import isfile, join
 import joblib
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import xgboost as xgb
+from IPython.display import display
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import confusion_matrix, mean_squared_error, roc_auc_score
 from sklearn.preprocessing import minmax_scale
 from skopt import BayesSearchCV
-from skopt.space import Categorical, Integer, Real
+from skopt.space import Integer, Real
 
 rng_seed = 399
 np.random.seed(rng_seed)
@@ -70,39 +72,147 @@ def create_classification_labels(labels: np.ndarray, max_label: int) -> np.ndarr
     return classification_labels
 
 
-def plot_pred_vs_true_labels(
-    pred_labels: np.ndarray,
-    true_labels: np.ndarray,
-    xlabel: str,
-    ylabel: str,
-    show_plot: bool = True,
+def evaluate_regression_model(
+    model: object, test_sets: list, show_plot: bool = True
 ) -> None:
     """
-    Plots predicted labels (x-axis) vs true labels (y-axis).
+    Evaluates a trained regression model on test data sets.
 
     Parameters
     ----------
-    pred_labels : np.ndarray
-        Predicted labels.
-    true_labels : np.ndarray
-        True labels.
-    xlabel : str
-        Label for the x-axis.
-    ylabel : str
-        Label for the y-axis.
+    model : object
+        Trained model (must have `predict()` method).
+    test_sets : list
+        List of test data sets, where each entry is a tuple:
+            X_eval : np.ndarray
+                Prediction data.
+            y_true : np.ndarray
+                True labels for `X_eval`.
+            test_set_name : str
+                Name of test set.
+            xlabel : str
+                Label for x-axis of pred/true plot.
+            ylabel : str
+                Label for y-axis of pred/true plot.
     show_plot : bool, optional
         Whether or not to call `plt.show()` to show the plot (defaults to True).
     """
-    pred_true_corr, _ = pearsonr(pred_labels, true_labels)
-    pred_true_mse = mean_squared_error(true_labels, pred_labels)
+    num_test_sets = len(test_sets)
+    _, axes = plt.subplots(
+        nrows=1, ncols=num_test_sets, figsize=(5.5 * num_test_sets, 5)
+    )
+    for test_set, ax in zip(test_sets, axes):
+        X_eval, y_true, test_set_name, xlabel, ylabel = test_set
+        pred_labels = model.predict(X_eval)
+        pred_true_corr, _ = pearsonr(pred_labels, y_true)
+        pred_true_mse = mean_squared_error(y_true, pred_labels)
 
-    plt.figure(figsize=(10, 7))
-    plt.scatter(pred_labels, true_labels)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title(f"Pred/True: correlation: {pred_true_corr:.3f}, MSE: {pred_true_mse:.3f}")
+        ax.scatter(pred_labels, y_true, s=15)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(
+            f"Correlation: {pred_true_corr:.3f}, MSE: {pred_true_mse:.3f} ({test_set_name})"
+        )
     if show_plot:
         plt.show()
+
+
+def evaluate_classification_model(
+    model: object, test_sets: list, cm_ticklabels: list
+) -> None:
+    """
+    Evaluates a trained classification model on test data sets.
+
+    Parameters
+    ----------
+    model : object
+        Trained model (must have `predict()` method).
+    test_sets : list
+        List of test data sets, where each entry is a tuple:
+            X_eval : np.ndarray
+                Prediction data.
+            y_true : np.ndarray
+                True labels for `X_eval`.
+            test_set_name : str
+                Name of test set.
+            xlabel : str
+                Label for x-axis of pred/true plot.
+            ylabel : str
+                Label for y-axis of pred/true plot.
+    cm_ticklabels : list
+        List of ticklabels to use for confusion matrix plot.
+    """
+    for test_set in test_sets:
+        X_eval, y_true, test_set_name, xlabel, ylabel = test_set
+        pred_labels_proba = model.predict_proba(X_eval)
+        pred_labels = np.argmax(pred_labels_proba, axis=1)
+        pred_auc = roc_auc_score(
+            y_true, pred_labels_proba, average="weighted", multi_class="ovr"
+        )
+
+        pred_cm = confusion_matrix(y_true, pred_labels)
+        plt.figure(figsize=(10, 7))
+        sns.heatmap(
+            pred_cm,
+            cmap="YlGnBu",
+            annot=True,
+            fmt="d",
+            annot_kws={"size": 16},
+            square=True,
+            xticklabels=cm_ticklabels,
+            yticklabels=cm_ticklabels,
+        )
+        plt.title(f"AUC: {pred_auc: .3f} ({test_set_name})")
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.show()
+
+
+def create_feature_importance_df(
+    feature_names: list, feature_importances: list
+) -> pd.DataFrame:
+    """
+    Creates feature importances DataFrame.
+
+    Parameters
+    ----------
+    feature_names : list
+        List of feature names.
+    feature_importances : list
+        Feature importanes.
+    
+    Returns
+    -------
+    feature_importances_df : pd.DataFrame
+        Feature importances DataFrame.
+    """
+    sorted_feature_importance_indices = np.argsort(feature_importances)[::-1]
+    sorted_features_arr = np.array(
+        list(
+            zip(
+                feature_names[sorted_feature_importance_indices],
+                feature_importances[sorted_feature_importance_indices],
+            )
+        )
+    )
+    feature_importances_df = pd.DataFrame(
+        {"feature": sorted_features_arr[:, 0], "importance": sorted_features_arr[:, 1]}
+    )
+    return feature_importances_df
+
+
+def visualize_feature_importances(feature_importances: pd.DataFrame) -> None:
+    """
+    Visualize feature importances from `create_feature_importance_df` in a Jupyter
+    Notebook.
+
+    Parameters
+    ----------
+    feature_importances : pd.DataFrame
+        Feature importances DataFrame from `create_feature_importance_df`.
+    """
+    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+        display(feature_importances)
 
 
 def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) -> None:
@@ -189,46 +299,79 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
         },
         {
             "estimator": xgb.XGBRegressor(
-                objective="reg:squarederror", random_state=rng_seed
+                objective="reg:squarederror",
+                n_estimators=100,
+                random_state=rng_seed,
+                n_jobs=1,
             ),
             "search_spaces": {
-                "eta": Real(0.00001, 0.3, prior="uniform"),
-                "alpha": Real(0.001, 0.999, prior="uniform"),
+                "eta": Real(0.0001, 0.1),
+                "max_depth": Integer(3, 10),
+                "gamma": Real(0.001, 0.5),
+                "subsample": Real(0.5, 1),
+                "colsample_bytree": Real(0.5, 1),
+                "alpha": Real(0.00001, 0.1),
             },
             "cv": num_folds,
-            "n_iter": 25,
+            "n_iter": 250,
             "random_state": rng_seed,
-            "verbose": 50,
-            "n_jobs": 1,
+            "verbose": 3,
+            "n_jobs": -1,
         },
         {
             "estimator": xgb.XGBClassifier(
-                objective="binary:logistic", random_state=rng_seed
+                objective="binary:logistic",
+                use_label_encoder=False,
+                n_estimators=100,
+                scale_pos_weight=1,
+                random_state=rng_seed,
+                n_jobs=1,
             ),
             "search_spaces": {
-                "eta": Real(0.00001, 0.3, prior="uniform"),
-                "alpha": Real(0.001, 0.999, prior="uniform"),
+                "min_child_weight": Integer(1, 6),
+                "eta": Real(0.0001, 0.1),
+                "max_depth": Integer(3, 10),
+                "gamma": Real(0.001, 0.5),
+                "subsample": Real(0.5, 1),
+                "colsample_bytree": Real(0.5, 1),
+                "alpha": Real(0.00001, 0.1),
             },
             "cv": num_folds,
-            "n_iter": 25,
+            "n_iter": 250,
             "random_state": rng_seed,
-            "verbose": 50,
-            "n_jobs": 1,
+            "verbose": 3,
+            "fit_params": {
+                "eval_metric": "auc",
+            },
+            "n_jobs": -1,
         },
         {
             "estimator": xgb.XGBClassifier(
-                objective="multi:softmax", random_state=rng_seed
+                objective="multi:softprob",
+                use_label_encoder=False,
+                n_estimators=100,
+                scale_pos_weight=1,
+                random_state=rng_seed,
+                n_jobs=1,
             ),
             "search_spaces": {
-                # "num_class": Integer(num_y_train_multi_classes, num_y_train_multi_classes, prior="uniform"),
-                "eta": Real(0.00001, 0.3, prior="uniform"),
-                "alpha": Real(0.001, 0.999, prior="uniform"),
+                "min_child_weight": Integer(1, 6),
+                "eta": Real(0.0001, 0.1),
+                "max_depth": Integer(3, 10),
+                "gamma": Real(0.001, 0.5),
+                "subsample": Real(0.5, 1),
+                "colsample_bytree": Real(0.5, 1),
+                "alpha": Real(0.00001, 0.1),
             },
             "cv": num_folds,
-            "n_iter": 25,
+            "n_iter": 250,
             "random_state": rng_seed,
-            "verbose": 50,
-            "n_jobs": 1,
+            "verbose": 3,
+            "fit_params": {
+                "eval_metric": "auc",
+                "num_class": num_y_train_multi_classes,
+            },
+            "n_jobs": -1,
         },
     ]
     models_train_params = [
