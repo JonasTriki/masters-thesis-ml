@@ -11,7 +11,12 @@ from IPython.display import display
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
-from sklearn.metrics import confusion_matrix, mean_squared_error, roc_auc_score
+from sklearn.metrics import (
+    confusion_matrix,
+    make_scorer,
+    mean_squared_error,
+    recall_score,
+)
 from sklearn.preprocessing import minmax_scale
 from skopt import BayesSearchCV
 from skopt.space import Integer, Real
@@ -145,10 +150,16 @@ def evaluate_classification_model(
     for test_set in test_sets:
         X_eval, y_true, test_set_name, xlabel, ylabel = test_set
         pred_labels_proba = model.predict_proba(X_eval)
+        is_multi_class = pred_labels_proba.shape[1] > 2
         pred_labels = np.argmax(pred_labels_proba, axis=1)
-        pred_auc = roc_auc_score(
-            y_true, pred_labels_proba, average="weighted", multi_class="ovr"
-        )
+        if is_multi_class:
+            pred_eval_score = recall_score(y_true, pred_labels, average="weighted")
+        else:
+            pred_eval_score = recall_score(
+                y_true,
+                pred_labels,
+                pos_label=1,
+            )
 
         pred_cm = confusion_matrix(y_true, pred_labels)
         plt.figure(figsize=(10, 7))
@@ -162,7 +173,7 @@ def evaluate_classification_model(
             xticklabels=cm_ticklabels,
             yticklabels=cm_ticklabels,
         )
-        plt.title(f"AUC: {pred_auc: .3f} ({test_set_name})")
+        plt.title(f"Specificity (>1): {pred_eval_score: .3f} ({test_set_name})")
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         plt.show()
@@ -180,7 +191,7 @@ def create_feature_importance_df(
         List of feature names.
     feature_importances : list
         Feature importanes.
-    
+
     Returns
     -------
     feature_importances_df : pd.DataFrame
@@ -269,6 +280,11 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
         "xgb_binary_classification",
         "xgb_multi_classification",
     ]
+    binary_specificity_scorer = make_scorer(recall_score, pos_label=1)
+    multi_class_specificity_scorer = make_scorer(recall_score, average="weighted")
+    # mutli_class_auc_scorer = make_scorer(
+    #    roc_auc_score, average="weighted", multi_class="ovr"
+    # )
     models_params = [
         {
             "alphas": np.linspace(0.00001, 0.99999, 10000),
@@ -285,6 +301,7 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
             "solver": "saga",
             "verbose": 0,
             "n_jobs": -1,
+            "scoring": binary_specificity_scorer,
             "random_state": rng_seed,
         },
         {
@@ -295,6 +312,7 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
             "solver": "saga",
             "verbose": 0,
             "n_jobs": -1,
+            "scoring": multi_class_specificity_scorer,
             "random_state": rng_seed,
         },
         {
@@ -313,7 +331,7 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
                 "alpha": Real(0.00001, 0.1),
             },
             "cv": num_folds,
-            "n_iter": 250,
+            "n_iter": 100,
             "random_state": rng_seed,
             "verbose": 3,
             "n_jobs": -1,
@@ -336,8 +354,9 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
                 "colsample_bytree": Real(0.5, 1),
                 "alpha": Real(0.00001, 0.1),
             },
+            "scoring": binary_specificity_scorer,
             "cv": num_folds,
-            "n_iter": 250,
+            "n_iter": 100,
             "random_state": rng_seed,
             "verbose": 3,
             "fit_params": {
@@ -350,7 +369,7 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
                 objective="multi:softprob",
                 use_label_encoder=False,
                 n_estimators=100,
-                scale_pos_weight=1,
+                num_class=num_y_train_multi_classes,
                 random_state=rng_seed,
                 n_jobs=1,
             ),
@@ -363,13 +382,13 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
                 "colsample_bytree": Real(0.5, 1),
                 "alpha": Real(0.00001, 0.1),
             },
+            "scoring": multi_class_specificity_scorer,
             "cv": num_folds,
             "n_iter": 250,
             "random_state": rng_seed,
             "verbose": 3,
             "fit_params": {
                 "eval_metric": "auc",
-                "num_class": num_y_train_multi_classes,
             },
             "n_jobs": -1,
         },
