@@ -20,7 +20,7 @@ from approx_nn import ApproxNN  # noqa: E402
 from topological_data_analysis.geometric_anomaly_detection import (  # noqa: E402
     compute_gad,
 )
-from topological_data_analysis.topological_polysemy import tps  # noqa: E402
+from topological_data_analysis.topological_polysemy import tps_multiple  # noqa: E402
 from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
 rng_seed = 399
@@ -227,6 +227,18 @@ def prepare_num_word_meanings_supervised_data(
     task_raw_data_tps_dir = join(task_raw_data_dir, "tps")
     makedirs(task_raw_data_dir, exist_ok=True)
 
+    # Prepare TPS filepaths to figure whether or not to load ScaNN instance
+    tps_scores_filepaths = [
+        join(task_raw_data_tps_dir, f"tps_{tps_neighbourhood_size}_scores.npy")
+        for tps_neighbourhood_size in tps_neighbourhood_sizes
+    ]
+    tps_scores_files_exist = all([isfile(fn) for fn in tps_scores_filepaths])
+    tps_pds_filepaths = [
+        join(task_raw_data_tps_dir, f"tps_{tps_neighbourhood_size}_pds.npy")
+        for tps_neighbourhood_size in tps_neighbourhood_sizes
+    ]
+    tps_pds_files_exist = all([isfile(fn) for fn in tps_pds_filepaths])
+
     # Load word embeddings from model
     print("Loading word embeddings...")
     w2v_training_output = load_model_training_output(
@@ -234,7 +246,7 @@ def prepare_num_word_meanings_supervised_data(
         model_name=model_name,
         dataset_name=dataset_name,
         return_normalized_embeddings=True,
-        return_scann_instance=not isdir(task_raw_data_tps_dir),
+        return_scann_instance=False,  # not tps_scores_files_exist or not tps_pds_files_exist,
     )
     last_embedding_weights_normalized = w2v_training_output[
         "last_embedding_weights_normalized"
@@ -280,7 +292,7 @@ def prepare_num_word_meanings_supervised_data(
     else:
         words_to_num_meanings = joblib.load(words_to_num_meanings_filepath)
         print("Loaded words_to_num_meanings!")
-    data_words = list(words_to_num_meanings.keys())
+    data_words = np.array(list(words_to_num_meanings.keys()))
     data_words_no_semeval = [
         word for word in data_words if word not in semeval_target_words_in_vocab
     ]
@@ -357,73 +369,94 @@ def prepare_num_word_meanings_supervised_data(
     print("Loaded words_estimated_ids!")
 
     # (4) -- Compute TPS_n for train/test words --
-    if not isdir(task_raw_data_tps_dir):
-        makedirs(task_raw_data_tps_dir, exist_ok=True)
-        print("Computing TPS scores...")
-        last_embedding_weights_scann_instance = w2v_training_output[
+    tps_scores = {}
+    tps_pds = {}
+    makedirs(task_raw_data_tps_dir, exist_ok=True)
+    for tps_neighbourhood_size, tps_scores_filepath, tps_pds_filepath in zip(
+        tps_neighbourhood_sizes, tps_scores_filepaths, tps_pds_filepaths
+    ):
+        if isfile(tps_scores_filepath) and isfile(tps_pds_filepath):
+            tps_scores[tps_neighbourhood_size] = np.load(tps_scores_filepath)
+            tps_pds[tps_neighbourhood_size] = np.load(tps_pds_filepath)
+            continue
+        print(
+            f"Computing TPS scores using neighbourhood size {tps_neighbourhood_size}..."
+        )
+
+        # Load ScaNN instance
+        w2v_training_output_scann = load_model_training_output(
+            model_training_output_dir=model_dir,
+            model_name=model_name,
+            dataset_name=dataset_name,
+            return_normalized_embeddings=False,
+            return_scann_instance=True,
+        )
+        scann_instance = w2v_training_output_scann[
             "last_embedding_weights_scann_instance"
         ]
-        tps_scores = {}
-        tps_pds = {}
-        for tps_neighbourhood_size in tps_neighbourhood_sizes:
-            print(f"Neighbourhood size: {tps_neighbourhood_size}")
-            tps_scores_filepath = join(
-                task_raw_data_tps_dir, f"tps_{tps_neighbourhood_size}_scores.npy"
-            )
-            tps_pds_filepath = join(
-                task_raw_data_tps_dir, f"tps_{tps_neighbourhood_size}_pds.npy"
-            )
-            if isfile(tps_scores_filepath) and isfile(tps_pds_filepath):
-                continue
 
-            tps_scores[tps_neighbourhood_size] = []
-            tps_pds[tps_neighbourhood_size] = []
-            for word in tqdm(data_words):
-                tps_score, tps_pd = tps(
-                    target_word=word,
-                    word_to_int=word_to_int,
-                    neighbourhood_size=tps_neighbourhood_size,
-                    words_vocabulary=data_words,
-                    word_embeddings_normalized=last_embedding_weights_normalized,
-                    ann_instance=last_embedding_weights_scann_instance,
-                    return_persistence_diagram=True,
-                )
+        # Compute TPS
+        tps_scores_ns, tps_pds_ns = tps_multiple(
+            target_words=data_words,
+            word_to_int=word_to_int,
+            neighbourhood_size=tps_neighbourhood_size,
+            word_embeddings_normalized=last_embedding_weights_normalized,
+            ann_instance=scann_instance,
+            return_persistence_diagram=True,
+            n_jobs=-1,
+            progressbar_enabled=True,
+        )
 
-                # Create Nx2 array from zero dimensional homology
-                tps_pd_zero_dim = np.array(
-                    [
-                        [
-                            [birth, death]
-                            for dim, (birth, death) in tps_pd
-                            if dim == 0 and death != np.inf
-                        ]
-                    ]
-                )
+        # Create Nx2 array from zero dimensional homology for persistence diagrams
+        tps_pds_ns = [
+            [
+                [
+                    [birth, death]
+                    for dim, (birth, death) in tps_pd
+                    if dim == 0 and death != np.inf
+                ]
+            ]
+            for tps_pd in tps_pds_ns
+        ]
 
-                tps_scores[tps_neighbourhood_size].append(tps_score)
-                tps_pds[tps_neighbourhood_size].append(tps_pd_zero_dim)
+        # Set result
+        tps_scores[tps_neighbourhood_size] = np.array(tps_scores_ns)
+        tps_pds[tps_neighbourhood_size] = np.array(tps_pds_ns)
 
-            # Save result
-            np.save(tps_scores_filepath, np.array(tps_scores[tps_neighbourhood_size]))
-            np.save(tps_pds_filepath, np.array(tps_pds[tps_neighbourhood_size]))
-        print("Done!")
-    else:
-        tps_scores = {
-            n_size: np.load(join(task_raw_data_tps_dir, f"tps_{n_size}_scores.npy"))
-            for n_size in tps_neighbourhood_sizes
-        }
-        tps_pds = {
-            n_size: np.load(join(task_raw_data_tps_dir, f"tps_{n_size}_pds.npy"))
-            for n_size in tps_neighbourhood_sizes
-        }
-        print("Loaded tps_scores and tps_pds!")
+        # Save result
+        np.save(tps_scores_filepath, tps_scores[tps_neighbourhood_size])
+        np.save(tps_pds_filepath, tps_pds[tps_neighbourhood_size])
+
+        # Free resources
+        del scann_instance
 
     # (5) -- Compute GAD features --
     gad_features_dir = join(task_raw_data_dir, "gad_features")
     makedirs(gad_features_dir, exist_ok=True)
     gad_features_params = {
-        # "radius": [(0.5, 1.0), (1.0, 1.5), (1.5, 2.5)],
-        "knn": [(25, 250), (25, 500), (50, 250), (50, 550), (50, 750), (100, 1000)],
+        "knn": [
+            (25, 250),
+            (25, 500),
+            (50, 250),
+            (50, 550),
+            (50, 750),
+            (50, 1000),
+            (100, 1000),
+            (100, 1250),
+            (100, 1500),
+            (100, 1750),
+            (100, 2000),
+            (150, 1000),
+            (150, 1250),
+            (150, 1500),
+            (150, 1750),
+            (150, 2000),
+            (150, 1000),
+            (200, 1250),
+            (200, 1500),
+            (200, 1750),
+            (200, 2000),
+        ],
     }
     for gad_type, gad_params in gad_features_params.items():
         use_knn_annulus = gad_type == "knn"
@@ -478,35 +511,6 @@ def prepare_num_word_meanings_supervised_data(
             gad_features_id = f"gad_{gad_type}_{inner_param}_{outer_param}"
             gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
             gad_features_dict[gad_features_id] = joblib.load(gad_features_filepath)
-
-    # gad_grid_search_filepath = join(
-    #     task_raw_data_dir, "gad_features_grid_search.joblib"
-    # )
-    # if not isfile(gad_grid_search_filepath):
-
-    #     # Load ANN index
-    #     approx_nn = ApproxNN(ann_alg="annoy")
-    #     approx_nn.load(
-    #         ann_path=approx_nn_index_annoy_filepath,
-    #         annoy_data_dimensionality=300,
-    #         annoy_mertic="euclidean",
-    #         annoy_prefault=False,
-    #     )
-
-    #     gad_result = grid_search_gad_annulus_radii(
-    #         data_points=word_embeddings_wordnet_words,
-    #         manifold_dimension=2,
-    #         search_size=20,
-    #         use_knn_annulus=True,
-    #         search_params_max_diff=250,
-    #         min_annulus_parameter=1,
-    #         max_annulus_parameter=500,
-    #         data_points_approx_nn=approx_nn,
-    #         return_annlus_persistence_diagrams=True,
-    #         progressbar_enabled=True,
-    #         n_jobs=-1,
-    #     )
-    #     joblib.dump(gad_result, gad_grid_search_filepath)
 
     # (6) -- Combine data into data (features and labels) for WME task --
     word_meaning_train_data_filepath = join(output_dir, "word_meaning_train_data.csv")
