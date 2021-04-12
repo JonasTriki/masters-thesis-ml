@@ -1,5 +1,4 @@
 import numpy as np
-from hdbscan import HDBSCAN
 from sklearn.metrics import (
     calinski_harabasz_score,
     davies_bouldin_score,
@@ -108,28 +107,3 @@ def calinski_harabasz_score_metric(
 
     # Return tuple with result
     return "Calinski-Harabasz Index", metric_score, True
-
-
-def relative_dbcv_score_metric(clusterer: HDBSCAN, **_: dict) -> tuple:
-    """
-    Wrapper function for (relative) Density-Based Clustering Validation (DBCV) score used
-    in `cluster_analysis` function.
-
-    Parameters
-    ----------
-    clusterer : HDBSCAN instance
-        HDBSCAN instance (fitted on data)
-    **_ : dict
-        Keyword arguments sent into the void (not used)
-
-    Returns
-    -------
-    result : tuple
-        Result as a triple, consisting of metric title, metric score and whether or not
-        the metrics objective function is to maximize the metric score.
-    """
-    # Get DBCV score directly from fitted HDBSCAN instance
-    metric_score = clusterer.relative_validity_
-
-    # Return tuple with result
-    return "DBCV (relative)", metric_score, True

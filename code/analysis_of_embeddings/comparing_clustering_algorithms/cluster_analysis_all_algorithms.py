@@ -29,7 +29,6 @@ sys.path.extend([analysis_of_embeddings_dir, root_code_dir])
 from analysis_of_embeddings.cluster_analysis_metrics import (  # noqa: E402
     calinski_harabasz_score_metric,
     davies_bouldin_score_metric,
-    relative_dbcv_score_metric,
     silhouette_score_metric,
 )
 from analysis_of_embeddings.cluster_analysis_utils import cluster_analysis  # noqa: E402
@@ -164,10 +163,7 @@ def cluster_analysis_all_algorithms(
         general_eval_metrics,
         general_eval_metrics,
         general_eval_metrics,
-        [
-            ("relative_dbcv_score", relative_dbcv_score_metric),
-            *general_eval_metrics,
-        ],
+        general_eval_metrics,
         general_eval_metrics,
         general_eval_metrics,
         general_eval_metrics,
@@ -217,10 +213,8 @@ def cluster_analysis_all_algorithms(
         {
             "min_cluster_size": [2, 4, 8, 16, 32, 64],
             "min_samples": [1, 2, 4, 8, 16, 32, 64],
-            "metric": ["cosine"],
-            "algorithm": ["generic"],
+            "metric": ["precomputed"],
             "core_dist_n_jobs": [-1],
-            "gen_min_span_tree": [True],
         },
         {"n_clusters": n_clusters, "random_state": [rng_seed]},
         {
