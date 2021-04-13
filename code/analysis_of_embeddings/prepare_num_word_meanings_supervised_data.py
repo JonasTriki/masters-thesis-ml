@@ -8,8 +8,8 @@ import joblib
 import numpy as np
 import pandas as pd
 from nltk.corpus import wordnet as wn
+from skdim import id as est_ids
 from skdim._commonfuncs import GlobalEstimator
-from skdim.id import KNN, MLE, TwoNN, lPCA
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
@@ -327,10 +327,11 @@ def prepare_num_word_meanings_supervised_data(
     # (3) -- Estimate the intrinsic dimension (ID) for each word vector --
     words_estimated_ids_dir = join(task_raw_data_dir, "estimated_ids")
     id_estimators: List[Tuple[str, GlobalEstimator, dict]] = [
-        ("lpca", lPCA, {}),
-        ("knn", KNN, {}),
-        ("twonn", TwoNN, {}),
-        ("mle", MLE, {}),
+        ("lpca", est_ids.lPCA, {}),
+        ("knn", est_ids.KNN, {}),
+        ("twonn", est_ids.TwoNN, {}),
+        ("mle", est_ids.MLE, {}),
+        ("tle", est_ids.TLE, {}),
     ]
     makedirs(words_estimated_ids_dir, exist_ok=True)
     for id_estimator_name, id_estimator_cls, id_estimator_params in id_estimators:
@@ -355,18 +356,7 @@ def prepare_num_word_meanings_supervised_data(
             print("Done! Saving to file...")
             np.save(estimated_ids_filepath, estimated_ids)
 
-    # Load estimated IDs from file
-    words_estimated_ids = {
-        id_estimator_name: np.load(
-            join(words_estimated_ids_dir, f"{id_estimator_name}.npy")
-        )
-        for id_estimator_name, _, _ in id_estimators
-    }
-    print("Loaded words_estimated_ids!")
-
     # (4) -- Compute TPS_n for train/test words --
-    tps_scores = {}
-    tps_pds = {}
     makedirs(task_raw_data_tps_dir, exist_ok=True)
     tps_scores_filepaths = [
         join(task_raw_data_tps_dir, f"tps_{tps_neighbourhood_size}_scores.npy")
@@ -380,10 +370,6 @@ def prepare_num_word_meanings_supervised_data(
         tps_neighbourhood_sizes, tps_scores_filepaths, tps_pds_filepaths
     ):
         if isfile(tps_scores_filepath) and isfile(tps_pds_filepath):
-            tps_scores[tps_neighbourhood_size] = np.load(tps_scores_filepath)
-            tps_pds[tps_neighbourhood_size] = np.load(
-                tps_pds_filepath, allow_pickle=True
-            )
             continue
         print(
             f"Computing TPS scores using neighbourhood size {tps_neighbourhood_size}..."
@@ -406,25 +392,23 @@ def prepare_num_word_meanings_supervised_data(
         )
 
         # Create Nx2 array from zero dimensional homology for persistence diagrams
-        tps_pds_ns = [
+        tps_pds_ns = np.array(
             [
                 [
-                    [birth, death]
-                    for dim, (birth, death) in tps_pd
-                    if dim == 0 and death != np.inf
+                    [
+                        [birth, death]
+                        for dim, (birth, death) in tps_pd
+                        if dim == 0 and death != np.inf
+                    ]
                 ]
+                for tps_pd in tps_pds_ns
             ]
-            for tps_pd in tps_pds_ns
-        ]
-
-        # Set result
-        tps_scores[tps_neighbourhood_size] = np.array(tps_scores_ns)
-        tps_pds[tps_neighbourhood_size] = np.array(tps_pds_ns)
+        )
 
         # Save result
         print("Saving TPS result...")
-        np.save(tps_scores_filepath, tps_scores[tps_neighbourhood_size])
-        np.save(tps_pds_filepath, tps_pds[tps_neighbourhood_size])
+        np.save(tps_scores_filepath, tps_scores_ns)
+        np.save(tps_pds_filepath, tps_pds_ns)
         print("Done!")
 
         # Free resources
@@ -456,51 +440,43 @@ def prepare_num_word_meanings_supervised_data(
         (200, 1750),
         (200, 2000),
     ]
-    for gad_params in gad_features_params:
-        for inner_param, outer_param in gad_params:
-            gad_features_id = f"gad_knn_{inner_param}_{outer_param}"
-            print(f"-- {gad_features_id} -- ")
+    for inner_param, outer_param in gad_features_params:
+        gad_features_id = f"gad_knn_{inner_param}_{outer_param}"
+        print(f"-- {gad_features_id} -- ")
 
-            gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
-            if isfile(gad_features_filepath):
-                continue
+        gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
+        if isfile(gad_features_filepath):
+            continue
 
-            # Load ScaNN instance
-            approx_nn = ApproxNN(ann_alg="scann")
-            approx_nn.load(ann_path=last_embedding_weights_scann_instance_filepath)
+        # Load ScaNN instance
+        approx_nn = ApproxNN(ann_alg="scann")
+        approx_nn.load(ann_path=last_embedding_weights_scann_instance_filepath)
 
-            # Compute features
-            gad_result = compute_gad(
-                data_points=last_embedding_weights_normalized,
-                data_point_ints=data_words_to_full_vocab_ints,
-                manifold_dimension=2,
-                data_points_approx_nn=approx_nn,
-                use_knn_annulus=True,
-                knn_annulus_inner=inner_param,
-                knn_annulus_outer=outer_param,
-                return_annlus_persistence_diagrams=False,
-                progressbar_enabled=True,
-                n_jobs=-1,
-            )
-            print(
-                "P_man:",
-                len(gad_result["P_man"]),
-                "P_int:",
-                len(gad_result["P_int"]),
-                "P_bnd:",
-                len(gad_result["P_bnd"]),
-            )
-            joblib.dump(gad_result, gad_features_filepath, protocol=4)
+        # Compute features
+        gad_result = compute_gad(
+            data_points=last_embedding_weights_normalized,
+            data_point_ints=data_words_to_full_vocab_ints,
+            manifold_dimension=2,
+            data_points_approx_nn=approx_nn,
+            use_knn_annulus=True,
+            knn_annulus_inner=inner_param,
+            knn_annulus_outer=outer_param,
+            return_annlus_persistence_diagrams=False,
+            progressbar_enabled=True,
+            n_jobs=-1,
+        )
+        print(
+            "P_man:",
+            len(gad_result["P_man"]),
+            "P_int:",
+            len(gad_result["P_int"]),
+            "P_bnd:",
+            len(gad_result["P_bnd"]),
+        )
+        joblib.dump(gad_result, gad_features_filepath, protocol=4)
 
-            # Free resources
-            del approx_nn
-
-    gad_features_dict = {}
-    for gad_params in gad_features_params:
-        for inner_param, outer_param in gad_params:
-            gad_features_id = f"gad_knn_{inner_param}_{outer_param}"
-            gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
-            gad_features_dict[gad_features_id] = joblib.load(gad_features_filepath)
+        # Free resources
+        del approx_nn
 
     # (6) -- Combine data into data (features and labels) for WME task --
     word_meaning_train_data_filepath = join(output_dir, "word_meaning_train_data.csv")
@@ -513,6 +489,35 @@ def prepare_num_word_meanings_supervised_data(
         or not isfile(word_meaning_test_data_filepath)
         or not isfile(word_meaning_semeval_test_data_filepath)
     ):
+        # -- Load data for creating features --
+        # Load estimated IDs from file
+        words_estimated_ids = {
+            id_estimator_name: np.load(
+                join(words_estimated_ids_dir, f"{id_estimator_name}.npy")
+            )
+            for id_estimator_name, _, _ in id_estimators
+        }
+        print("Loaded estimated IDs!")
+
+        # Load GAD features
+        gad_features_dict = {}
+        for inner_param, outer_param in gad_features_params:
+            gad_features_id = f"gad_knn_{inner_param}_{outer_param}"
+            gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
+            gad_features_dict[gad_features_id] = joblib.load(gad_features_filepath)
+        print("Loaded GAD features!")
+
+        # Load TPS features
+        tps_scores = {}
+        tps_pds = {}
+        for tps_neighbourhood_size, tps_scores_filepath, tps_pds_filepath in zip(
+            tps_neighbourhood_sizes, tps_scores_filepaths, tps_pds_filepaths
+        ):
+            tps_scores[tps_neighbourhood_size] = np.load(tps_scores_filepath)
+            tps_pds[tps_neighbourhood_size] = np.load(
+                tps_pds_filepath, allow_pickle=True
+            )
+
         data_words_train, data_words_test = train_test_split(
             data_words_no_semeval, test_size=0.05, random_state=rng_seed
         )
