@@ -633,6 +633,7 @@ def load_model_training_output(
     return_annoy_instance: bool = False,
     annoy_instance_prefault: bool = False,
     return_scann_instance: bool = False,
+    return_scann_instance_filepath: bool = False,
 ) -> dict:
     """
     Loads and returns a dict object containing output from word2vec training
@@ -658,6 +659,9 @@ def load_model_training_output(
     return_scann_instance : bool, optional
         Whether or not to return the ScaNN instance fit on the last embedding weights,
         if they are present (defaults to False).
+    return_scann_instance_filepath : bool, optional
+        Whether or not to return the filepath of the ScaNN instance fit on the last word
+        embedding weights, if they are present (defaults to False).
 
     Returns
     -------
@@ -724,17 +728,16 @@ def load_model_training_output(
 
     # ScaNN instance
     last_embedding_weights_scann_instance = None
-    if (
-        return_scann_instance
-        and "intermediate_embedding_weight_scann_artifact_dirs"
-        in checkpoint_filepaths_dict
-    ):
-        last_embedding_weights_scann_instance = ApproxNN(ann_alg="scann")
-        last_embedding_weights_scann_instance.load(
-            ann_path=checkpoint_filepaths_dict[
-                "intermediate_embedding_weight_scann_artifact_dirs"
-            ][-1]
-        )
+    last_embedding_weights_scann_instance_filepath = None
+    if "intermediate_embedding_weight_scann_artifact_dirs" in checkpoint_filepaths_dict:
+        scann_instance_filepath = checkpoint_filepaths_dict[
+            "intermediate_embedding_weight_scann_artifact_dirs"
+        ][-1]
+        if return_scann_instance:
+            last_embedding_weights_scann_instance = ApproxNN(ann_alg="scann")
+            last_embedding_weights_scann_instance.load(ann_path=scann_instance_filepath)
+        if return_scann_instance_filepath:
+            last_embedding_weights_scann_instance_filepath = scann_instance_filepath
 
     return {
         "last_embedding_weights": last_embedding_weights,
@@ -742,6 +745,7 @@ def load_model_training_output(
         "last_embedding_weights_normalized": last_embedding_weights_normalized,
         "last_embedding_weights_annoy_instance": last_embedding_weights_annoy_instance,
         "last_embedding_weights_scann_instance": last_embedding_weights_scann_instance,
+        "last_embedding_weights_scann_instance_filepath": last_embedding_weights_scann_instance_filepath,
         "words": words,
         "word_to_int": word_to_int,
         "word_counts": word_counts,

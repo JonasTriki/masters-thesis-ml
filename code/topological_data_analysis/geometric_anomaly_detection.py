@@ -1,8 +1,9 @@
 import sys
-from multiprocessing import Array, Pool, cpu_count
+from multiprocessing import cpu_count
 from typing import Callable, Tuple
 
 import numpy as np
+import sharedmem
 from fastdist import fastdist
 from ripser import ripser
 from sklearn.metrics import euclidean_distances
@@ -21,31 +22,31 @@ DistanceFunc = Callable[[int, int], float]
 KnnFunc = Callable[[int, int], Tuple[np.ndarray, np.ndarray]]
 
 
-def compute_gad_mp_init(
-    data_points: Array,
-    data_points_shape: tuple,
-    distance_func: DistanceFunc,
-    knn_func: KnnFunc = None,
-) -> None:
-    """
-    Initializes multiprocessing variable dict for GAD.
+# def compute_gad_mp_init(
+#     data_points: Array,
+#     data_points_shape: tuple,
+#     distance_func: DistanceFunc,
+#     knn_func: KnnFunc = None,
+# ) -> None:
+#     """
+#     Initializes multiprocessing variable dict for GAD.
 
-    Parameters
-    ----------
-    data_points: Array
-        Multiprocessing array representing the data points.
-    data_points_shape : tuple
-        Shape of the data points.
-    distance_func : DistanceFunc
-        Distance function.
-    knn_func : KnnFunc
-        K-nearest neighbour function.
-    """
-    mp_var_dict["data_points"] = data_points
-    mp_var_dict["data_points_shape"] = data_points_shape
-    mp_var_dict["distance_func"] = distance_func
-    if knn_func is not None:
-        mp_var_dict["knn_func"] = knn_func
+#     Parameters
+#     ----------
+#     data_points: Array
+#         Multiprocessing array representing the data points.
+#     data_points_shape : tuple
+#         Shape of the data points.
+#     distance_func : DistanceFunc
+#         Distance function.
+#     knn_func : KnnFunc
+#         K-nearest neighbour function.
+#     """
+#     mp_var_dict["data_points"] = data_points
+#     mp_var_dict["data_points_shape"] = data_points_shape
+#     mp_var_dict["distance_func"] = distance_func
+#     if knn_func is not None:
+#         mp_var_dict["knn_func"] = knn_func
 
 
 def get_point_distance_func(
@@ -166,7 +167,6 @@ def get_knn_func_data_points(
 def compute_gad_point_indices(
     data_point_indices: list,
     data_points: np.ndarray,
-    data_point_ints: list,
     annulus_inner_radius: float,
     annulus_outer_radius: float,
     distance_func: DistanceFunc,
@@ -190,8 +190,6 @@ def compute_gad_point_indices(
         List consising of indices of data points to compute GAD for.
     data_points : np.ndarray
         All data points.
-    data_point_ints : np.ndarray
-        Array specifying which data point indices are used from all the data points.
     annulus_inner_radius : float
         Inner annulus radius.
     annulus_outer_radius : float
@@ -263,7 +261,7 @@ def compute_gad_point_indices(
             A_y_indices = np.array(
                 [
                     j
-                    for j in data_point_ints
+                    for j in np.arange(len(data_points))
                     if annulus_inner_radius
                     <= distance_func(j, data_point_index)
                     <= annulus_outer_radius
@@ -287,19 +285,6 @@ def compute_gad_point_indices(
             )
             diagrams = list(diagrams_dict.values())
         else:
-            # rips_complex = RipsComplex(points=A_y)
-            # simplex_tree = rips_complex.create_simplex_tree(
-            #     max_dimension=target_homology_dim
-            # )
-            # barcodes = simplex_tree.persistence()
-            # target_homology_dim_diagram = np.array(
-            #     [
-            #         (birth, death)
-            #         for dim, (birth, death) in barcodes
-            #         if dim == target_homology_dim
-            #     ]
-            # )
-
             rips_complex = ripser(
                 X=euclidean_distances(A_y),
                 maxdim=target_homology_dim,
@@ -338,10 +323,10 @@ def compute_gad_point_indices_mp(args: tuple) -> dict:
     ----------
     args : tuple
         Multiprocessing argument tuple:
+            data_points : np.ndarray
+                Data points
             data_point_indices : list
                 List consising of indices of data points to compute GAD for.
-            data_point_ints : np.ndarray
-                Array specifying which data point indices are used from all the data points.
             annulus_inner_radius : float
                 Inner annulus radius.
             annulus_outer_radius : float
@@ -383,8 +368,8 @@ def compute_gad_point_indices_mp(args: tuple) -> dict:
     """
     # Parse args
     (
+        data_points,
         data_point_indices,
-        data_point_ints,
         annulus_inner_radius,
         annulus_outer_radius,
         use_knn_annulus,
@@ -396,10 +381,7 @@ def compute_gad_point_indices_mp(args: tuple) -> dict:
         return_annlus_persistence_diagrams,
     ) = args
 
-    # Get data_points and distance_func from MP dict
-    data_points = np.frombuffer(mp_var_dict["data_points"]).reshape(
-        mp_var_dict["data_points_shape"]
-    )
+    # Get functions from MP dict
     distance_func = mp_var_dict["distance_func"]
     knn_func = None
     if use_knn_annulus:
@@ -409,7 +391,6 @@ def compute_gad_point_indices_mp(args: tuple) -> dict:
     return compute_gad_point_indices(
         data_point_indices=data_point_indices,
         data_points=data_points,
-        data_point_ints=data_point_ints,
         annulus_inner_radius=annulus_inner_radius,
         annulus_outer_radius=annulus_outer_radius,
         distance_func=distance_func,
@@ -550,21 +531,21 @@ def compute_gad(
         # Prepare data for multiprocessing
         if verbose == 1:
             print("Preparing data for multiprocessing...")
-        data_points_shape = (len(data_point_ints), data_points.shape[1])
-        data_points_raw = Array(
-            "d", data_points_shape[0] * data_points_shape[1], lock=False
-        )
-        data_points_raw_np = np.frombuffer(data_points_raw).reshape(data_points_shape)
-        np.copyto(data_points_raw_np, data_points[data_point_ints])
+        data_points_shared = sharedmem.copy(data_points)
+        # data_points_raw = Array(
+        #     "d", data_points.shape[0] * data_points.shape[1], lock=False
+        # )
+        # data_points_raw_np = np.frombuffer(data_points_raw).reshape(data_points.shape)
+        # np.copyto(data_points_raw_np, data_points)
         if verbose == 1:
             print("Done!")
 
         # Prepare arguments
         num_data_points_per_process = int(len(data_point_ints) // n_jobs)
-        grid_search_args = [
+        mp_args = [
             (
+                data_points_shared,
                 data_point_ints_chunk,
-                data_point_ints,
                 annulus_inner_radius,
                 annulus_outer_radius,
                 use_knn_annulus,
@@ -579,25 +560,37 @@ def compute_gad(
                 data_point_ints, num_data_points_per_process
             )
         ]
+        mp_var_dict["distance_func"] = distance_func
+        if knn_func is not None:
+            mp_var_dict["knn_func"] = knn_func
 
         # Run MP
         if verbose == 1:
             print(f"Computing GAD using {n_jobs} processes...")
-        with Pool(
-            processes=n_jobs,
-            initializer=compute_gad_mp_init,
-            initargs=(data_points_raw_np, data_points_shape, distance_func, knn_func),
-        ) as pool:
-            for result in tqdm(
-                pool.imap_unordered(compute_gad_point_indices_mp, grid_search_args),
-                total=n_jobs,
-                disable=not progressbar_enabled,
-            ):
+        with sharedmem.MapReduce(np=n_jobs) as pool:
+            mp_results = pool.map(compute_gad_point_indices_mp, mp_args)
+            for result in mp_results:
                 results["P_man"].extend(result["P_man"])
                 results["P_bnd"].extend(result["P_bnd"])
                 results["P_int"].extend(result["P_int"])
                 if return_annlus_persistence_diagrams:
                     results["annulus_pds"].update(result["annulus_pds"])
+
+        # with Pool(
+        #     processes=n_jobs,
+        #     initializer=compute_gad_mp_init,
+        #     initargs=(data_points_raw_np, data_points.shape, distance_func, knn_func),
+        # ) as pool:
+        #     for result in tqdm(
+        #         pool.imap_unordered(compute_gad_point_indices_mp, grid_search_args),
+        #         total=n_jobs,
+        #         disable=not progressbar_enabled,
+        #     ):
+        #         results["P_man"].extend(result["P_man"])
+        #         results["P_bnd"].extend(result["P_bnd"])
+        #         results["P_int"].extend(result["P_int"])
+        #         if return_annlus_persistence_diagrams:
+        #             results["annulus_pds"].update(result["annulus_pds"])
     else:
 
         # Compute GAD using only one processor
@@ -606,7 +599,6 @@ def compute_gad(
         results = compute_gad_point_indices(
             data_point_indices=data_point_ints,
             data_points=data_points,
-            data_point_ints=data_point_ints,
             annulus_inner_radius=annulus_inner_radius,
             annulus_outer_radius=annulus_outer_radius,
             distance_func=distance_func,
