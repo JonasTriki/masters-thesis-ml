@@ -346,12 +346,12 @@ def prepare_num_word_meanings_supervised_data(
                 f"Estimating IDs using {id_estimator_cls.__name__} with {num_neighbours} neighbours..."
             )
             id_estimator = id_estimator_cls(**id_estimator_params)
-            estimated_ids_full = id_estimator.fit_predict_pw(
-                X=last_embedding_weights_normalized,
+            estimated_ids = id_estimator.fit_predict_pw(
+                X=last_embedding_weights_normalized[data_words_to_full_vocab_ints],
                 n_neighbors=num_neighbours,
                 n_jobs=-1,
             )
-            estimated_ids = estimated_ids_full[data_words_to_full_vocab_ints]
+            # estimated_ids = estimated_ids_full[data_words_to_full_vocab_ints]
 
             print("Done! Saving to file...")
             np.save(estimated_ids_filepath, estimated_ids)
