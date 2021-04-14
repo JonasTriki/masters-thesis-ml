@@ -194,7 +194,7 @@ def tps(
     )
 
     if return_persistence_diagram:
-        return wasserstein_norm, barcodes
+        return wasserstein_norm, zero_degree_diagram_points
     else:
         return wasserstein_norm
 
@@ -350,7 +350,7 @@ def tps_multiple_by_mp_args(args: tuple) -> tuple:
     tps_scores = np.zeros_like(target_words, dtype=float)
     tps_persistence_diagrams = None
     if return_persistence_diagram:
-        tps_persistence_diagrams = np.empty(len(target_words), dtype="object")
+        tps_persistence_diagrams = [None] * len(target_words)
 
     # Compute TPS of target words
     for i, target_word in enumerate(
@@ -449,7 +449,7 @@ def tps_multiple(
     tps_scores = np.zeros_like(target_words, dtype=float)
     tps_persistence_diagrams = None
     if return_persistence_diagram:
-        tps_persistence_diagrams = np.empty(len(target_words), dtype="object")
+        tps_persistence_diagrams = [None] * len(target_words)
 
     # Only normalize word embeddings once
     if word_embeddings_normalized is None:
@@ -508,10 +508,10 @@ def tps_multiple(
             mp_results = pool.map(tps_multiple_by_mp_args, mp_args)
             for tps_result, target_word_indices in mp_results:
                 if return_persistence_diagram:
-                    (
-                        tps_scores[target_word_indices],
-                        tps_persistence_diagrams[target_word_indices],
-                    ) = tps_result
+                    tps_result_scores, tps_result_pds = tps_result
+                    tps_scores[target_word_indices] = tps_result_scores
+                    for i, pds_idx in enumerate(target_word_indices):
+                        tps_persistence_diagrams[pds_idx] = tps_result_pds[i]
                 else:
                     tps_scores[target_word_indices] = tps_result
     else:

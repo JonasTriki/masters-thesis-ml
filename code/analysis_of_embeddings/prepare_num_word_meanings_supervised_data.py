@@ -162,7 +162,7 @@ def create_word_meaning_model_data_features(
         # TPS features
         for n_size in tps_neighbourhood_sizes:
             data_features[f"X_tps_{n_size}"].append(tps_scores[n_size][word_int])
-            tps_pd_zero_dim_deaths = tps_pds[n_size][word_int, :, 1]
+            tps_pd_zero_dim_deaths = tps_pds[n_size][word_int][:, 1]
             data_features[f"X_tps_{n_size}_pd_max"].append(tps_pd_zero_dim_deaths.max())
             data_features[f"X_tps_{n_size}_pd_avg"].append(
                 tps_pd_zero_dim_deaths.mean()
@@ -294,37 +294,7 @@ def prepare_num_word_meanings_supervised_data(
     # Filter out word embeddings using Wordnet words (data_words)
     data_words_to_full_vocab_ints = np.array([word_to_int[word] for word in data_words])
 
-    # (2) -- Create ApproxNN index of data_words word embeddings --
-    # word_embeddings_wordnet_words = last_embedding_weights_normalized[
-    #     data_words_to_full_vocab_ints
-    # ]
-    # approx_nn_index_dir = join(task_raw_data_dir, "approx_nn")
-    # if not isdir(approx_nn_index_dir):
-    #     print("Building ApproxNN index...")
-    #     approx_nn = ApproxNN(ann_alg="scann")
-    #     approx_nn.build(
-    #         data=word_embeddings_wordnet_words,
-    #         scann_num_leaves_scaling=10,
-    #         scann_default_num_neighbours=1000,
-    #         distance_measure="squared_l2",
-    #     )
-    #     print("Saving ApproxNN index...")
-    #     approx_nn.save(output_path=approx_nn_index_dir)
-    #     print("Done!")
-
-    # approx_nn_index_annoy_filepath = join(task_raw_data_dir, "annoy.ann")
-    # if not isfile(approx_nn_index_annoy_filepath):
-    #     approx_nn = ApproxNN(ann_alg="annoy")
-    #     approx_nn.build(
-    #         data=word_embeddings_wordnet_words,
-    #         annoy_n_trees=500,
-    #         distance_measure="euclidean",
-    #     )
-    #     print("Saving ApproxNN index...")
-    #     approx_nn.save(output_path=approx_nn_index_annoy_filepath)
-    #     print("Done!")
-
-    # (3) -- Estimate the intrinsic dimension (ID) for each word vector --
+    # (2) -- Estimate the intrinsic dimension (ID) for each word vector --
     words_estimated_ids_dir = join(task_raw_data_dir, "estimated_ids")
     id_estimators: List[Tuple[str, GlobalEstimator, dict]] = [
         ("lpca", est_ids.lPCA, {}),
@@ -356,7 +326,7 @@ def prepare_num_word_meanings_supervised_data(
             print("Done! Saving to file...")
             np.save(estimated_ids_filepath, estimated_ids)
 
-    # (4) -- Compute TPS_n for train/test words --
+    # (3) -- Compute TPS_n for train/test words --
     makedirs(task_raw_data_tps_dir, exist_ok=True)
     tps_scores_filepaths = [
         join(task_raw_data_tps_dir, f"tps_{tps_neighbourhood_size}_scores.npy")
@@ -391,20 +361,6 @@ def prepare_num_word_meanings_supervised_data(
             progressbar_enabled=True,
         )
 
-        # Create Nx2 array from zero dimensional homology for persistence diagrams
-        tps_pds_ns = np.array(
-            [
-                [
-                    [
-                        [birth, death]
-                        for dim, (birth, death) in tps_pd
-                        if dim == 0 and death != np.inf
-                    ]
-                ]
-                for tps_pd in tps_pds_ns
-            ]
-        )
-
         # Save result
         print("Saving TPS result...")
         np.save(tps_scores_filepath, tps_scores_ns)
@@ -414,7 +370,7 @@ def prepare_num_word_meanings_supervised_data(
         # Free resources
         del scann_instance
 
-    # (5) -- Compute GAD features --
+    # (4) -- Compute GAD features --
     gad_features_dir = join(task_raw_data_dir, "gad_features")
     makedirs(gad_features_dir, exist_ok=True)
     gad_features_params = [
@@ -442,11 +398,11 @@ def prepare_num_word_meanings_supervised_data(
     ]
     for inner_param, outer_param in gad_features_params:
         gad_features_id = f"gad_knn_{inner_param}_{outer_param}"
-        print(f"-- {gad_features_id} -- ")
 
         gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
         if isfile(gad_features_filepath):
             continue
+        print(f"-- {gad_features_id} -- ")
 
         # Load ScaNN instance
         approx_nn = ApproxNN(ann_alg="scann")
@@ -478,7 +434,7 @@ def prepare_num_word_meanings_supervised_data(
         # Free resources
         del approx_nn
 
-    # (6) -- Combine data into data (features and labels) for WME task --
+    # (5) -- Combine data into data (features and labels) for WME task --
     word_meaning_train_data_filepath = join(output_dir, "word_meaning_train_data.csv")
     word_meaning_test_data_filepath = join(output_dir, "word_meaning_test_data.csv")
     word_meaning_semeval_test_data_filepath = join(
@@ -492,9 +448,12 @@ def prepare_num_word_meanings_supervised_data(
         # -- Load data for creating features --
         # Load estimated IDs from file
         words_estimated_ids = {
-            id_estimator_name: np.load(
-                join(words_estimated_ids_dir, f"{id_estimator_name}.npy")
+            f"{id_estimator_name}_{num_neighbours}": np.load(
+                join(
+                    words_estimated_ids_dir, f"{id_estimator_name}_{num_neighbours}.npy"
+                )
             )
+            for num_neighbours in id_estimation_num_neighbours
             for id_estimator_name, _, _ in id_estimators
         }
         print("Loaded estimated IDs!")
