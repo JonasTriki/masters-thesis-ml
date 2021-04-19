@@ -253,6 +253,7 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
     X_train = minmax_scale(
         word_meaning_train_data[word_meaning_data_feature_cols].values
     )
+    print(f"Train data shape: {X_train.shape}")
     y_train = word_meaning_train_data["y"].values
     max_y_multi = np.quantile(y_train, q=0.9)
     print(f"Max label for multi classifcation: {max_y_multi}")
@@ -260,146 +261,146 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
     y_train_multi_classes = create_classification_labels(
         labels=y_train, max_label=max_y_multi
     )
-    num_y_train_multi_classes = len(np.unique(y_train_multi_classes))
+    # num_y_train_multi_classes = len(np.unique(y_train_multi_classes))
 
     # Prepare train params
     num_folds = 20
     model_classes = [
         LassoCV,
         LogisticRegressionCV,
-        LogisticRegressionCV,
-        BayesSearchCV,
-        BayesSearchCV,
-        BayesSearchCV,
+        # LogisticRegressionCV,
+        # BayesSearchCV,
+        # BayesSearchCV,
+        # BayesSearchCV,
     ]
     model_names = [
         "lasso_reg",
         "binary_logistic_reg",
-        "multi_class_logistic_reg",
-        "xgb_reg",
-        "xgb_binary_classification",
-        "xgb_multi_classification",
+        # "multi_class_logistic_reg",
+        # "xgb_reg",
+        # "xgb_binary_classification",
+        # "xgb_multi_classification",
     ]
     binary_specificity_scorer = make_scorer(recall_score, pos_label=1)
-    multi_class_specificity_scorer = make_scorer(recall_score, average="weighted")
+    # multi_class_specificity_scorer = make_scorer(recall_score, average="weighted")
     # mutli_class_auc_scorer = make_scorer(
     #    roc_auc_score, average="weighted", multi_class="ovr"
     # )
     models_params = [
         {
-            "alphas": np.linspace(0.00001, 0.99999, 10000),
+            "alphas": np.linspace(0.00000001, 0.99999999, 10000),
             "cv": num_folds,
-            "max_iter": 100000,
-            "n_jobs": -1,
+            "max_iter": 100000000,
+            "n_jobs": 10,
             "random_state": rng_seed,
         },
         {
             "Cs": 1 / np.linspace(0.00000001, 0.1, 10000),
             "cv": num_folds,
-            "max_iter": 1000000,
+            "max_iter": 100000000,
             "penalty": "l1",
             "solver": "saga",
             "verbose": 0,
-            "n_jobs": -1,
+            "n_jobs": 10,
             "scoring": binary_specificity_scorer,
             "random_state": rng_seed,
         },
-        {
-            "Cs": 1 / np.linspace(0.00000001, 0.1, 10000),
-            "cv": num_folds,
-            "max_iter": 1000000,
-            "penalty": "l1",
-            "solver": "saga",
-            "verbose": 0,
-            "n_jobs": -1,
-            "scoring": multi_class_specificity_scorer,
-            "random_state": rng_seed,
-        },
-        {
-            "estimator": xgb.XGBRegressor(
-                objective="reg:squarederror",
-                n_estimators=100,
-                random_state=rng_seed,
-                n_jobs=1,
-            ),
-            "search_spaces": {
-                "eta": Real(0.0001, 0.1),
-                "max_depth": Integer(3, 10),
-                "gamma": Real(0.001, 0.5),
-                "subsample": Real(0.5, 1),
-                "colsample_bytree": Real(0.5, 1),
-                "alpha": Real(0.00001, 0.1),
-            },
-            "cv": num_folds,
-            "n_iter": 100,
-            "random_state": rng_seed,
-            "verbose": 3,
-            "n_jobs": -1,
-        },
-        {
-            "estimator": xgb.XGBClassifier(
-                objective="binary:logistic",
-                use_label_encoder=False,
-                n_estimators=100,
-                scale_pos_weight=1,
-                random_state=rng_seed,
-                n_jobs=1,
-            ),
-            "search_spaces": {
-                "min_child_weight": Integer(1, 6),
-                "eta": Real(0.0001, 0.1),
-                "max_depth": Integer(3, 10),
-                "gamma": Real(0.001, 0.5),
-                "subsample": Real(0.5, 1),
-                "colsample_bytree": Real(0.5, 1),
-                "alpha": Real(0.00001, 0.1),
-            },
-            "scoring": binary_specificity_scorer,
-            "cv": num_folds,
-            "n_iter": 100,
-            "random_state": rng_seed,
-            "verbose": 3,
-            "fit_params": {
-                "eval_metric": "auc",
-            },
-            "n_jobs": -1,
-        },
-        {
-            "estimator": xgb.XGBClassifier(
-                objective="multi:softprob",
-                use_label_encoder=False,
-                n_estimators=100,
-                num_class=num_y_train_multi_classes,
-                random_state=rng_seed,
-                n_jobs=1,
-            ),
-            "search_spaces": {
-                "min_child_weight": Integer(1, 6),
-                "eta": Real(0.0001, 0.1),
-                "max_depth": Integer(3, 10),
-                "gamma": Real(0.001, 0.5),
-                "subsample": Real(0.5, 1),
-                "colsample_bytree": Real(0.5, 1),
-                "alpha": Real(0.00001, 0.1),
-            },
-            "scoring": multi_class_specificity_scorer,
-            "cv": num_folds,
-            "n_iter": 250,
-            "random_state": rng_seed,
-            "verbose": 3,
-            "fit_params": {
-                "eval_metric": "auc",
-            },
-            "n_jobs": -1,
-        },
+        # {
+        #     "Cs": 1 / np.linspace(0.00000001, 0.1, 10000),
+        #     "cv": num_folds,
+        #     "max_iter": 1000000,
+        #     "penalty": "l1",
+        #     "solver": "saga",
+        #     "verbose": 0,
+        #     "n_jobs": -1,
+        #     "scoring": multi_class_specificity_scorer,
+        #     "random_state": rng_seed,
+        # },
+        # {
+        #     "estimator": xgb.XGBRegressor(
+        #         objective="reg:squarederror",
+        #         n_estimators=100,
+        #         random_state=rng_seed,
+        #         n_jobs=1,
+        #     ),
+        #     "search_spaces": {
+        #         "eta": Real(0.0001, 0.1),
+        #         "max_depth": Integer(3, 10),
+        #         "gamma": Real(0.001, 0.5),
+        #         "subsample": Real(0.5, 1),
+        #         "colsample_bytree": Real(0.5, 1),
+        #         "alpha": Real(0.00001, 0.1),
+        #     },
+        #     "cv": num_folds,
+        #     "n_iter": 100,
+        #     "random_state": rng_seed,
+        #     "verbose": 3,
+        #     "n_jobs": -1,
+        # },
+        # {
+        #     "estimator": xgb.XGBClassifier(
+        #         objective="binary:logistic",
+        #         use_label_encoder=False,
+        #         n_estimators=100,
+        #         scale_pos_weight=1,
+        #         random_state=rng_seed,
+        #         n_jobs=1,
+        #     ),
+        #     "search_spaces": {
+        #         "min_child_weight": Integer(1, 6),
+        #         "eta": Real(0.0001, 0.1),
+        #         "max_depth": Integer(3, 10),
+        #         "gamma": Real(0.001, 0.5),
+        #         "subsample": Real(0.5, 1),
+        #         "colsample_bytree": Real(0.5, 1),
+        #         "alpha": Real(0.00001, 0.1),
+        #     },
+        #     "scoring": binary_specificity_scorer,
+        #     "cv": num_folds,
+        #     "n_iter": 100,
+        #     "random_state": rng_seed,
+        #     "verbose": 3,
+        #     "fit_params": {
+        #         "eval_metric": "auc",
+        #     },
+        #     "n_jobs": -1,
+        # },
+        # {
+        #     "estimator": xgb.XGBClassifier(
+        #         objective="multi:softprob",
+        #         use_label_encoder=False,
+        #         n_estimators=100,
+        #         num_class=num_y_train_multi_classes,
+        #         random_state=rng_seed,
+        #         n_jobs=1,
+        #     ),
+        #     "search_spaces": {
+        #         "min_child_weight": Integer(1, 6),
+        #         "eta": Real(0.0001, 0.1),
+        #         "max_depth": Integer(3, 10),
+        #         "gamma": Real(0.001, 0.5),
+        #         "subsample": Real(0.5, 1),
+        #         "colsample_bytree": Real(0.5, 1),
+        #         "alpha": Real(0.00001, 0.1),
+        #     },
+        #     "scoring": multi_class_specificity_scorer,
+        #     "cv": num_folds,
+        #     "n_iter": 250,
+        #     "random_state": rng_seed,
+        #     "verbose": 3,
+        #     "fit_params": {
+        #         "eval_metric": "auc",
+        #     },
+        #     "n_jobs": -1,
+        # },
     ]
     models_train_params = [
         {"model_type": "regression"},
         {"model_type": "binary_classification"},
-        {"model_type": "multi_classification"},
-        {"model_type": "regression"},
-        {"model_type": "binary_classification"},
-        {"model_type": "multi_classification"},
+        # {"model_type": "multi_classification"},
+        # {"model_type": "regression"},
+        # {"model_type": "binary_classification"},
+        # {"model_type": "multi_classification"},
     ]
 
     for model_cls, model_name, model_params, model_train_params in zip(

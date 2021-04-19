@@ -8,6 +8,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from nltk.corpus import wordnet as wn
+from persim import PersistenceImager
 from skdim import id as est_ids
 from skdim._commonfuncs import GlobalEstimator
 from sklearn.model_selection import train_test_split
@@ -95,7 +96,9 @@ def create_word_meaning_model_data_features(
     tps_neighbourhood_sizes: list,
     words_estimated_ids: dict,
     words_to_meanings: dict,
+    gad_categories: dict,
     gad_features_dict: dict,
+    gad_features_pd_vecs_dict: dict,
 ) -> pd.DataFrame:
     """
     Creates a Pandas DataFrame with columns containing data features for the supervised
@@ -121,8 +124,12 @@ def create_word_meaning_model_data_features(
     words_to_meanings : dict
         Dictionary mapping a word to its number of meanings; serves as the labels (y) for
         the supervised task.
+    gad_categories : dict
+        Dictionary containing GAD categories and its unique indices.
     gad_features_dict : dict
         Dictionary containing features from GAD.
+    gad_features_pd_vecs_dict : dict
+        Dictionary containing vectorized persistence diagrams from GADs features.
 
     Returns
     -------
@@ -141,10 +148,11 @@ def create_word_meaning_model_data_features(
     for id_estimator_name in words_estimated_ids.keys():
         data_features[f"X_estimated_id_{id_estimator_name}"] = []
     for gad_config in gad_features_dict.keys():
-        gad_features = gad_features_dict[gad_config]
-        for gad_category in gad_features.keys():
-            if gad_category.startswith("P_"):
-                data_features[f"X_{gad_config}_{gad_category}"] = []
+        for gad_category in gad_categories.keys():
+            data_features[f"X_{gad_config}_{gad_category}"] = []
+        gad_features_pd_vecs = gad_features_pd_vecs_dict[gad_config]
+        for pd_feature_idx in range(gad_features_pd_vecs.shape[1]):
+            data_features[f"X_{gad_config}_pd[{pd_feature_idx}]"] = []
 
     for target_word in tqdm(target_words):
         word_int = word_to_int[target_word]
@@ -170,14 +178,17 @@ def create_word_meaning_model_data_features(
             data_features[f"X_tps_{n_size}_pd_std"].append(tps_pd_zero_dim_deaths.std())
 
         # Features from GAD (P_man, P_int, P_bnd)
-        for gad_config in gad_features_dict.keys():
-            gad_features = gad_features_dict[gad_config]
-            for gad_category in gad_features.keys():
-                if gad_category.startswith("P_"):
-                    word_in_gad_category = int(word_int in gad_features[gad_category])
-                    data_features[f"X_{gad_config}_{gad_category}"].append(
-                        word_in_gad_category
-                    )
+        for gad_config, gad_features in gad_features_dict.items():
+            for gad_category, gad_feature_val in zip(
+                gad_categories.keys(), gad_features[word_int]
+            ):
+                data_features[f"X_{gad_config}_{gad_category}"].append(gad_feature_val)
+            gad_features_pd_vecs = gad_features_pd_vecs_dict[gad_config]
+            for pd_feature_idx in range(gad_features_pd_vecs.shape[1]):
+                pd_feature_val = gad_features_pd_vecs[word_int, pd_feature_idx]
+                data_features[f"X_{gad_config}_pd[{pd_feature_idx}]"].append(
+                    pd_feature_val
+                )
 
     # Create df and return it
     data_features_df = pd.DataFrame(data_features)
@@ -370,10 +381,10 @@ def prepare_num_word_meanings_supervised_data(
         # Free resources
         del scann_instance
 
-    # (4) -- Compute GAD features --
-    gad_features_dir = join(task_raw_data_dir, "gad_features")
-    makedirs(gad_features_dir, exist_ok=True)
-    gad_features_params = [
+    # (4) -- Compute GAD --
+    gad_dir = join(task_raw_data_dir, "gad")
+    makedirs(gad_dir, exist_ok=True)
+    gad_params = [
         (25, 250),
         (25, 500),
         (50, 250),
@@ -396,13 +407,14 @@ def prepare_num_word_meanings_supervised_data(
         (200, 1750),
         (200, 2000),
     ]
-    for inner_param, outer_param in gad_features_params:
-        gad_features_id = f"gad_knn_{inner_param}_{outer_param}"
+    gad_categories = {"P_man": 0, "P_int": 1, "P_bnd": 2}
+    for inner_param, outer_param in gad_params:
+        gad_id = f"gad_knn_{inner_param}_{outer_param}"
 
-        gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
-        if isfile(gad_features_filepath):
+        gad_filepath = join(gad_dir, f"{gad_id}.joblib")
+        if isfile(gad_filepath):
             continue
-        print(f"-- {gad_features_id} -- ")
+        print(f"-- {gad_id} -- ")
 
         # Load ScaNN instance
         approx_nn = ApproxNN(ann_alg="scann")
@@ -417,7 +429,7 @@ def prepare_num_word_meanings_supervised_data(
             use_knn_annulus=True,
             knn_annulus_inner=inner_param,
             knn_annulus_outer=outer_param,
-            return_annlus_persistence_diagrams=False,
+            return_annlus_persistence_diagrams=True,
             progressbar_enabled=True,
             n_jobs=-1,
         )
@@ -429,12 +441,88 @@ def prepare_num_word_meanings_supervised_data(
             "P_bnd:",
             len(gad_result["P_bnd"]),
         )
-        joblib.dump(gad_result, gad_features_filepath, protocol=4)
+        joblib.dump(gad_result, gad_filepath, protocol=4)
 
         # Free resources
         del approx_nn
 
-    # (5) -- Combine data into data (features and labels) for WME task --
+    # (5) -- Create features from GAD result to speed up combining of data --
+    gad_features_dir = join(task_raw_data_dir, "gad_features")
+    makedirs(gad_features_dir, exist_ok=True)
+    for inner_param, outer_param in gad_params:
+        gad_id = f"gad_knn_{inner_param}_{outer_param}"
+
+        gad_features_filepath = join(gad_features_dir, f"{gad_id}.npy")
+        if isfile(gad_features_filepath):
+            continue
+        print(f"Creating GAD features for {gad_id}...")
+
+        # Load GAD result
+        gad_result_filepath = join(gad_dir, f"{gad_id}.joblib")
+        gad_result = joblib.load(gad_result_filepath)
+
+        # Features from GAD (P_man, P_int, P_bnd)
+        gad_features = np.zeros((len(data_words_to_full_vocab_ints), 3), dtype=int)
+        for i, word_int in enumerate(tqdm(data_words_to_full_vocab_ints)):
+            for gad_category, gad_category_idx in gad_categories.items():
+                if word_int in gad_result[gad_category]:
+                    gad_features[i, gad_category_idx] = 1
+
+        # Save GAD features
+        np.save(gad_features_filepath, gad_features)
+
+    # (6) -- Vectorize persistence diagrams from GAD features --
+    gad_features_pd_vectorized_dir = join(
+        task_raw_data_dir, "gad_features_pd_vectorized"
+    )
+    gad_features_pd_vectorized_size = 5
+    gad_features_pd_vectorized_size_flat = gad_features_pd_vectorized_size ** 2
+    makedirs(gad_features_pd_vectorized_dir, exist_ok=True)
+    for inner_param, outer_param in gad_params:
+        gad_id = f"gad_knn_{inner_param}_{outer_param}"
+        gad_features_pd_vecs_filepath = join(
+            gad_features_pd_vectorized_dir, f"{gad_id}.npy"
+        )
+        if isfile(gad_features_pd_vecs_filepath):
+            continue
+        print(f"Vectorizing GAD features for {gad_id}...")
+
+        # Load GAD features
+        gad_result_filepath = join(gad_dir, f"{gad_id}.joblib")
+        gad_result = joblib.load(gad_result_filepath)
+
+        # Use PersistenceImage to vectorize persistence diagrams
+        gad_features_pd_vecs = np.zeros(
+            (len(data_words_to_full_vocab_ints), gad_features_pd_vectorized_size_flat)
+        )
+        for i, point_index in enumerate(tqdm(data_words_to_full_vocab_ints)):
+
+            # Get persistence diagram and create a range such that we get a square image from PersistenceImager
+            gad_features_pd = gad_result["annulus_pds"][point_index]
+            if len(gad_features_pd) == 0:
+                gad_features_pd_vecs[i] = np.zeros(
+                    gad_features_pd_vectorized_size_flat, dtype=int
+                )
+                continue
+
+            births, deaths = gad_features_pd.T
+            persistence = deaths - births
+            square_min = min(births.min(), persistence.min())
+            square_max = max(births.max(), persistence.max())
+            square_range = (square_min, square_max)
+            pixel_size = (square_max - square_min) / gad_features_pd_vectorized_size
+
+            # Vectorize persistence diagram
+            pimgr = PersistenceImager(
+                birth_range=square_range, pers_range=square_range, pixel_size=pixel_size
+            )
+            pd_vec = pimgr.transform(gad_features_pd)
+            gad_features_pd_vecs[i] = pd_vec.flatten()
+
+        # Save persistence image vectors to file
+        np.save(gad_features_pd_vecs_filepath, gad_features_pd_vecs)
+
+    # (7) -- Combine data into data (features and labels) for WME task --
     word_meaning_train_data_filepath = join(output_dir, "word_meaning_train_data.csv")
     word_meaning_test_data_filepath = join(output_dir, "word_meaning_test_data.csv")
     word_meaning_semeval_test_data_filepath = join(
@@ -460,10 +548,19 @@ def prepare_num_word_meanings_supervised_data(
 
         # Load GAD features
         gad_features_dict = {}
-        for inner_param, outer_param in gad_features_params:
-            gad_features_id = f"gad_knn_{inner_param}_{outer_param}"
-            gad_features_filepath = join(gad_features_dir, f"{gad_features_id}.joblib")
-            gad_features_dict[gad_features_id] = joblib.load(gad_features_filepath)
+        gad_features_pd_vecs_dict = {}
+        for inner_param, outer_param in gad_params:
+            gad_id = f"gad_knn_{inner_param}_{outer_param}"
+
+            # Load GAD features
+            gad_features_filepath = join(gad_features_dir, f"{gad_id}.npy")
+            gad_features_dict[gad_id] = np.load(gad_features_filepath)
+
+            # Load vectorized PDs from GAD features
+            gad_features_pd_vecs_filepath = join(
+                gad_features_pd_vectorized_dir, f"{gad_id}.npy"
+            )
+            gad_features_pd_vecs_dict[gad_id] = np.load(gad_features_pd_vecs_filepath)
         print("Loaded GAD features!")
 
         # Load TPS features
@@ -476,6 +573,7 @@ def prepare_num_word_meanings_supervised_data(
             tps_pds[tps_neighbourhood_size] = np.load(
                 tps_pds_filepath, allow_pickle=True
             )
+        print("Loaded TPS features!")
 
         data_words_train, data_words_test = train_test_split(
             data_words_no_semeval, test_size=0.05, random_state=rng_seed
@@ -489,7 +587,9 @@ def prepare_num_word_meanings_supervised_data(
                 tps_neighbourhood_sizes=tps_neighbourhood_sizes,
                 words_estimated_ids=words_estimated_ids,
                 words_to_meanings=words_to_num_meanings,
+                gad_categories=gad_categories,
                 gad_features_dict=gad_features_dict,
+                gad_features_pd_vecs_dict=gad_features_pd_vecs_dict,
             )
             train_data_df.to_csv(word_meaning_train_data_filepath, index=False)
         if not isfile(word_meaning_test_data_filepath):
@@ -501,7 +601,9 @@ def prepare_num_word_meanings_supervised_data(
                 tps_neighbourhood_sizes=tps_neighbourhood_sizes,
                 words_estimated_ids=words_estimated_ids,
                 words_to_meanings=words_to_num_meanings,
+                gad_categories=gad_categories,
                 gad_features_dict=gad_features_dict,
+                gad_features_pd_vecs_dict=gad_features_pd_vecs_dict,
             )
             test_data_df.to_csv(word_meaning_test_data_filepath, index=False)
         if not isfile(word_meaning_semeval_test_data_filepath):
@@ -513,7 +615,9 @@ def prepare_num_word_meanings_supervised_data(
                 tps_neighbourhood_sizes=tps_neighbourhood_sizes,
                 words_estimated_ids=words_estimated_ids,
                 words_to_meanings=words_to_num_meanings,
+                gad_categories=gad_categories,
                 gad_features_dict=gad_features_dict,
+                gad_features_pd_vecs_dict=gad_features_pd_vecs_dict,
             )
             semeval_test_data_df.to_csv(
                 word_meaning_semeval_test_data_filepath, index=False
