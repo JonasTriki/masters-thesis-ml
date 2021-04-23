@@ -1,6 +1,7 @@
 import argparse
 from os import makedirs
 from os.path import isfile, join
+from time import time
 
 import joblib
 import numpy as np
@@ -10,13 +11,14 @@ import xgboost as xgb
 from IPython.display import display
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
-from sklearn.linear_model import LassoCV, LogisticRegressionCV
+from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.metrics import (
     confusion_matrix,
     make_scorer,
     mean_squared_error,
     recall_score,
 )
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import minmax_scale
 from skopt import BayesSearchCV
 from skopt.space import Integer, Real
@@ -266,16 +268,16 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
     # Prepare train params
     num_folds = 20
     model_classes = [
-        LassoCV,
-        LogisticRegressionCV,
+        GridSearchCV,
+        GridSearchCV,
         # LogisticRegressionCV,
         # BayesSearchCV,
         # BayesSearchCV,
         # BayesSearchCV,
     ]
     model_names = [
-        "lasso_reg",
         "binary_logistic_reg",
+        "lasso_reg",
         # "multi_class_logistic_reg",
         # "xgb_reg",
         # "xgb_binary_classification",
@@ -288,23 +290,35 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
     # )
     models_params = [
         {
-            "alphas": np.linspace(0.00000001, 0.99999999, 10000),
+            "estimator": LogisticRegression(
+                penalty="l1",
+                solver="saga",
+                max_iter=1000000000,
+                tol=1e-3,
+                random_state=rng_seed,
+                n_jobs=1,
+            ),
+            "param_grid": {
+                "C": 1 / np.linspace(0.00001, 0.1, 100),
+            },
+            "scoring": binary_specificity_scorer,
             "cv": num_folds,
-            "max_iter": 1000000000,
-            "tol": 1e-3,
             "n_jobs": -1,
-            "random_state": rng_seed,
+            "verbose": 10,
         },
         {
-            "Cs": 1 / np.linspace(0.00000001, 0.1, 10000),
+            "estimator": Lasso(
+                max_iter=1000000000,
+                tol=1e-3,
+                selection="random",
+                random_state=rng_seed,
+            ),
+            "param_grid": {
+                "alpha": np.linspace(0.00001, 0.1, 100),
+            },
             "cv": num_folds,
-            "max_iter": 1000000000,
-            "penalty": "l1",
-            "solver": "saga",
-            "verbose": 0,
             "n_jobs": -1,
-            "scoring": binary_specificity_scorer,
-            "random_state": rng_seed,
+            "verbose": 10,
         },
         # {
         #     "Cs": 1 / np.linspace(0.00000001, 0.1, 10000),
@@ -396,8 +410,8 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
         # },
     ]
     models_train_params = [
-        {"model_type": "regression"},
         {"model_type": "binary_classification"},
+        {"model_type": "regression"},
         # {"model_type": "multi_classification"},
         # {"model_type": "regression"},
         # {"model_type": "binary_classification"},
@@ -414,13 +428,15 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
         model_type = model_train_params["model_type"]
 
         print(f"Training {model_name}...")
+        start_time = time()
         if model_type == "regression":
             model_instance.fit(X_train, y_train)
         elif model_type == "binary_classification":
             model_instance.fit(X_train, y_train_binary_classes)
         elif model_type == "multi_classification":
             model_instance.fit(X_train, y_train_multi_classes)
-        print("Done!")
+        train_time = time() - start_time
+        print(f"Done! Spent {train_time:.3f} seconds training.")
 
         print("Saving to file...")
         joblib.dump(model_instance, model_filepath, protocol=4)

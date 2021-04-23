@@ -311,8 +311,8 @@ def prepare_num_word_meanings_supervised_data(
         ("lpca", est_ids.lPCA, {}),
         ("knn", est_ids.KNN, {}),
         ("twonn", est_ids.TwoNN, {}),
-        ("mle", est_ids.MLE, {}),
-        ("tle", est_ids.TLE, {}),
+        # ("mle", est_ids.MLE, {}),
+        # ("tle", est_ids.TLE, {}),
     ]
     makedirs(words_estimated_ids_dir, exist_ok=True)
     for id_estimator_name, id_estimator_cls, id_estimator_params in id_estimators:
@@ -579,6 +579,7 @@ def prepare_num_word_meanings_supervised_data(
             data_words_no_semeval, test_size=0.05, random_state=rng_seed
         )
         if not isfile(word_meaning_train_data_filepath):
+            print("Preparing data for training...")
             train_data_df = create_word_meaning_model_data_features(
                 target_words=data_words_train,
                 word_to_int=data_word_to_int,
@@ -593,6 +594,7 @@ def prepare_num_word_meanings_supervised_data(
             )
             train_data_df.to_csv(word_meaning_train_data_filepath, index=False)
         if not isfile(word_meaning_test_data_filepath):
+            print("Preparing data for testing...")
             test_data_df = create_word_meaning_model_data_features(
                 target_words=data_words_test,
                 word_to_int=data_word_to_int,
@@ -607,6 +609,7 @@ def prepare_num_word_meanings_supervised_data(
             )
             test_data_df.to_csv(word_meaning_test_data_filepath, index=False)
         if not isfile(word_meaning_semeval_test_data_filepath):
+            print("Preparing data for external testing (SemEval)...")
             semeval_test_data_df = create_word_meaning_model_data_features(
                 target_words=semeval_target_words_in_vocab,
                 word_to_int=data_word_to_int,
