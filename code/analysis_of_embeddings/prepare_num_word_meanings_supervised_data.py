@@ -150,9 +150,10 @@ def create_word_meaning_model_data_features(
     for gad_config in gad_features_dict.keys():
         for gad_category in gad_categories.keys():
             data_features[f"X_{gad_config}_{gad_category}"] = []
-        gad_features_pd_vecs = gad_features_pd_vecs_dict[gad_config]
-        for pd_feature_idx in range(gad_features_pd_vecs.shape[1]):
-            data_features[f"X_{gad_config}_pd[{pd_feature_idx}]"] = []
+        # TODO: Remove GAD PD features?
+        # gad_features_pd_vecs = gad_features_pd_vecs_dict[gad_config]
+        # for pd_feature_idx in range(gad_features_pd_vecs.shape[1]):
+        #    data_features[f"X_{gad_config}_pd[{pd_feature_idx}]"] = []
 
     for target_word in tqdm(target_words):
         word_int = word_to_int[target_word]
@@ -183,12 +184,13 @@ def create_word_meaning_model_data_features(
                 gad_categories.keys(), gad_features[word_int]
             ):
                 data_features[f"X_{gad_config}_{gad_category}"].append(gad_feature_val)
-            gad_features_pd_vecs = gad_features_pd_vecs_dict[gad_config]
-            for pd_feature_idx in range(gad_features_pd_vecs.shape[1]):
-                pd_feature_val = gad_features_pd_vecs[word_int, pd_feature_idx]
-                data_features[f"X_{gad_config}_pd[{pd_feature_idx}]"].append(
-                    pd_feature_val
-                )
+            # TODO: Remove GAD PD features?
+            # gad_features_pd_vecs = gad_features_pd_vecs_dict[gad_config]
+            # for pd_feature_idx in range(gad_features_pd_vecs.shape[1]):
+            #    pd_feature_val = gad_features_pd_vecs[word_int, pd_feature_idx]
+            #    data_features[f"X_{gad_config}_pd[{pd_feature_idx}]"].append(
+            #        pd_feature_val
+            #    )
 
     # Create df and return it
     data_features_df = pd.DataFrame(data_features)
@@ -311,8 +313,8 @@ def prepare_num_word_meanings_supervised_data(
         ("lpca", est_ids.lPCA, {}),
         ("knn", est_ids.KNN, {}),
         ("twonn", est_ids.TwoNN, {}),
-        # ("mle", est_ids.MLE, {}),
-        # ("tle", est_ids.TLE, {}),
+        ("mle", est_ids.MLE, {}),
+        ("tle", est_ids.TLE, {}),
     ]
     makedirs(words_estimated_ids_dir, exist_ok=True)
     for id_estimator_name, id_estimator_cls, id_estimator_params in id_estimators:

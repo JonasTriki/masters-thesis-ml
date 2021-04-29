@@ -11,7 +11,7 @@ import xgboost as xgb
 from IPython.display import display
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
-from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.linear_model import LassoCV, LogisticRegressionCV
 from sklearn.metrics import (
     confusion_matrix,
     make_scorer,
@@ -268,16 +268,16 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
     # Prepare train params
     num_folds = 20
     model_classes = [
-        GridSearchCV,
-        GridSearchCV,
+        LassoCV,
+        LogisticRegressionCV,
         # LogisticRegressionCV,
         # BayesSearchCV,
         # BayesSearchCV,
         # BayesSearchCV,
     ]
     model_names = [
-        "binary_logistic_reg",
         "lasso_reg",
+        "binary_logistic_reg",
         # "multi_class_logistic_reg",
         # "xgb_reg",
         # "xgb_binary_classification",
@@ -290,35 +290,23 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
     # )
     models_params = [
         {
-            "estimator": LogisticRegression(
-                penalty="l1",
-                solver="saga",
-                max_iter=1000000000,
-                tol=1e-3,
-                random_state=rng_seed,
-                n_jobs=1,
-            ),
-            "param_grid": {
-                "C": 1 / np.linspace(0.00001, 0.1, 100),
-            },
-            "scoring": binary_specificity_scorer,
+            "alphas": np.linspace(0.0000001, 0.01, num=10000),
+            "max_iter": 1000000,
+            "random_state": rng_seed,
             "cv": num_folds,
             "n_jobs": -1,
-            "verbose": 10,
+            "verbose": 0,
         },
         {
-            "estimator": Lasso(
-                max_iter=1000000000,
-                tol=1e-3,
-                selection="random",
-                random_state=rng_seed,
-            ),
-            "param_grid": {
-                "alpha": np.linspace(0.00001, 0.1, 100),
-            },
+            "Cs": 1 / np.linspace(0.00001, 0.01, num=10000),
+            "penalty": "l1",
+            "solver": "saga",
+            "max_iter": 1000000,
+            "scoring": binary_specificity_scorer,
+            "random_state": rng_seed,
             "cv": num_folds,
             "n_jobs": -1,
-            "verbose": 10,
+            "verbose": 0,
         },
         # {
         #     "Cs": 1 / np.linspace(0.00000001, 0.1, 10000),
@@ -410,8 +398,8 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
         # },
     ]
     models_train_params = [
-        {"model_type": "binary_classification"},
         {"model_type": "regression"},
+        {"model_type": "binary_classification"},
         # {"model_type": "multi_classification"},
         # {"model_type": "regression"},
         # {"model_type": "binary_classification"},
