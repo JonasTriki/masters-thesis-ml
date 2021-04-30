@@ -1,5 +1,4 @@
 import sys
-from copy import deepcopy
 from os.path import join
 from typing import Optional, Union
 
@@ -16,8 +15,10 @@ from tqdm.auto import tqdm
 
 sys.path.append("..")
 
-import analysis_utils  # noqa: E402
-
+from analysis_of_embeddings.analysis_utils import (  # noqa: E402
+    plot_cluster_metric_scores,
+    words_in_clusters,
+)
 from utils import pairwise_cosine_distances, words_to_vectors  # noqa: E402
 from vis_utils import plot_word_vectors  # noqa: E402
 
@@ -532,7 +533,7 @@ def visualize_cluster_analysis_result(
                 ][0]
 
                 ax.set_xticks(xs)
-                analysis_utils.plot_cluster_metric_scores(
+                plot_cluster_metric_scores(
                     metric_scores=metric_scores,
                     hyperparameters=clusterer_params,
                     best_score_idx=best_metric_score_idx,
@@ -614,7 +615,7 @@ def visualize_cluster_analysis_result(
             best_metric_scores = clusterer_metric_result["best_metric_scores"]
             clusterer_names = clusterer_metric_result["clusterer_names"]
             print(best_metric_scores)
-            analysis_utils.plot_cluster_metric_scores(
+            plot_cluster_metric_scores(
                 metric_scores=best_metric_scores,
                 hyperparameters=clusterer_names,
                 best_score_idx=0,
@@ -682,7 +683,7 @@ def plot_word_embeddings_clustered(
         )
 
     if print_words_in_clusters:
-        cluster_words, _ = analysis_utils.words_in_clusters(cluster_labels, words)
+        cluster_words, _ = words_in_clusters(cluster_labels, words)
         print("-- Words in clusters --")
         for word_cluster in cluster_words:
             print("Words", word_cluster)

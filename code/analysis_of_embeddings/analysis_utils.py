@@ -134,7 +134,9 @@ def plot_cluster_metric_scores(
     ax.plot(xrange, metric_scores)
     if scatter:
         ax.scatter(xrange, metric_scores)
-    ax.scatter(xrange[best_score_idx], metric_scores[best_score_idx], c="r", s=72)
+    ax.scatter(
+        xrange[best_score_idx], metric_scores[best_score_idx], c="r", s=72, zorder=10
+    )
     if set_xticks:
         ax.set_xticks(xrange)
     if set_xtickslabels:
