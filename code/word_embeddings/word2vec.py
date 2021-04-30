@@ -629,6 +629,7 @@ def load_model_training_output(
     model_training_output_dir: str,
     model_name: str,
     dataset_name: str,
+    word_embeddings_mmap_mode: str = "r",
     return_normalized_embeddings: bool = False,
     return_annoy_instance: bool = False,
     annoy_instance_prefault: bool = False,
@@ -646,6 +647,8 @@ def load_model_training_output(
         Name of the trained model.
     dataset_name : str
         Name of the dataset the model is trained on.
+    word_embeddings_mmap_mode : str, optional
+        Memmap mode to use when loading last word embedding weights (defaults to "r", or read).
     return_normalized_embeddings : bool, optional
         Whether or not to return last embedding weights, normalized, if they
         are present (defaults to False).
@@ -680,7 +683,9 @@ def load_model_training_output(
     last_embedding_weights_filepath = checkpoint_filepaths_dict[
         "intermediate_embedding_weight_filepaths"
     ][-1]
-    last_embedding_weights = np.load(last_embedding_weights_filepath, mmap_mode="r")
+    last_embedding_weights = np.load(
+        last_embedding_weights_filepath, mmap_mode=word_embeddings_mmap_mode
+    )
 
     # Get word counts from tokenizer of word2vec model
     with open(
