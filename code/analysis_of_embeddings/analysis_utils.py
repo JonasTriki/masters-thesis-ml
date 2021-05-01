@@ -394,7 +394,7 @@ def visualize_word_cluster_groups(
     visualize_non_group_words: bool,
     xlabel: str,
     ylabel: str,
-    non_group_words_color: str = "#c44e52",
+    non_group_words_color: str = "#ccc",
     ax: plt.axis = None,
     show_plot: bool = True,
     alpha: float = 1,
@@ -418,7 +418,7 @@ def visualize_word_cluster_groups(
     ylabel : str
         Y-axis label
     non_group_words_color : str
-        Color for words outside groups (defaults to #c44e52)
+        Color for words outside groups (defaults to #ccc)
     ax : plt.axis
         Matplotlib axis (defaults to None)
     show_plot : bool
@@ -518,7 +518,10 @@ def word_group_visualization(
     ylabel: str,
     emphasis_words: list = None,
     alpha: float = 1,
-    non_group_words_color: str = "#c44e52",
+    non_group_words_color: str = "#ccc",
+    scatter_set_rasterized: bool = False,
+    rasterization_threshold: int = 1000,
+    ax: plt.axis = None,
     show_plot: bool = True,
 ) -> None:
     """
@@ -543,7 +546,14 @@ def word_group_visualization(
     alpha : float
         Scatter plot alpha value (defaults to 1).
     non_group_words_color : str
-        Color for words outside groups (defaults to #c44e52).
+        Color for words outside groups (defaults to #ccc).
+    scatter_set_rasterized : bool
+        Whether or not to enable rasterization on scatter plotting (defaults to False).
+    rasterization_threshold : int
+        The least number of data points to enable rasterization, given that
+        `scatter_set_rasterized` is set to True (defaults to 1000).
+    ax : plt.axis
+        Axis (defaults to None).
     show_plot : bool
         Whether or not to call plt.show() (defaults to True).
     """
@@ -583,18 +593,24 @@ def word_group_visualization(
         if word not in group_words
     ]
 
-    _, ax = plt.subplots(figsize=(12, 10))
+    if ax is None:
+        _, ax = plt.subplots(figsize=(12, 10))
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
     # Plot non-group words
-    ax.scatter(
+    non_grp_scatter_handle = ax.scatter(
         x=transformed_word_embeddings[words_not_in_groups_mask][:, 0],
         y=transformed_word_embeddings[words_not_in_groups_mask][:, 1],
         s=10,
         alpha=alpha,
         c=non_group_words_color,
     )
+    if (
+        scatter_set_rasterized
+        and len(words_not_in_groups_mask) >= rasterization_threshold
+    ):
+        non_grp_scatter_handle.set_rasterized(True)
 
     # Plot group words
     for group_key, group_words in word_group_words_restricted.items():
@@ -603,7 +619,7 @@ def word_group_visualization(
         )
         group_word_embeddings = transformed_word_embeddings[group_words_indices]
 
-        ax.scatter(
+        grp_scatter_handle = ax.scatter(
             x=group_word_embeddings[:, 0],
             y=group_word_embeddings[:, 1],
             s=15,
@@ -611,6 +627,11 @@ def word_group_visualization(
             c=word_groups[group_key]["color"],
             label=word_groups[group_key]["label"],
         )
+        if (
+            scatter_set_rasterized
+            and len(group_word_embeddings) >= rasterization_threshold
+        ):
+            grp_scatter_handle.set_rasterized(True)
 
     # Visualize emphasized words
     if emphasis_words is not None:
@@ -629,13 +650,18 @@ def word_group_visualization(
                 word_color = word_groups[group_key]["color"]
 
             word_idx = [i for i, word in enumerate(words) if word == emphasis_word][0]
-            ax.scatter(
+            emphasis_scatter_handle = ax.scatter(
                 x=transformed_word_embeddings[word_idx, 0],
                 y=transformed_word_embeddings[word_idx, 1],
                 s=40,
                 alpha=alpha,
                 c=word_color,
             )
+            if (
+                scatter_set_rasterized
+                and len(emphasis_words) >= rasterization_threshold
+            ):
+                emphasis_scatter_handle.set_rasterized(True)
 
             # Annotate emphasis word with a text box
             offsetbox = TextArea(emphasis_word)
@@ -649,6 +675,6 @@ def word_group_visualization(
             )
             ax.add_artist(ab)
 
-    plt.legend()
+    ax.legend()
     if show_plot:
         plt.show()
