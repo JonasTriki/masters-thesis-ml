@@ -8,10 +8,10 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
-from analysis_utils import preprocess_name
 
 sys.path.append("..")
 
+from analysis_of_embeddings.analysis_utils import preprocess_name  # noqa: E402
 from text_preprocessing_utils import preprocess_text  # noqa: E402
 from utils import download_from_url  # noqa: E402
 

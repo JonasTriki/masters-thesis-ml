@@ -594,7 +594,7 @@ def word_group_visualization(
     ]
 
     if ax is None:
-        _, ax = plt.subplots(figsize=(12, 10))
+        _, ax = plt.subplots(figsize=(12, 7))
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
