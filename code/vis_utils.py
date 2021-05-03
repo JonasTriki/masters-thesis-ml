@@ -1,5 +1,6 @@
 import numpy as np
 import plotly.express as px
+import seaborn as sns
 from matplotlib import pyplot as plt
 
 
@@ -73,3 +74,12 @@ def plot_word_vectors(
         ax.set_ylabel(y_label)
         if show_plot:
             plt.show()
+
+
+def configure_plotting_for_thesis() -> None:
+    """
+    Configures plotting for thesis by using "ticks" Seaborn theme and Serif font.
+    """
+    sns.set_theme(style="ticks")
+    plt.rcParams.update({"font.family": "serif", "mathtext.fontset": "dejavuserif"})
+    print("Plots configured for thesis!")
