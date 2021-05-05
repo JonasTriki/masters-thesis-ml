@@ -537,3 +537,90 @@ def tps_multiple(
         return tps_scores, tps_persistence_diagrams
     else:
         return tps_scores
+
+
+def tps_multiple_point_cloud(
+    point_indices: list,
+    neighbourhood_size: int,
+    point_cloud: np.ndarray = None,
+    point_cloud_indices: Optional[list] = None,
+    point_cloud_normalized: np.ndarray = None,
+    point_cloud_pairwise_dists: np.ndarray = None,
+    ann_instance: ApproxNN = None,
+    sanity_check: bool = False,
+    return_persistence_diagram: bool = False,
+    n_jobs: int = 1,
+    progressbar_enabled: bool = False,
+    verbose: int = 1,
+):
+    """
+    Computes the topological polysemy (TPS) [1] of points with respect
+    to some point cloud and neighbourhood size.
+
+    Parameters
+    ----------
+    point_indices : int
+        Indices of target points
+    neighbourhood_size : int
+        Neighbourhood size (n)
+    point_cloud : np.ndarray, optional
+        Point cloud. Either point_cloud or point_cloud_normalized must be specified.
+        (Defaults to None).
+    point_cloud_indices : list, optional
+        List of indices of point cloud to use (defaults to None, i.e., all points).
+    point_cloud_normalized : np.ndarray, optional
+        Normalized point cloud. Either point_cloud or point_cloud_normalized must be specified.
+        (Defaults to None).
+    point_cloud_pairwise_dists : np.ndarray, optional
+        Pairwise distances between points in point cloud (defaults to None).
+    ann_instance : ApproxNN, optional
+        Approximate nearest neighbour (ANN) instance, built on the point cloud
+        (defaults to None). If specified, the ANN index is used to find punctured
+        neighbourhoods.
+    sanity_check : bool, optional
+        Whether or not to run sanity checks (defaults to False).
+    return_persistence_diagram : bool, optional
+        Whether or not to return persistence diagram (defaults to False).
+    n_jobs : int, optional
+        Number of processes to use (defaults to 1).
+    progressbar_enabled: bool, optional
+        Whether or not the progressbar is enabled (defaults to False).
+    verbose : int, optional
+        Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose). Defaults to 1 (verbose).
+
+    Returns
+    -------
+    result : float or tuple
+        TPS of `point_indices` w.r.t. point_cloud and neighbourhood_size.
+        If return_persistence_diagram is set to true, then a tuple is returned
+        with the TPS as the first value and the zero degree persistence diagram
+        as the second value.
+
+    References
+    ----------
+    .. [1] Alexander Jakubowski, Milica Gašić, & Marcus Zibrowius. (2020).
+       Topology of Word Embeddings: Singularities Reflect Polysemy.
+    """
+    if point_cloud is not None:
+        num_points = len(point_cloud)
+    elif point_cloud_normalized is not None:
+        num_points = len(point_cloud_normalized)
+    else:
+        raise ValueError(
+            "Either point_cloud or point_cloud_normalized must be specified."
+        )
+    return tps_multiple(
+        target_words=np.array([str(idx) for idx in point_indices]),
+        word_to_int={str(i): i for i in range(num_points)},
+        neighbourhood_size=neighbourhood_size,
+        words_vocabulary=point_cloud_indices,
+        word_embeddings=point_cloud,
+        word_embeddings_normalized=point_cloud_normalized,
+        word_embeddings_pairwise_dists=point_cloud_pairwise_dists,
+        ann_instance=ann_instance,
+        sanity_check=sanity_check,
+        return_persistence_diagram=return_persistence_diagram,
+        n_jobs=n_jobs,
+        progressbar_enabled=progressbar_enabled,
+        verbose=verbose,
+    )

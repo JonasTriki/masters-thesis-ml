@@ -5,13 +5,13 @@ from datetime import datetime
 from os.path import join
 
 from tensorflow.keras.mixed_precision import experimental as tf_mixed_precision
-from tokenizer import Tokenizer, load_tokenizer
-from train_utils import enable_dynamic_gpu_memory
-from word2vec import Word2vec, load_model
 
 sys.path.append("..")
 
 from utils import get_all_filepaths, text_files_total_line_count  # noqa: E402
+from word_embeddings.tokenizer import Tokenizer, load_tokenizer  # noqa: E402
+from word_embeddings.train_utils import enable_dynamic_gpu_memory  # noqa: E402
+from word_embeddings.word2vec import Word2vec, load_model  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
