@@ -12,6 +12,9 @@
 \usepackage{geometry}
 \usepackage{wrapfig}
 \usepackage{amssymb}
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
 \setlength{\marginparwidth}{2cm}
 \setlength{\parindent}{0em}
 \usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
@@ -21,19 +24,9 @@
 \usepackage[integrals]{wasysym}
 \usepackage{latexsym}
 \DeclareRobustCommand{\VAN}[3]{#2}
-\usepackage{amssymb}
 \usepackage{multirow}
-
-% -- Multiciting --
-\usepackage{cite}
-\makeatletter
-\newcommand{\citecomment}[2][]{\citen{#2}#1\citevar}
-\newcommand{\citeone}[1]{\citecomment{#1}}
-\newcommand{\citetwo}[2][]{\citecomment[,~#1]{#2}}
-\newcommand{\citevar}{\@ifnextchar\bgroup{;~\citeone}{\@ifnextchar[{;~\citetwo}{]}}}
-\newcommand{\citefirst}{\@ifnextchar\bgroup{\citeone}{\@ifnextchar[{\citetwo}{]}}}
-\newcommand{\cites}{[\citefirst}
-\makeatother
+\usepackage{chngcntr}
+\usepackage{makecell}
 
 % -- PGFPlots --
 % \documentclass{standalone}
@@ -45,9 +38,20 @@
 
 \renewcommand{\labelenumii}{\theenumii}
 \renewcommand{\theenumii}{\theenumi.\arabic{enumii}.}
-\renewcommand{\theequation}{\arabic{equation}}
-\renewcommand{\thefigure}{\arabic{figure}}
-\renewcommand{\thetable}{\arabic{table}}
+\counterwithout{equation}{chapter}
+\counterwithout{figure}{chapter}
+\counterwithout{table}{chapter}
+
+% Multi-citing
+\usepackage{cite}
+\makeatletter
+\newcommand{\citecomment}[2][]{\citen{#2}#1\citevar}
+\newcommand{\citeone}[1]{\citecomment{#1}}
+\newcommand{\citetwo}[2][]{\citecomment[,~#1]{#2}}
+\newcommand{\citevar}{\@ifnextchar\bgroup{;~\citeone}{\@ifnextchar[{;~\citetwo}{]}}}
+\newcommand{\citefirst}{\@ifnextchar\bgroup{\citeone}{\@ifnextchar[{\citetwo}{]}}}
+\newcommand{\cites}{[\citefirst}
+\makeatother
 
 \usepackage{hyperref}
 \tolerance=1000
@@ -108,15 +112,12 @@
 
 \usepackage{amsthm}
 \usepackage[capitalise, noabbrev]{cleveref}
-\theoremstyle{definition}
-\newcounter{definitions}
-\setcounter{definitions}{0}
-\newtheorem{definition}[definitions]{Definition}
-\crefname{definition}{Definition}{Definitions}
 
 % -- Math commands --
 % Define real number R
 \newcommand{\R}{\mathbb{R}}
+% Define integer Z
+\newcommand{\Z}{\mathbb{Z}}
 % Sum command with limits
 \newcommand{\sumlim}[2]{\sum\limits_{#1}^{#2}}
 % Transposed
@@ -133,6 +134,15 @@
 \newcommand{\enclc}[1]{\left\{#1\right\}}
 % Argmin
 \DeclareMathOperator*{\argmin}{arg\,min}
+% Argmax
+\DeclareMathOperator*{\argmax}{arg\,max}
 % Norm
 \DeclarePairedDelimiterX{\norm}[1]{\lVert}{\rVert}{#1}
 %%%%%%%%%%%%%%%%%%%%%
+
+% -- Table commands --
+% Rotate text 90 degrees
+\newcommand*\rot{\rotatebox{90}}
+% Table row color
+\newcommand{\trcolor}{\rowcolor[HTML]{F5F5F5}}
+%%%%%%%%%%%%%%%%%%%%%%
