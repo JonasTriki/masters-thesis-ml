@@ -17,6 +17,7 @@ code/output
 code/.gitconfig
 code/.ssh
 code/.vscode-server
+code/.pylint.d
 
 # Excel temporary
 ~$*.xls*

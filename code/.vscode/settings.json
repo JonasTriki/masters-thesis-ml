@@ -26,5 +26,5 @@
     "**/data/**": true,
     "**/raw_data/**": true,
   },
-  "jupyter.jupyterServerType": "remote"
+  "jupyter.jupyterServerType": "local"
 }

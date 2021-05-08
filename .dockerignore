@@ -19,6 +19,7 @@ code/.gitconfig
 code/.ssh
 code/.vscode-server
 code/inf399-uib-ripser-plus-plus
+code/.pylint.d
 
 # Excel temporary
 ~$*.xls*

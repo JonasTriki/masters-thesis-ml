@@ -80,6 +80,6 @@ def configure_plotting_for_thesis() -> None:
     """
     Configures plotting for thesis by using "ticks" Seaborn theme and Serif font.
     """
-    sns.set_theme(style="ticks")
+    sns.set_theme(style="ticks", palette="colorblind")
     plt.rcParams.update({"font.family": "serif", "mathtext.fontset": "dejavuserif"})
     print("Plots configured for thesis!")
