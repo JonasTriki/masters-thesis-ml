@@ -98,7 +98,6 @@ def create_word_meaning_model_data_features(
     words_to_meanings: dict,
     gad_categories: dict,
     gad_features_dict: dict,
-    gad_features_pd_vecs_dict: dict,
 ) -> pd.DataFrame:
     """
     Creates a Pandas DataFrame with columns containing data features for the supervised
@@ -128,8 +127,6 @@ def create_word_meaning_model_data_features(
         Dictionary containing GAD categories and its unique indices.
     gad_features_dict : dict
         Dictionary containing features from GAD.
-    gad_features_pd_vecs_dict : dict
-        Dictionary containing vectorized persistence diagrams from GADs features.
 
     Returns
     -------
@@ -150,10 +147,6 @@ def create_word_meaning_model_data_features(
     for gad_config in gad_features_dict.keys():
         for gad_category in gad_categories.keys():
             data_features[f"X_{gad_config}_{gad_category}"] = []
-        # TODO: Remove GAD PD features?
-        # gad_features_pd_vecs = gad_features_pd_vecs_dict[gad_config]
-        # for pd_feature_idx in range(gad_features_pd_vecs.shape[1]):
-        #    data_features[f"X_{gad_config}_pd[{pd_feature_idx}]"] = []
 
     for target_word in tqdm(target_words):
         word_int = word_to_int[target_word]
@@ -184,13 +177,6 @@ def create_word_meaning_model_data_features(
                 gad_categories.keys(), gad_features[word_int]
             ):
                 data_features[f"X_{gad_config}_{gad_category}"].append(gad_feature_val)
-            # TODO: Remove GAD PD features?
-            # gad_features_pd_vecs = gad_features_pd_vecs_dict[gad_config]
-            # for pd_feature_idx in range(gad_features_pd_vecs.shape[1]):
-            #    pd_feature_val = gad_features_pd_vecs[word_int, pd_feature_idx]
-            #    data_features[f"X_{gad_config}_pd[{pd_feature_idx}]"].append(
-            #        pd_feature_val
-            #    )
 
     # Create df and return it
     data_features_df = pd.DataFrame(data_features)
@@ -307,39 +293,7 @@ def prepare_num_word_meanings_supervised_data(
     # Filter out word embeddings using Wordnet words (data_words)
     data_words_to_full_vocab_ints = np.array([word_to_int[word] for word in data_words])
 
-    # (2) -- Estimate the intrinsic dimension (ID) for each word vector --
-    words_estimated_ids_dir = join(task_raw_data_dir, "estimated_ids")
-    id_estimators: List[Tuple[str, GlobalEstimator, dict]] = [
-        ("lpca", est_ids.lPCA, {}),
-        ("knn", est_ids.KNN, {}),
-        ("twonn", est_ids.TwoNN, {}),
-        ("mle", est_ids.MLE, {}),
-        ("tle", est_ids.TLE, {}),
-    ]
-    makedirs(words_estimated_ids_dir, exist_ok=True)
-    for id_estimator_name, id_estimator_cls, id_estimator_params in id_estimators:
-        for num_neighbours in id_estimation_num_neighbours:
-            estimated_ids_filepath = join(
-                words_estimated_ids_dir, f"{id_estimator_name}_{num_neighbours}.npy"
-            )
-            if isfile(estimated_ids_filepath):
-                continue
-
-            print(
-                f"Estimating IDs using {id_estimator_cls.__name__} with {num_neighbours} neighbours..."
-            )
-            id_estimator = id_estimator_cls(**id_estimator_params)
-            estimated_ids = id_estimator.fit_predict_pw(
-                X=last_embedding_weights_normalized[data_words_to_full_vocab_ints],
-                n_neighbors=num_neighbours,
-                n_jobs=-1,
-            )
-            # estimated_ids = estimated_ids_full[data_words_to_full_vocab_ints]
-
-            print("Done! Saving to file...")
-            np.save(estimated_ids_filepath, estimated_ids)
-
-    # (3) -- Compute TPS_n for train/test words --
+    # (2) -- Compute TPS_n for train/test words --
     makedirs(task_raw_data_tps_dir, exist_ok=True)
     tps_scores_filepaths = [
         join(task_raw_data_tps_dir, f"tps_{tps_neighbourhood_size}_scores.npy")
@@ -383,27 +337,33 @@ def prepare_num_word_meanings_supervised_data(
         # Free resources
         del scann_instance
 
-    # (4) -- Compute GAD --
+    # (3) -- Compute GAD --
     gad_dir = join(task_raw_data_dir, "gad")
     makedirs(gad_dir, exist_ok=True)
     gad_params = [
         (25, 250),
         (25, 500),
+        (25, 750),
+        (25, 1000),
+        # ----------
         (50, 250),
-        (50, 550),
+        (50, 500),
         (50, 750),
         (50, 1000),
+        # ----------
         (100, 1000),
         (100, 1250),
         (100, 1500),
         (100, 1750),
         (100, 2000),
+        # ----------
         (150, 1000),
         (150, 1250),
         (150, 1500),
         (150, 1750),
         (150, 2000),
-        (150, 1000),
+        # ----------
+        (200, 1000),
         (200, 1250),
         (200, 1500),
         (200, 1750),
@@ -447,6 +407,38 @@ def prepare_num_word_meanings_supervised_data(
 
         # Free resources
         del approx_nn
+
+    # (4) -- Estimate the intrinsic dimension (ID) for each word vector --
+    words_estimated_ids_dir = join(task_raw_data_dir, "estimated_ids")
+    id_estimators: List[Tuple[str, GlobalEstimator, dict]] = [
+        ("lpca", est_ids.lPCA, {}),
+        ("knn", est_ids.KNN, {}),
+        ("twonn", est_ids.TwoNN, {}),
+        ("mle", est_ids.MLE, {}),
+        ("tle", est_ids.TLE, {}),
+    ]
+    makedirs(words_estimated_ids_dir, exist_ok=True)
+    for id_estimator_name, id_estimator_cls, id_estimator_params in id_estimators:
+        for num_neighbours in id_estimation_num_neighbours:
+            estimated_ids_filepath = join(
+                words_estimated_ids_dir, f"{id_estimator_name}_{num_neighbours}.npy"
+            )
+            if isfile(estimated_ids_filepath):
+                continue
+
+            print(
+                f"Estimating IDs using {id_estimator_cls.__name__} with {num_neighbours} neighbours..."
+            )
+            id_estimator = id_estimator_cls(**id_estimator_params)
+            estimated_ids = id_estimator.fit_predict_pw(
+                X=last_embedding_weights_normalized[data_words_to_full_vocab_ints],
+                n_neighbors=num_neighbours,
+                n_jobs=-1,
+            )
+            # estimated_ids = estimated_ids_full[data_words_to_full_vocab_ints]
+
+            print("Done! Saving to file...")
+            np.save(estimated_ids_filepath, estimated_ids)
 
     # (5) -- Create features from GAD result to speed up combining of data --
     gad_features_dir = join(task_raw_data_dir, "gad_features")
@@ -550,19 +542,12 @@ def prepare_num_word_meanings_supervised_data(
 
         # Load GAD features
         gad_features_dict = {}
-        gad_features_pd_vecs_dict = {}
         for inner_param, outer_param in gad_params:
             gad_id = f"gad_knn_{inner_param}_{outer_param}"
 
             # Load GAD features
             gad_features_filepath = join(gad_features_dir, f"{gad_id}.npy")
             gad_features_dict[gad_id] = np.load(gad_features_filepath)
-
-            # Load vectorized PDs from GAD features
-            gad_features_pd_vecs_filepath = join(
-                gad_features_pd_vectorized_dir, f"{gad_id}.npy"
-            )
-            gad_features_pd_vecs_dict[gad_id] = np.load(gad_features_pd_vecs_filepath)
         print("Loaded GAD features!")
 
         # Load TPS features
@@ -592,7 +577,6 @@ def prepare_num_word_meanings_supervised_data(
                 words_to_meanings=words_to_num_meanings,
                 gad_categories=gad_categories,
                 gad_features_dict=gad_features_dict,
-                gad_features_pd_vecs_dict=gad_features_pd_vecs_dict,
             )
             train_data_df.to_csv(word_meaning_train_data_filepath, index=False)
         if not isfile(word_meaning_test_data_filepath):
@@ -607,7 +591,6 @@ def prepare_num_word_meanings_supervised_data(
                 words_to_meanings=words_to_num_meanings,
                 gad_categories=gad_categories,
                 gad_features_dict=gad_features_dict,
-                gad_features_pd_vecs_dict=gad_features_pd_vecs_dict,
             )
             test_data_df.to_csv(word_meaning_test_data_filepath, index=False)
         if not isfile(word_meaning_semeval_test_data_filepath):
@@ -622,7 +605,6 @@ def prepare_num_word_meanings_supervised_data(
                 words_to_meanings=words_to_num_meanings,
                 gad_categories=gad_categories,
                 gad_features_dict=gad_features_dict,
-                gad_features_pd_vecs_dict=gad_features_pd_vecs_dict,
             )
             semeval_test_data_df.to_csv(
                 word_meaning_semeval_test_data_filepath, index=False
