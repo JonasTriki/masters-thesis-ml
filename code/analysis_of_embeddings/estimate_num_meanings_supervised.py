@@ -1,6 +1,7 @@
 import argparse
 from os import makedirs
 from os.path import isfile, join
+from string import ascii_lowercase
 from time import time
 
 import joblib
@@ -76,7 +77,10 @@ def create_classification_labels(labels: np.ndarray, max_label: int) -> np.ndarr
 
 
 def evaluate_regression_model(
-    model: object, test_sets: list, show_plot: bool = True
+    model: object,
+    test_sets: list,
+    show_plot: bool = True,
+    use_rasterization: bool = False,
 ) -> None:
     """
     Evaluates a trained regression model on test data sets.
@@ -98,30 +102,36 @@ def evaluate_regression_model(
             ylabel : str
                 Label for y-axis of pred/true plot.
     show_plot : bool, optional
-        Whether or not to call `plt.show()` to show the plot (defaults to True).
+        Whether or not to call `plt.show()` to show the plot (defaults to True)
+    use_rasterization : bool, optional
+        Whether or not to enable rasterization for scatter plots of many data points
+        (defaults to False).
     """
     num_test_sets = len(test_sets)
-    _, axes = plt.subplots(
-        nrows=1, ncols=num_test_sets, figsize=(5.5 * num_test_sets, 5)
-    )
-    for test_set, ax in zip(test_sets, axes):
+    _, axes = plt.subplots(nrows=1, ncols=num_test_sets, figsize=(5 * num_test_sets, 5))
+    test_set_chars = ascii_lowercase[:num_test_sets]
+    for test_set, test_set_char, ax in zip(test_sets, test_set_chars, axes):
         X_eval, y_true, test_set_name, xlabel, ylabel = test_set
         pred_labels = model.predict(X_eval)
         pred_true_corr, _ = pearsonr(pred_labels, y_true)
-        pred_true_mse = mean_squared_error(y_true, pred_labels)
 
-        ax.scatter(pred_labels, y_true, s=15)
+        ax_scatter_handle = ax.scatter(pred_labels, y_true, s=15)
+        if use_rasterization and len(pred_labels) > 1000:
+            ax_scatter_handle.set_rasterized(True)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_title(
-            f"Correlation: {pred_true_corr:.3f}, MSE: {pred_true_mse:.3f} ({test_set_name})"
+            f"({test_set_char}) Correlation: {pred_true_corr:.3f} ({test_set_name})"
         )
     if show_plot:
         plt.show()
 
 
 def evaluate_classification_model(
-    model: object, test_sets: list, cm_ticklabels: list
+    model: object,
+    test_sets: list,
+    cm_ticklabels: list,
+    show_plot: bool = True,
 ) -> None:
     """
     Evaluates a trained classification model on test data sets.
@@ -144,8 +154,13 @@ def evaluate_classification_model(
                 Label for y-axis of pred/true plot.
     cm_ticklabels : list
         List of ticklabels to use for confusion matrix plot.
+    show_plot : bool, optional
+        Whether or not to call `plt.show()` to show the plot (defaults to True)
     """
-    for test_set in test_sets:
+    num_test_sets = len(test_sets)
+    _, axes = plt.subplots(nrows=1, ncols=num_test_sets, figsize=(7 * num_test_sets, 7))
+    test_set_chars = ascii_lowercase[:num_test_sets]
+    for ax, test_set, test_set_char in zip(axes, test_sets, test_set_chars):
         X_eval, y_true, test_set_name, xlabel, ylabel = test_set
         pred_labels_proba = model.predict_proba(X_eval)
         is_multi_class = pred_labels_proba.shape[1] > 2
@@ -160,8 +175,7 @@ def evaluate_classification_model(
             )
 
         pred_cm = confusion_matrix(y_true, pred_labels)
-        plt.figure(figsize=(10, 7))
-        sns.heatmap(
+        heatmap_handle = sns.heatmap(
             pred_cm,
             cmap="YlGnBu",
             annot=True,
@@ -169,11 +183,17 @@ def evaluate_classification_model(
             annot_kws={"size": 16},
             square=True,
             xticklabels=cm_ticklabels,
-            yticklabels=cm_ticklabels,
+            ax=ax,
+            cbar_kws={"shrink": 0.75},
         )
-        plt.title(f"Specificity (>1): {pred_eval_score: .3f} ({test_set_name})")
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
+        ax.set_yticklabels(cm_ticklabels, va="center", rotation=90, position=(0, 0.28))
+        heatmap_handle.figure.axes[-1].set_title("Number of words", pad=15)
+        ax.set_title(
+            f"({test_set_char}) Sensitivity: {pred_eval_score: .3f} ({test_set_name})"
+        )
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+    if show_plot:
         plt.show()
 
 
@@ -265,7 +285,7 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
         "lasso_reg",
         "binary_logistic_reg",
     ]
-    binary_specificity_scorer = make_scorer(recall_score, pos_label=1)
+    binary_sensitivity_scorer = make_scorer(recall_score, pos_label=1)
     models_params = [
         {
             "alphas": np.linspace(0.0000001, 0.01, num=10000),
@@ -280,7 +300,7 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
             "penalty": "l1",
             "solver": "saga",
             "max_iter": 1000000,
-            "scoring": binary_specificity_scorer,
+            "scoring": binary_sensitivity_scorer,
             "random_state": rng_seed,
             "cv": num_folds,
             "n_jobs": -1,
