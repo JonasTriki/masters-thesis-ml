@@ -1,9 +1,8 @@
 \chapter{Analysis of word embeddings}
 In this chapter, we will use methods from machine learning in order to analyze word embeddings. Due to the scope of the thesis, we will mainly analyze word embeddings from the word2vec (\cref{sec:word2vec}) model using Skip-gram and negative sampling. We will also run some of the analysis methods on published word embeddings from external papers, in particular in \cref{sec:analysis-of-embeddings-tda}.
 
-First, we will describe how we trained and evaluated our word2vec implementation. In particular, we will explain data preprocessing steps, implementation specifics and hyperparameter choices. We will also show how we evaluate our trained word2vec model. Second, we perform cluster analysis on word embeddings in order to look for deeper structure. In particular, we compare clustering algorithms trained on word embeddings, using internal cluster validation methods, and investigate clustering of distinct groups of words. Third, we investigate two methods from topological data analysis on word embeddings. Lastly, we end the chapter by creating a supervised model for estimating the number of word meanings, using results from topological data analysis and intrinsic dimension estimation. The supervised model is trained and evaluation results are visualized.
+First, we will describe how we trained and evaluated our word2vec implementation. In particular, we will explain data preprocessing steps, implementation specifics and hyperparameter choices. We will also show how we evaluate our trained word2vec model. Second, we perform cluster analysis on word embeddings in order to look for deeper structure. In particular, we compare clustering algorithms trained on word embeddings, using internal cluster validation methods, and investigate clustering of distinct groups of words. Third, we investigate two methods from topological data analysis on word embeddings. Lastly, we end the chapter by creating supervised models for estimating the number of word meanings, using results from topological data analysis and intrinsic dimension estimation. The supervised models are trained and evaluation results are visualized.
 
-\textbf{TODO}: Revisit.
 To perform the analyses in this chapter, we use a machine with two GPUs (GeForce RTX 2080 Ti $\times2$), one CPU (Intel i9-7900X @ 3.30GHz) and 64 GB of RAM. The computer was running an Ubuntu 18.04.5 operating system. In practice, we are only allotted to use a subset of the resources, as it is a shared computer by the research group in machine learning at UiB.
 
 \section{Training and evaluation of word2vec}
@@ -24,7 +23,7 @@ We then proceed by processing each Wikipedia article. In particular, we performe
         \begin{enumerate}
             \item We convert each word in the sentence to its lower-case representation.
             \item We remove punctuation from words and create new sub-words for each word delimited by punctuation (e.g. out-of-the-box $\mapsto$ out, of, the, box).
-            \item At last, we replace all numbers (including ordinal numbers) with its textual representation. For example, the number 10 becomes "ten" and the word "21st" becomes "twenty-first".
+            \item At last, we replace all numbers (including ordinal numbers) with its textual representation, using the \path{num2words} pip-package \cite{num2words2014}. For example, the number 10 becomes "ten" and the word "21st" becomes "twenty-first".
         \end{enumerate}
     \end{enumerate}
     \item With the new processed sentences, we filter out sentences that have less than \textbf{min\_word\_count} words in them.
@@ -186,7 +185,7 @@ To gain further insight into how the vector representations learned by SGNS-enwi
 \end{table}
 From \cref{table:word2vec-nearest-neighbours-words}, we see the ability of SGNS-enwiki to identify related words to the query word.
 
-We visualize the ability of SGNS-enwiki to identify underlying concepts of the language and relationships between them in \cref{fig:sgns-enwiki-word-to-word-relations-pca-2d}, using a 2-dimensional PCA (\cref{sec:pca}) embedding of words representing countries/capitals and comparative adjectives (e.g. good $\rightarrow$ better). From \cref{fig:sgns-enwiki-word-to-word-relations-pca-2d}, we observe that ability of the SGNS-enwiki model to learn underlying concepts, such as what a capital means and how comparative adjectives behave. In addition to this, we also observe some clustering occurring in both plots. In particular, we observe that Scandinavian countries and capitals are more clustered to the top of the first plot (a), and words related to temperatures are more clustered to the right of plot (b).
+We visualize the ability of SGNS-enwiki to identify underlying concepts of the language and relationships between them in \cref{fig:sgns-enwiki-word-to-word-relations-pca-2d}, using a 2-dimensional PCA (\cref{sec:id-estimation-lpca}) embedding of words representing countries/capitals and comparative adjectives (e.g. good $\rightarrow$ better $\rightarrow$ best). From \cref{fig:sgns-enwiki-word-to-word-relations-pca-2d}, we observe that ability of the SGNS-enwiki model to learn underlying concepts, such as what a capital means and how comparative adjectives behave. In addition to this, we also observe some clustering occurring in both plots. In particular, we observe that Scandinavian countries and capitals are more clustered to the top of the first plot (a), and words related to temperatures are more clustered to the right of plot (b).
 \begin{figure}[H]
    \centering
    \includegraphics[width=\textwidth]{thesis/figures/word-to-word-relationships-pca-2d.pdf}
@@ -206,21 +205,22 @@ In this subsection, we compare clustering algorithms on the word embeddings of t
 To perform the cluster analysis, we use all clustering algorithm from \cref{sec:clustering-algorithms}, except for Spectral clustering (\cref{sec:spectral-clustering}), as it was too computationally expensive for it to run. In particular, we used the following algorithms: k-means clustering (\cref{sec:k-means-clustering}), mini-batch k-means clustering (\cref{sec:mini-batch-k-means-clustering}), k-medoids clustering (\cref{sec:k-medoids-clustering}), GMMs (\cref{sec:gmm-clustering}), hierarchical clustering (agglomerative) (\cref{sec:hierarhical-clustering}), HDBSCAN (\cref{sec:hdbscan-clustering}) and ToMaTo (\cref{sec:tomato-clustering}). We used the \path{scikit-learn} \cite{ScikitLearn2011} and \path{hdbscan} \cite{mcinnes2017hdbscan} pip-packages to perform clustering. Furthermore, we trained each of the clustering algorithms using a grid-search manner, i.e. by trying all combinations of hyperparameters. \cref{table:hyperparameters-clustering-algorithms} shows the hyperparameters used to train each clustering algorithm. By forming a grid of hyperparameters for each clustering algorithm, we get a rough sense for the best set of hyperparameters. For the initial grid-search, we used the same number of clusters for all the algorithms that allows us to specify the number of clusters. Let \path{n_clusters_range}=2, 3, 4, 5, 10, 50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7000, 8000 be the range of cluster numbers used for the initial grid-search. We let \path{n_clusters_range} range from 2 to 8000 clusters, using varying step sizes, to investigate the effect of the number of clusters for each algorithm, where it was applicable. To train the clustering algorithm, we use the standard word embeddings if the algorithm supports cosine similarity (or distance) and normalized word embeddings if the algorithm requires Euclidean distances. After training the clustering algorithms, we validated them using the internal cluster validation methods from \cref{sec:cluster-validation}. In particular, we used the mean Silhouette Coefficient (SC)) (\cref{sec:silhouette-coefficient}), the Davies-Bouldin Index (DBI) (\cref{sec:davies-bouldin-index}) and the Caliński-Harabasz Index (CHI) (\cref{sec:calinski-harabasz-index}). We used the \path{scikit-learn} pip-package to perform internal clustering validation.
 \begin{table}[H]
     \centering
-    \begin{tabular}{@{}ll@{}}
-        \toprule
-        Clustering algorithm          & Hyperparameters \\
-        \midrule
-        \trcolor
-        K-means clustering            & \makecell[tl]{\path{n_clusters}=\path{n_clusters_range}} \\
-        Mini-batch k-means clustering & \makecell[tl]{\path{n_clusters}=\path{n_clusters_range} \\ \path{batch_size}=$100$}\\
-        \trcolor
-        K-medoids clustering          & \makecell[tl]{\path{n_clusters}=\path{n_clusters_range}}\\
-        GMM clustering                & \makecell[tl]{\path{n_components}=\path{n_clusters_range}}\\
-        \trcolor
-        Agglomerative clustering      & \makecell[tl]{\path{n_clusters}=\path{n_clusters_range} \\ \path{linkage}=[\path{single}, \path{average}, \path{complete}, \path{ward}]}\\
-        HDBSCAN                       & \makecell[tl]{\path{min_cluster_size}=$2, 4, 8, 16, 32, 64$ \\ \path{min_samples}=$1, 2, 4, 8, 16, 32, 64$}\\
-        \trcolor
-        ToMATo                        & \makecell[tl]{\path{density_type}=[\path{DTM}, \path{logDTM}, \path{KDE}, \path{logKDE}] \\ \path{k}=$2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, \ldots, 250$}\\ \bottomrule
+    \begin{tabular}{@{}lll@{}}
+    \toprule
+    Clustering algorithm                           & Hyperparameters & Values \\
+    \midrule
+    \trcolor K-means clustering & \path{n_clusters} & \path{n_clusters_range} \\
+    \multirow{2}{*}{Mini-batch k-means clustering} & \path{n_clusters} & \path{n_clusters_range} \\
+                                                   & \path{batch_size} & 100 \\
+    \trcolor K-medoids clustering & \path{n_clusters} & \path{n_clusters_range} \\
+    GMM clustering & \path{n_components} & \path{n_clusters_range} \\
+    \trcolor & \path{n_clusters} & \path{n_clusters_range} \\
+    \trcolor \multirow{-2}{*}{Agglomerative clustering} & \path{linkage} & \path{single}, \path{average}, \path{complete}, \path{ward} \\
+    \multirow{2}{*}{HDBSCAN} & \path{min_cluster_size} & 2, 4, 8, 16, 32, 64 \\
+                             & \path{min_samples} & 1, 2, 4, 8, 16, 32, 64\\
+    \trcolor                         & \path{density_type} & \path{DTM}, \path{logDTM}, \path{KDE}, \path{logKDE} \\
+    \trcolor \multirow{-2}{*}{ToMATo} & \path{k} & 2, 3, \ldots, 10, 20, \ldots, 50, 100, \ldots, 250 \\
+    \bottomrule
     \end{tabular}
     \caption{Hyperparameters of clustering algorithms for cluster analysis.}
     \label{table:hyperparameters-clustering-algorithms}
@@ -353,15 +353,16 @@ We further investigated the structure of the 2-dimensional PCA embedding of the 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{thesis/figures/ordered-number-word-embeddings-2d-pca.pdf}
-    \caption{2-dimensional PCA embedding of the 105 number word embeddings, where each word embedding have an increasing label assigned to it. Here we see that as we increase the number, we see a possible underlying sequential relationship.}
+    \caption{2-dimensional PCA embedding of the 105 number word embeddings, where each word embedding have an increasing label assigned to it. The words "hundred", "thousand", "million", "billion" and "trillion" all have the label 100. Here we see that as we increase the number, we see a possible underlying sequential relationship.}
     \label{fig:ordered-number-word-embeddings-2d-pca}
 \end{figure}
 
 \section{Polysemous words prediction}
 \label{sec:analysis-of-embeddings-tda}
-In this section, we try to predict whether or not a word is polysemous, given its word vector. We will, first, apply methods from topological data analysis to word embeddings. In particular, we will investigate the notion of topological polysemy (\cref{sec:topological-polysemy}) and geometric anomaly detection (\cref{sec:geometric-anomaly-detection}). We use topological polysemy to attempt to estimate the number of meanings of a word, given its word vector; we would like to see if the $\text{TPS}_n(w)$ score actually measures polysemy. In addition to this, we would like to see if singular word vectors, as identified by geometric anomaly detection, are polysemous as well. Following, we compute the estimated intrinsic dimension of word embeddings are compare the results with the number of word meanings. Finally, we propose a supervised model to predict the number of word meanings of words.
+In this section, we try to predict whether or not a word is polysemous, given its word vector. We will, first, apply methods from topological data analysis to word embeddings. In particular, we will investigate the notion of topological polysemy (\cref{sec:topological-polysemy}) and geometric anomaly detection (\cref{sec:geometric-anomaly-detection}). We use topological polysemy to attempt to estimate the number of meanings of a word, given its word vector; we would like to see if the $\text{TPS}_n(w)$ score actually measures polysemy. In addition to this, we would like to see if singular word vectors, as identified by geometric anomaly detection, are polysemous as well. Following, we compute the estimated intrinsic dimension of word embeddings are compare the results with the number of word meanings. Finally, we propose supervised models to predict the number of word meanings.
 
 \subsection{Topological polysemy}
+\label{sec:analysis-of-embeddings-topological-polysemy}
 In this subsection, we apply topological polysemy (\cref{sec:topological-polysemy}) to the word embeddings from SGNS-enwiki. We will also train another word2vec model using the same training data used by \cite{jakubowski2020topology} and apply topological polysemy to its word embeddings. We refer to this word2vec model as the \textit{SGNS-semeval} model. Furthermore, we compare the results to topological polysemy applied to word embeddings from pre-trained models, namely the \textit{GoogleNews-vectors-negative300} (shortened to \textit{GoogleNews300}) word embeddings from \cite{GoogleCodeArchiveWord2vec}, the \textit{glove.840B.300d} word embeddings from \cite{GloVeProject2014} and the English (\textit{fastText.en.300d}) word embeddings from \cite{grave2018learning}.
 
 The authors of topological polysemy, \cite{jakubowski2020topology}, trained a fastText model on training data from the \textit{SemEval-2010 Task 14: Evaluation Setting for Word Sense Induction \& Disambiguation Systems} \cite{manandhar-klapaftis-2009-semeval}. The training data from the SemEval task consists of several sentences related to 100 polysemous words (50 nouns and 50 verbs). The SemEval data set also includes the number of true meanings (also called \textit{gold standard} or \textit{GS}) for each of the 100 polysemous words, as perceived by humans. To compare with the $\text{TPS}_n(w)$, the authors use the 100 polysemous words, words from the SemEval training data which has a \textit{WordNet} \cite{fellbaum1998} entry and all words in SemEval training data. WordNet is a lexical database of the English language. In particular, it allows for querying nearly any word from the English language and and returns the \textit{synsets} of the word. Synsets of a query word $w$ is a collection of words which have similar meaning as the word $w$. In other words, by querying a word in WordNet, we can get the number of meanings of a word, as perceived by WordNet. Furthermore, the Pearson correlation coefficient \cite{James2013} is computed between $\text{TPS}_n(w)$ and GS, the number of synsets for WordNet words and the word frequency as they appear in the SemEval training data, respectively. The authors show that there is a moderate (positive) correlation between $\text{TPS}_n(w)$ and GS at $n \in \enclc{40, 50, 60}$, a decreasing correlation between $\text{TPS}_n(w)$ and the number of synsets for WordNet words and no correlation between $\text{TPS}_n(w)$ and word frequencies. In our implementation of topological polysemy, we utilized multiprocessing and the ScaNN \cite{scann2020} approximate nearest neighbour algorithm to speed up the computation. We used the \path{ripser} \cite{ctralie2018ripser} pip-package to compute Vietoris–Rips complexes. \textbf{TODO}: Ripser or Gudhi?
@@ -425,7 +426,7 @@ Following, we compare the results of computing $\text{TPS}_n(w)$ of the word emb
     \centering
     \begin{tabular}{ccccccc}
     \toprule
-    \multicolumn{1}{c}{\multirow{2}{*}{$n$}} & \multicolumn{2}{c}{GoogleNews300}                         & \multicolumn{2}{c}{glove.840B.300d}              & \multicolumn{2}{c}{fastText.en.300d}             \\ \cmidrule(l){2-7} 
+    \multicolumn{1}{c}{\multirow{2}{*}{$n$}} & \multicolumn{2}{c}{GoogleNews300}    & \multicolumn{2}{c}{glove.840B.300d}              & \multicolumn{2}{c}{fastText.en.300d}             \\ \cmidrule(l){2-7} 
     \multicolumn{1}{c}{}                   & \makecell[tc]{$\text{TPS}_n$ vs.\\GS} & \makecell[tc]{$\text{TPS}_n$ vs.\\synsets} & \makecell[tc]{$\text{TPS}_n$ vs.\\GS} & \makecell[tc]{$\text{TPS}_n$ vs.\\synsets} & \makecell[tc]{$\text{TPS}_n$ vs.\\GS} & \makecell[tc]{$\text{TPS}_n$ vs.\\synsets} \\ \midrule
     \trcolor 10           & \textbf{-0.446}  & -0.095       & -0.103  & 0.008        & -0.240  & \textbf{0.114}        \\
     40           & \textbf{-0.446}  & -0.166       & \textbf{-0.125}  & -0.039       & \textbf{-0.289}  & 0.110        \\
@@ -456,7 +457,7 @@ To compare how well the various word embedding models agree on the $\text{TPS}_n
 
 We have now looked at the effect of computing $\text{TPS}_n(w)$ at varying levels of $n$ using various word embeddings. We saw that, even by decreasing/increasing the vocabulary size of the word embedding models, the $\text{TPS}_n(w)$ score did not improve significantly. In all our experiments, the correlation between $\text{TPS}_n(w)$ and the SemEval gold standard were always negative, while in the experiments of \cite{jakubowski2020topology}, they got a moderate, positive correlation. This suggests that the topological polysemy scoring could be affected by choice of word embedding model (i.e. choosing fastText over word2vec) and the fact that the model used in \cite{jakubowski2020topology} was trained on a data set which is strongly related to the 100 polysemous words. In other words, it could seem that the measure of topological polysemy does not work well, for a general word embedding model.
 
-To deepen our understanding of how the $\text{TPS}_n(w)$ is computed, we will perform an experiment by computing $\text{TPS}_n(w)$ of a custom data set. The custom data set consists of sampled data points of two spheres which share one intersection point. We denote this data set as \textit{2Spheres-$d$}, where $d$ represents the dimensionality of the spheres. In particular, we let $d \in \enclc{2, 3, 4, 5, 10, 20, 50, 300}$. To ensure that the dimensionality of the \textit{2Spheres-$d$} data set is similar to the dimensionality of word embeddings, we let the dimensionality of the space be equal to 300, i.e. \textit{2Spheres-$d$} $\in \R^{300}$. In other words, if $d$ was less than 300, we simply add zeros to the remaining dimensions to fill up to 300. For each sphere in \textit{2Spheres-$d$}, we generate 1000000 points on the sphere in $\R^d$. We sort the points by distance to the intersection point and further split the points into 20 intervals, i.e. chunks of 100000 data points for each sphere. Next, we sample 1000 points from each interval, leading to 20000 points for each sphere. The motivation for sampling from distance sorted intervals is to reduce the effect of the curse of dimensionality, namely that it becomes harder to measure the distance between points in high (e.g. 300) dimension. For the sake of simplicity, we let $n=50$ when computing the topological polysemy. We illustrate the result of computing $\text{TPS}_{50}$ of 2Spheres-$2$ and 2Spheres-$3$ in \cref{fig:two-spheres-2d-3d-tps-scores}. From \cref{fig:two-spheres-2d-3d-tps-scores}, we see that for both 2Spheres-$2$ and 2Spheres-$3$, the $\text{TPS}_{50}$ is at its highest (blue color) around the intersection point between the two spheres (see plots (b) and (d)). In addition to this, at the intersection point between the two spheres, the $\text{TPS}_{50}$ score is low. These two observations suggest that, for low values of $d$, $\text{TPS}_{50}$ fails to identify the singular point, but rather manages to identify the area around it. We will now look at how the $\text{TPS}_{50}$ score behaves for $d \in \enclc{4, 5, 10, 20, 50, 300}$.
+To deepen our understanding of how the $\text{TPS}_n(w)$ is computed, we will perform an experiment by computing $\text{TPS}_n(w)$ of a custom data set. The custom data set consists of sampled data points of two spheres which share one intersection point. We denote this data set as \textit{2Spheres-$d$}, where $d$ represents the dimensionality of the spheres. In particular, we let $d \in \enclc{2, 3, 4, 5, 10, 20, 50, 300}$. To ensure that the dimensionality of the \textit{2Spheres-$d$} data set is similar to the dimensionality of word embeddings, we let the dimensionality of the space be equal to 300, i.e. \textit{2Spheres-$d$} $\in \R^{300}$. In other words, if $d$ was less than 300, we simply add zeros to the remaining dimensions to fill up to 300. For each sphere in \textit{2Spheres-$d$}, we generate 1000000 points on the sphere in $\R^d$. We sort the points by distance to the intersection point and further split the points into 20 intervals, i.e. chunks of 100000 data points for each sphere. Next, we sample 1000 points from each interval, leading to 20000 points for each sphere. The motivation for sampling from distance sorted intervals is to reduce the effect of the curse of dimensionality, namely that it becomes harder to measure the distance between points in high (e.g. 300) dimension. For the sake of simplicity, we let $n=50$ when computing the topological polysemy. We illustrate the result of computing $\text{TPS}_{50}$ of 2Spheres-$2$ and 2Spheres-$3$ in \cref{fig:two-spheres-2d-3d-tps-scores}. From \cref{fig:two-spheres-2d-3d-tps-scores}, we see that for both 2Spheres-$2$ and 2Spheres-$3$, the $\text{TPS}_{50}$ is at its highest (yellow color) around the intersection point between the two spheres (see plots (b) and (d)). In addition to this, at the intersection point between the two spheres, the $\text{TPS}_{50}$ score is low. These two observations suggest that, for low values of $d$, $\text{TPS}_{50}$ fails to identify the singular point, but rather manages to identify the area around it. We will now look at how the $\text{TPS}_{50}$ score behaves for $d \in \enclc{4, 5, 10, 20, 50, 300}$.
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{thesis/figures/two-spheres-2d-3d-tps-scores.pdf}
@@ -474,11 +475,163 @@ We visualize the result of computing $\text{TPS}_{50}$ for 2Spheres-$d$ for $d \
 
 \textbf{TODO}: Repeat sphere experiment with added noise to spheres.
 
-\subsection{Geometric anomaly detection}
-TODO
+The measure of topological polysemy will further be used in the supervised polysemy prediction experiments of \cref{sec:analysis-of-embeddings-supervised-polysemy-prediction}, where we create a model for predicting whether or not a word is polysemous. Next, we will look at Geometric Anomaly Detection, and in particular, how it performs when applied to word embeddings.
+
+\subsection{Geometric Anomaly Detection}
+\label{sec:analysis-of-embeddings-geometric-anomaly-detection}
+In this subsection, we will apply the Geometric Anomaly Detection (GAD) (\cref{sec:geometric-anomaly-detection}) algorithm to the word embeddings from the SGNS-enwiki model. In particular, we will show the relationship between how GAD categorizes word embeddings into groups and whether or not a word is polysemous. Prior to this, we will motivate the use of GAD by visualizing GAD applied to the 3-dimensional \textit{Henneberg surface} data set, as used in the experiments of \cite{stolz2020geometric}. In order to apply GAD to the Henneberg surface data set, we use the same hyperparameters used by \cite{stolz2020geometric}; we let the inner annulus radius equal 1.5, outer annulus radius equal 2 and the manifold dimension $k$ equal 2. The result is visualized in \cref{fig:gad-henneberg-3d}, and we see how GAD groups data points to the manifold, boundary and singular groups. In the 3-dimensional Henneberg surface data set, there are four 2-dimensional surfaces which intersect, as shown by the plot to the right (b) of \cref{fig:gad-henneberg-3d}, where the GAD algorithm correctly identified them (singular points). In addition to the singular points, the boundary points are also nicely shown in in both plots (a) and (b).
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{thesis/figures/gad-henneberg-3d.pdf}
+    \caption{2D and 3D projections of the Henneberg surface data set, labeled with the data point groups from the GAD algorithm. This figure is inspired by \cite[Figure 3]{stolz2020geometric}.}
+    \label{fig:gad-henneberg-3d}
+\end{figure}
+
+Next, we visualize the Henneberg surface data set with the $\text{TPS}_{50}$ score computed for each point. As shown in \cref{fig:gad-henneberg-3d-tps-50}, we see that the measure of topological polysemy fails to identify the singular data points, which we expect to have a relatively high $\text{TPS}_{50}$ score. In particular, the $\text{TPS}_{50}$ score is relatively high for points on the manifold, and lower for the boundary and singular points.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{thesis/figures/gad-henneberg-3d-tps-50.pdf}
+    \caption{2D and 3D projections of the Henneberg surface data set, labeled with the $\text{TPS}_{50}$ score for each point.}
+    \label{fig:gad-henneberg-3d-tps-50}
+\end{figure}
+
+Following, we will apply GAD to the word embeddings from the SGNS-enwiki model. In particular, we will compute GAD of the words which have a WordNet entry, similar to the word embeddings used in the SGNS-enwiki experiments with topological polysemy in \cref{sec:analysis-of-embeddings-topological-polysemy}. Since we do not know a good set of annulus radii parameters to use when computing GAD of the WordNet SGNS-enwiki word embeddings, we will instead default to a $k$-nearest neighbour approach, where we let the inner annulus radius equal to the distance to the $s$ nearest neighbour of each word, and similarly for the outer annulus radius, which we set equal to the distance to the $t$ nearest neighbour of each word. To compute GAD of the WordNet SGNS-enwiki word embeddings, we used the parameters $s=25$ and $t=500$. The number of words in each GAD group is shown in \cref{table:number-of-words-gad-polysemous-sgns-enwiki-wordnet}. From \cref{table:number-of-words-gad-polysemous-sgns-enwiki-wordnet}, we see that the number of polysemous WordNet words that fall into the singular group is particularly low; only 344 of 48880. In addition to this, we see that the number of words being categorized as "boundary" words is high. These two observations suggest that our inner and outer annulus radius, as well as the manifold dimension $k$, were not set correctly for we are working with. Keep in mind that the intrinsic dimensionality of the word embeddings are most likely higher than $k=2$, but due to the computational cost of setting $k > 2$ (due to Vietoris–Rips complex creation), we will not set $k$ greater than 2 in this thesis.
+\begin{table}[H]
+    \centering
+    \begin{tabular}{@{}lcccl@{}}
+    \toprule
+    \multicolumn{1}{c}{}       & \multicolumn{3}{c}{GAD group}  & \multicolumn{1}{l}{} \\ \cmidrule(lr){2-4}
+    \multicolumn{1}{c}{}       & Manifold & Boundary & Singular & \textit{Sum}                  \\ \midrule
+    \trcolor Number of monosemous words            & 4 640     & 86 731    & 4 161     & 95 532                \\
+    Number of polysemous words & 634      & 47 902    & 344      & 48 880                \\ \midrule
+    \trcolor \textit{Sum}                        & 5 274     & 134 633   & 4 505     & 144 412 \\ \bottomrule
+    \end{tabular}
+    \caption{Number of mono- and polysemous words in each GAD group, when applied to the WordNet SGNS-enwiki word embeddings.}
+    \label{table:number-of-words-gad-polysemous-sgns-enwiki-wordnet}
+\end{table}
+
+Furthermore, we visualize the result using a 2-dimensional UMAP embedding of the 10000 most common words of the the WordNet SGNS-enwiki word embeddings, labeled using the GAD groups, as seen in \cref{fig:gad-umap-2d-10k-most-common-wordnet-enwiki-words}. From \cref{fig:gad-umap-2d-10k-most-common-wordnet-enwiki-words}, we see that only a single word has been categorized as singular (the word "branch"), some words are categorized as manifold and the rest are categorized as boundary. The fact that most words are categorized as boundary further strengthens our hypothesis that the hyperparameters used to compute GAD are not correct. We also observe that \cref{fig:gad-umap-2d-10k-most-common-wordnet-enwiki-words} differs a whole lot from GAD applied to the Henneberg surface data set (\cref{fig:gad-henneberg-3d}), which could indicate bad hyperparameterization.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{thesis/figures/gad-umap-2d-10k-most-common-wordnet-enwiki-words.pdf}
+    \caption{2-dimensional UMAP embedding of the 10000 most common words from the WordNet SGNS-enwiki word embeddings. The words are labeled using its GAD group.}
+    \label{fig:gad-umap-2d-10k-most-common-wordnet-enwiki-words}
+\end{figure}
+
+We will investigate the effect of using different sets of hyperparameters when computing GAD of word embeddings in \cref{sec:analysis-of-embeddings-supervised-polysemy-prediction}, where we will create supervised models for predicting whether or not a word is polysemous. Next, we will investigate algorithms for estimating the intrinsic dimensionality of word embeddings, and how it correlates with the actual number of word meanings.
 
 \subsection{Intrinsic dimension estimation}
-TODO: Add correlation figure, etc.
+\label{sec:analysis-of-embeddings-intrinsic-dimension-estimation}
+In this subsection, we will look at intrinsic dimension (ID) estimation algorithms (\cref{sec:intrinsic-dimension-estimation}) and apply them to word embeddings. In particular, we will apply ID estimation algorithms to the WordNet SGNS-enwiki word embeddings, used in experiments in \cref{sec:analysis-of-embeddings-topological-polysemy} and \cref{sec:analysis-of-embeddings-geometric-anomaly-detection}. We show the relationship between the estimated ID and the number of WordNet word meanings. To demonstrate the relationship between estimated ID and number of WordNet word meanings, we will use the LPCA (\cref{sec:id-estimation-lpca}), TWO-NN (\cref{sec:id-estimation-twonn}) and TLE (\cref{sec:id-estimation-tle}) algorithms. For each algorithm, we compute the estimated local intrinsic dimension by using the 200 nearest neighbour of each word. We plot the estimated IDs versus the number of WordNet word meanings in \cref{fig:intrinsic-dimension-estimation-vs-wordnet-synsets}, and we observe a similar behaviour shown in \cref{fig:tps-n-correlation-sgns-enwiki} and \cref{fig:tps-n-correlation-sgns-semeval}, namely that we see a clear trend when plotted against the number of WordNet word meanings. We also see that, the different ID estimation algorithms yield very different results; LPCA estimates ID up to 120, while TWO-NN and TLE estimates ID up to 50 and 60. This result suggest that, we can not simply rely on a single estimate of the ID, it could be useful to use multiple ID estimates, as they are measured very differently (see \cref{sec:intrinsic-dimension-estimation} for more details).
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{thesis/figures/intrinsic-dimension-estimation-vs-wordnet-synsets.pdf}
+    \caption{Estimated IDs plotted against number of word meanings, using LPCA, TWO-NN and TLE ID estimation algorithms.}
+    \label{fig:intrinsic-dimension-estimation-vs-wordnet-synsets}
+\end{figure}
+
+We have now shown the relationship between estimated ID and number of word meanings. In the next section, we will create supervised models for predicting whether or not a word is polysemous. We will use multiple sets of hyperparameters and all ID estimation algorithms specified in \cref{sec:intrinsic-dimension-estimation}, as well the topological polysemy (\cref{sec:analysis-of-embeddings-topological-polysemy}) and Geometric Anomaly Detection (\cref{sec:analysis-of-embeddings-geometric-anomaly-detection}) algorithms.
 
 \subsection{Supervised polysemy prediction}
-TODO
+\label{sec:analysis-of-embeddings-supervised-polysemy-prediction}
+In this subsection, we propose two supervised models to predict the number of word meanings. As we have seen in the previous subsections (\cref{sec:analysis-of-embeddings-topological-polysemy}, \cref{sec:analysis-of-embeddings-geometric-anomaly-detection} and \cref{sec:analysis-of-embeddings-intrinsic-dimension-estimation}), the number of word meanings seem to be more or less correlated with topological polysemy, Geometric Anomaly Detection (GAD) and intrinsic dimension (ID) estimation. For this reason, we propose two supervised model using lasso regression (\cref{sec:lasso-regression}) and logistic regression (\cref{sec:logistic-regression}), incorporating the results from topological polysemy, GAD and ID estimation. We chose to use lasso regression, because it has feature importance packed in the model. The feature importance part is important for us, because we would like to try multiple configurations of hyperparameters for each algorithm used to create the training data. The logistic regression model is trained using $\ell_1$-penalty, which allows the model to perform feature importance as well. The lasso regression model tries to predict the number of word meanings, while the logistic regression model performs binary prediction of whether or not a word is polysemous. We also attempted to create a multi-class (e.g. 1 meaning, 2 meanings, etc.) model using multinomial logistic regression, but it became apparent that the problem was too hard and we decided not to follow up with those experiments. Furthermore, we denote the lasso regression model as \textit{WME-enwiki} (\textbf{W}ord \textbf{M}eaning \textbf{E}stimation-enwiki) and the logistic regression model as \textit{BWME-enwiki} (\textbf{B}inary \textbf{W}ord \textbf{M}eaning \textbf{E}stimation-enwiki). Next, we will describe the creation of training data used for both supervised models, before going into detail of the training and evaluation process.
+
+To create the training data used in the WME- and BWME-enwiki models, we used the word embeddings from the SGNS-enwiki model. In particular, we used the word embeddings that have a WordNet entry, resulting in 144 412 words. We denote these word embeddings as the WordNet SGNS-enwiki word embeddings. The number of word meanings (i.e. number of WordNet symsets) are used as labels $y$ for the WME-enwiki model, while the BWME-enwiki model have binary labels, $y=0$ if the word have exactly one word meaning, and $y=1$ if the word has two or more meanings.
+
+To create the features of the training data, we first compute topological polysemy $\text{TPS}_n(w)$ of the WordNet SGNS-enwiki word embeddings. We compute $\text{TPS}_n(w)$ at for varying $n=10, 20, 30, \ldots, 250$ (step size of 10, leading to 25 values of $n$) and use them as features in the data. In addition to this, we compute the maximum, average and standard deviation of the birth values of the zero-degree persistence diagram computed by $\text{TPS}_n(w)$, leading to 3 additional features for each $\text{TPS}_n(w)$. In total, we get 25 (values of $n$) $\times$ 4 = 100 features from topological polysemy.
+
+Following, we compute GAD of the WordNet SGNS-enwiki word embeddings. To compute GAD, we use the $k$-nearest neighbour version, similar to the experiments of \cref{sec:analysis-of-embeddings-geometric-anomaly-detection}; we let the inner annulus radius equal the distance to the $s$-nearest neighbour and the outer annulus radius equal the distance to the $t$-nearest neighbour. By using the $k$-nearest neighbour version of GAD, we are also in more control of how long it takes to compute GAD (setting the radius manually can lead to big and difficult computations of the Vietoris–Rips complex, since some areas are more dense than others). The different choices of $s$ and $t$ are shown in \cref{table:supervised-polysemy-prediction-gad-configurations}, and leads to 23 different configurations of the inner and outer annulus $k$-nearest neighbours. We let the manifold dimension $k$ equal 2 for all words, even though the local intrinsic dimension for each word is likely higher than 2. This was done to make the GAD computation feasible within the computational resources at hand; we will revisit the manifold dimension choice when discussing future work in \cref{chap:conclusion-and-future-work}. For each configuration used in GAD, we create one feature for each GAD group (manifold, boundary and singular) by using one-hot encodings; e.g. if a word is categorized as manifold, then its value is equal to 1 and the rest are set to zero. In other words, we are left with 23 (configurations) $\times$ 3 (GAD groups) = 69 features from GAD. We also attempted to vectorize the persistence diagrams created by GAD using persistence images (\cref{sec:persistence-image}), but it quickly led to far too many features as we used each pixel in the images as a separate feature, and we were unable to train the WME- and BWME-enwiki models efficiently. We will revisit the use of persistence images when discussing future work in \cref{chap:conclusion-and-future-work}.
+\begin{table}[H]
+    \centering
+    \begin{tabular}{@{}cc@{}}
+    \toprule
+    \multicolumn{1}{l}{Inner annulus, $s$-nearest neighbour} & \multicolumn{1}{l}{Outer annulus, $t$-nearest neighbour} \\
+    \midrule
+    \trcolor 25 & 250 \\
+    25 & 500 \\
+    \trcolor 25 & 750 \\
+    25 & 1000 \\
+    \midrule
+    \trcolor 50 & 250 \\
+    50 & 500 \\
+    \trcolor 50 & 750 \\
+    50 & 1000 \\
+    \midrule
+    \trcolor 100 & 1000 \\
+    100 & 1250 \\
+    \trcolor 100 & 1500 \\
+    100 & 1750 \\
+    \trcolor 100 & 2000 \\
+    \midrule
+    150 & 1000 \\
+    \trcolor 150 & 1250 \\
+    150 & 1500 \\
+    \trcolor 150 & 1750 \\
+    150 & 2000 \\
+    \midrule
+    \trcolor 200 & 1000 \\
+    200 & 1250 \\
+    \trcolor 200 & 1500 \\
+    200 & 1750 \\
+    \trcolor 200 & 2000 \\
+    \bottomrule
+    \end{tabular}
+    \caption{Configurations of $s$ (inner annulus nearest neighbour) and $t$ (outer annulus nearest neighbour) for computing GAD of the WordNet SGNS-enwiki word embeddings.}
+    \label{table:supervised-polysemy-prediction-gad-configurations}
+\end{table}
+
+Furthermore, we estimate the local ID of all WordNet SGNS-enwiki word embeddings, using the ID estimator algorithms in \cref{sec:intrinsic-dimension-estimation}. More precisely, we used the LPCA (\cref{sec:id-estimation-lpca}), KNN (\cref{sec:id-estimation-knn}), TWO-NN (\cref{sec:id-estimation-twonn}), MLE (\cref{sec:id-estimation-mle}) and TLE (\cref{sec:id-estimation-tle}) algorithms. For each of the algorithms, we formed a $k$-nearest neighbourhood around each word and estimated the local ID of the neighbourhood. We used the following values for $k$: 25, 50, 100, 150 and 200. The estimated local ID of each word is used as a feature in the training data, leading to 5 (algorithms) $\times$ 5 (hyperparameter sets) = 25 features from ID estimation. We used the \path{scikit-dimension} pip-package \cite{scikitdimension2020} to estimate the local IDs.
+
+In total, the training data has 100 (from topological polysemy) + 69 (from GAD) + 25 (from ID estimation) = 194 features. Following, we split the training data into three new distinct data sets (\cref{sec:train-val-test-splits}): training-, test- and SemEval test data sets. The new training data set consist of 95\% random words of the original training data set, where the 100 SemEval-2010 Task 14 target words (\cref{sec:analysis-of-embeddings-topological-polysemy}) are excluded. The test data set consist consist of 5\% random words of the original training data set, where the 100 SemEval-2010 Task 14 target words are excluded. The test data set will be used to evaluate the performance of the WME- and BWME-enwiki models. The SemEval test data set consist of the 100 SemEval-2010 Task 14 target words, and will be used to evaluate the performance using the WME-enwiki model, as well. We would like to emphasize that the training and test data sets do not have overlapping words, as we do not want to be training on words from the test data sets. The training data set consists of 137 098 words, test data set consists of 7 216 words and the SemEval test data set consist of 98 words (as 2 of the words are out of the SGNS-enwiki vocabulary). For each data set, we transform the features by scaling them between 0 and 1, since the features have varying ranges; we do not want the WME- and BWME-enwiki models to be affected by the ranges of the features. For the SemEval test data set, we use the SemEval gold standard to be the number of word meanings, while for the training and test data set we use the number of WordNet synsets as the number of word meanings.
+
+Following, we trained the WME- and BWME-enwiki models using $k$-fold cross validation (\cref{sec:cross-validation}). We found $k=20$ to work well with out data, meaning that we use 6 855 words random validation for each fold in the cross-validation. For the WME-enwiki model, we cross-validated over 10000 values for $\lambda$, starting from $\lambda=0.0000001$ to $\lambda=0.01$. We found the most optimal value for the WME-enwiki model to be $\lambda=0.0000031$. For the BWME-enwiki model, we cross-validated over 10000 values for $\lambda$, starting from $\lambda=0.00001$ to $\lambda=0.01$. We found the most optimal value for the BWME-enwiki model to be $\lambda=0.005086$. To perform the cross-validation we used the \path{LassoCV} and \path{LogisticRegressionCV} classes from \path{scikit-learn} for the WME- and BWME-enwiki models, respectively. We used the sensitivity metric (\textbf{TODO: Cross-reference}) to score the folds from the BWME-enwiki cross validation, as the sensitivity is intuitively the ability of the model to find all the polysemous words. For the WME-enwiki model, we used the default scoring of the \path{LassoCV} class. Results from training the WME-enwiki model is shown in \cref{fig:wme-enwiki-correlation-result}, where we see a weak correlation between the predicted number of word meanings and the number of WordNet synsets for both the training (a) and test data sets (b). The last plot (c) shows that the model is unable to predict the number of word meanings for the SemEval data set, which is not surprising, since we have trained using the number of WordNet synsets.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{thesis/figures/wme-enwiki-correlation-result.pdf}
+    \caption{Predicted number of word meanings plotted against number of WordNet synsets and SemEval gold standard, using the WME-enwiki model.}
+    \label{fig:wme-enwiki-correlation-result}
+\end{figure}
+
+By looking at the values of the coefficients of the WME-enwiki model, we see how the model prioritizes certain features over others. We visualize the top 10 most important features in \cref{fig:wme-enwiki-feature-importances}. From \cref{fig:wme-enwiki-feature-importances} we see that the features from topological polysemy for high values of $n$ are the most relevant for the model. The MLE and TLE intrinsic dimension estimators are also relatively relevant for high values of the $k$-nearest neighbour. The features from GAD are not in the top 10 most important features.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{thesis/figures/wme-enwiki-top-10-feature-importances.pdf}
+    \caption{Feature importances for the top 10 most important features of the WME-enwiki model.}
+    \label{fig:wme-enwiki-feature-importances}
+\end{figure}
+
+To investigate the feature importances for the TPS, GAD and ID estimator features, we visualize its top 10 most important features in \cref{fig:wme-enwiki-feature-importances-tps-gad-estimated-ids}. From \cref{fig:wme-enwiki-feature-importances-tps-gad-estimated-ids}, we see that the $\text{TPS}_{250}$ features are especially relevant, show in (a). The GAD features from (b) show that whether or not a word is classified as a boundary or singular word is important, while whether or not a word is on the manifold is not as relevant. Lastly, we see that the MLE and TLE ID estimator methods yield important features for various values of $n$. It should be noted, that the feature importance shown in (a) and (c) are more important than the features shown in (b), as noted by the x-axis scales.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{thesis/figures/wme-enwiki-top-10-feature-importances-tps-gad-estimated-ids.pdf}
+    \caption{Feature importance of the top 10 TPS, GAD and ID estimator features, using the WME-enwiki model.}
+    \label{fig:wme-enwiki-feature-importances-tps-gad-estimated-ids}
+\end{figure}
+
+Some of the features from the WME-enwiki model were also set to zero, meaning that they are not used in the model. In particular, 45 of 194 features were set to zero, and most of them were various configurations of GAD which did not yield any interesting result (e.g. all words classified as boundary words). We have now looked at the result from training of the WME-enwiki model, and in particular, looked at its performance when predicting the number of word meanings and which features were important to the model. Next, we will look at the results from the training of the BWME-enwiki model. Results from training the BWME-enwiki model is shown in \cref{fig:bwme-enwiki-confusion-matrices}, where we see the result of predicting number of word meanings on the training (a) and test (b) data sets. From \cref{fig:bwme-enwiki-confusion-matrices}, we get a sensitivity of 0.393 on the train data sets (a), meaning that the model is able to identify 39.3\% of the polysemous words. The test sensitivity (b) shows that the model is able to identify 35.3\% of all the unseen polysemous words. These results indicate that the model is unable to efficiently predict whether or not a word is polysemous, as we ideally would like the sensitivity on both the training and test sets to be at least 0.5 (or 50\%). \textbf{TODO}: Revisit this. Next, we will investigate the feature importance in the BWME-enwiki model, by looking at the coefficient values.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{thesis/figures/bwme-enwiki-confusion-matrices.pdf}
+    \caption{Confusion matrices for predicting the number of word meanings, using the BWME-enwiki model. The first confusion matrix (a) shows the result on the training data set, while the second confusion matrix (b) shows the result on the test data set.}
+    \label{fig:bwme-enwiki-confusion-matrices}
+\end{figure}
+
+The feature importance of the BWME-enwiki model is shown in \cref{bwme-enwiki-feature-importances}, where we can see the top 10 most important features. From \cref{bwme-enwiki-feature-importances}, we see a similar pattern to the top 10 features importances from the WME-enwiki model, namely that the TPS features (for varying $n$) are most important, followed by the features from the ID estimator models.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{thesis/figures/bwme-enwiki-top-10-feature-importances.pdf}
+    \caption{Feature importances for the top 10 most important features of the BWME-enwiki model.}
+    \label{fig:bwme-enwiki-feature-importances}
+\end{figure}
+
+Furthermore, we look at the top 10 feature importances for the TPS, GAD and ID estimator features separately, as shown in \cref{fig:bwme-enwiki-feature-importances-tps-gad-estimated-ids}. From \cref{fig:bwme-enwiki-feature-importances-tps-gad-estimated-ids}, we see that the TPS features in plot (a) illustrate that high values of $n$ are generally more important than lower values. The GAD features (b) show a different situation to the top 10 features importances for GAD using the WME-enwiki model; whether or not a point is categorized as singular is important for predicting whether or not a word is polysemous, and the rest of the GAD categories are less important. Lastly, we see that the TLE and TLE ID estimator models yield important features for high neighbourhood values. Similar to the feature importances shown in \cref{fig:wme-enwiki-feature-importances-tps-gad-estimated-ids}, we note the fact that the feature importance shown in (a) and (c) are more important than the features shown in (b), as noted by the x-axis scales.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{thesis/figures/bwme-enwiki-top-10-feature-importances-tps-gad-estimated-ids.pdf}
+    \caption{Feature importance of the top 10 TPS, GAD and ID estimator features, using the BWME-enwiki model.}
+    \label{fig:bwme-enwiki-feature-importances-tps-gad-estimated-ids}
+\end{figure}
+
+We have now explained how we trained and evaluated two supervised models for predicting the number of word meanings and whether or not a word is polysemous. Next, we will conclude the thesis and discuss ideas for future work.
+
+TODO: XGBoost?

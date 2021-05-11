@@ -98,6 +98,7 @@ In order to estimate the model parameters $\hat{\beta}$, we compute them using \
 \end{align}
 
 \subsection{Lasso regression}
+\label{sec:lasso-regression}
 Linear regression suffers from the fact that it has to use all independent variables in order to predict a value for the dependent variable. Imagine that we have gathered some $5$-dimensional data $X$ and want to predict some quantity $y$. We perform some analysis on the data and notice that two of the features of the data is noise and will most likely not help to predict $y$. Lasso regression is a slight modification of linear regression that helps us with this problem. By adding a penalty term on the model parameters in the objective of the linear regression, lasso regression is able to push certain features to 0, essentially "removing" them from the model. If we had two features which were very similar, lasso is also able to "nullify" one of them, since the first one "explains" the second one. As a result, models generated from lasso regression are generally much easier to interpret. What we have described here is also referred to as \textit{feature selection}, where the model automatically selects which variables are useful for prediction.
 
 Lasso regression minimizes the residual sum of squares (RSS) plus some constant $\lambda$ times the $\ell_1$-norm of the model parameters $\beta$, as seen below:
@@ -108,6 +109,7 @@ Lasso regression minimizes the residual sum of squares (RSS) plus some constant 
 where $\lambda \geq 0$ is a regularization parameter. The second term of \cref{eqn:lasso-regression-objective}, $\lambda ||\hat{\beta}||_1$, is called the $\ell_1$-penalty and is small when $\hat{\beta}_0$, $\hat{\beta}_1$, \ldots, $\hat{\beta}_k$ are small. When $\lambda = 0$, the penalty term has no effect and lasso regression will produce the same result as standard linear regression. As $\lambda \rightarrow \infty$, the effect of the $\ell_1$-penalty grows and the model parameters $\hat{\beta}$ will approach zero, and in some cases, some of the model parameters will be exactly zero. The $\ell_1$-norm is given by $||\hat{\beta}||_1 = \sum |\hat{\beta}_j|$, where $|\cdot|$ is the absolute value.
 
 \subsection{Logistic regression}
+\label{sec:logistic-regression}
 When we described linear regression models in \cref{sec:linear-regression}, we assumed that the response variable $Y$ was quantitative. When working with qualitative data, on the other hand, linear regression fails to work. For example, colors are qualitative, taking on values such as blue, red, green or brown; we can not say that red is greater than blue or brown is less than green (discarding). Predicting a qualitative response variable $Y$ using some data $X$ is also referred to as \textit{classification}. Logistic regression is a method that can predict the response variable $Y$ when it falls into one of two categories (i.e. binary response). Examples of a binary response variable could be "Yes"/"No", "Is a dog"/"Is not a dog" or the typical 0/1 mostly used in machine learning. Logistic regression creates a model that models the probability that $Y$ falls belongs to a particular category. In \cref{fig:logistic-regression-example}, we further motivate the use of logistic regression for binary-response tasks and we see that linear regression is not well suited for predicting values between 0 and 1.
 \begin{figure}[H]
     \centering
@@ -168,6 +170,7 @@ After selecting a model or a set of model parameters using the validation data s
 The validation set approach is simple and works fine in practice. There are, however, a couple of drawbacks when using this method. Depending on which observations are included in the training- and validation data sets, the validation estimate of the error can vary a lot. In addition to this, since the validation set approach only uses a subset of the observations to train the model and the fact that statistical models perform worse when trained on less data, the validation error rate tend to overestimate the test error rate of a model trained on the entire data set. In the next subsection, we will introduce \textit{$k$-fold cross validation}, an improvement over the validation set approach that addresses these two drawbacks.
 
 \subsection{k-fold cross-validation}
+\label{sec:cross-validation}
 An alternative to the validation set approach is the $k$-fold cross validation (CV) method. The $k$-fold CV method randomly divides the training data $X$ into $k$ groups, or \textit{folds}, of approximately equal size. The first fold is treated as the validation data set and the model is trained on the remaining $(k - 1)$ folds. The first validation error, denoted $\text{Err}_1$ is computed on the validation data set. Following, this procedure is repeated $k$ times, and for each time, a different group of data points from the original training data $X$ is used as the validation data. This results in $k$ estimates of the test error, i.e. $\text{Err}_1$, $\text{Err}_2$, \ldots, $\text{Err}_k$. The total $k$-fold CV error estimate is computed by taking the mean of these values,
 \begin{align}
     \text{CV}_k = \frac{1}{k} \sumlim{i=1}{k} \text{Err}_i.
@@ -724,73 +727,30 @@ Now, given the fuzzy simplicial complex of \cref{fig:how_umap_works_umap_graph},
 In the first term of \cref{eqn:umap-loss-function}, we have have an attractive force between the data points which $e$ spans, pulling them together; when $w_l(e)$ is large, the distance (i.e. weight) between any two data points becomes small. In the second term of \cref{eqn:umap-loss-function}, there is an opposite, repulsive force between the data points which $e$ spans, repelling them apart; when $w_h(e)$ is small (i.e. distance in high dimensional space), $w_l(e)$ will be small since we want to minimize the term. The process of pulling and repelling the weights makes the low dimensional representation of the data settle into a balanced state, such that it represents the high dimensional topological structure of the original data in a fairly accurate way. In practice, the UMAP algorithm uses a number of different tricks to optimize it, but we will not go into them here.
 
 \section{Intrinsic dimension estimation}
-In machine learning, the \textit{manifold hypothesis} states that in general, real-life high-dimensional data tends to live on a low-dimensional sub-manifold embedded within the high-dimensional space \cite[p. 16]{bengio2014representation}. In order to understand more about the underlying structure of the data we are working with, estimating the dimension of the low-dimensional sub-manifold can be seen as a viable strategy. The process of estimating the dimension of the low-dimensional sub-manifold is called \textit{intrinsic dimension (ID) estimation}. More generally, a $D$-dimensional data set $X \in \R^D$ is said to have an ID equal to $d$ if $X$ lies entirely within a $d$-dimensional subspace of $\R^D$ \cite{lee2015intrinsic}. Following, in this section we will introduce three methods for estimating the ID. For each of the methods described below, we assume that we have some data set $X \in \R^{n \times d}$ consisting of $n$ samples, where each sample is a $d$-dimensional vector. This section is based on \cite{lee2015intrinsic}, if not otherwise stated.
+\label{sec:intrinsic-dimension-estimation}
+In machine learning, the \textit{manifold hypothesis} states that in general, real-life high-dimensional data tends to live on a low-dimensional sub-manifold embedded within the high-dimensional space \cite[p. 16]{bengio2014representation}. In order to understand more about the underlying structure of the data we are working with, estimating the dimension of the low-dimensional sub-manifold can be seen as a viable strategy. The process of estimating the dimension of the low-dimensional sub-manifold is called \textit{intrinsic dimension (ID) estimation}. More generally, a $D$-dimensional data set $X \in \R^D$ is said to have an ID equal to $d$ if $X$ lies entirely within a $d$-dimensional subspace of $\R^D$ \cite{lee2015intrinsic}. We separate between \textit{global} and \textit{local} ID estimation methods, where global methods estimate the ID for the entire data set, while local methods estimate ID for each data point in the data set. We are particularly interested in local ID estimation methods for this master thesis, as it will be used later for the analysis  in \cref{sec:analysis-of-embeddings-intrinsic-dimension-estimation}. We note, however, that is fully possible and common in the literature to approximate local ID estimates by computing global ID estimates of a $k$-nearest neighbourhood around each data point $x \in X$. In the following subsections, we will introduce five methods for estimating the ID. We will leave out the technical details of the ID estimation methods, as they are not the focus of this master thesis. Instead, we will give an overall explanation for each of the methods, and kindly refer the reader to the source of each method for more details. For each of the methods described below, we assume that we have some data set $X \in \R^{N \times D}$ consisting of $N$ samples, where each sample is a $D$-dimensional vector. This section is based on \cite{lee2015intrinsic}, if not otherwise stated.
 
-\subsection{Local PCA}
-\label{sec:lpca}
-One of the first and most simple kind of intrinsic dimension estimation algorithm is based on the PCA algorithm. By using the information gained from the eigenvalue decomposition of PCA, one can estimate the intrinsic dimension. This algorithm is referred to as the \textit{local PCA} (lPCA) method and was first introduced in \cite{Fukunaga1971}, which we refer to when explaining it.
-
-The lPCA method works as follows. First, a sub-region around each data point $x_i \in X$, $0 \geq i \geq n$, is defined, either using radius or $k$-nearest neighbour ($k$-NN). For the sake of explanation, the the $k$-NN method is used, and we let $k$ denote the number of neighbours to include in the sub-region around $x_i$. The points in the sub-region around $x_i$ are denoted by $\text{N}_{x_i}$ ($x_i$ included in $\text{N}_{x_i}$). Furthermore, we run PCA on the data points $\text{N}_{x_i}$ and get the corresponding eigenvalues $\text{eig}\enclp{\text{N}_{x_i}}$. Using the computed eigenvalues, the lPCA method is able to identify the estimated ID by counting the number of eigenvalues that are greater than a portion of the largest eigenvalue. In other words, the estimated ID of data point $x_i$ using the lPCA method is defined as
-\begin{align}
-    \hat{d}_{x_i} = \sumlim{e \in \text{eig}\enclp{\text{N}_{x_i}}}{}{
-        \begin{cases}
-            1 & \mbox{if } e > \alpha \max \enclp{\text{eig}\enclp{\text{N}_{x_i}}} \\
-            0 & \mbox{otherwise}
-        \end{cases}
-    },
-    \label{eqn:lpca-esimated-id}
-\end{align}
-where $\alpha$ is a threshold parameter, determining how big of a portion an eigenvalue must be to be accounted for when estimating the ID. Typical values for $\alpha$ range between $0.01$ and $0.1$, as used by the experiments of \cite{Fukunaga1971}. The lPCA method can also estimate the ID of the whole data set $X$ by averaging $\hat{d}_{x_i}$ over all data points:
-\begin{align}
-    \hat{d}_{X} = \frac{1}{n} \sumlim{i=1}{n}{\hat{d}_{x_i}}
-\end{align}
-where $\hat{d}_{X}$ is the estimated ID of $X$.
+\subsection{LPCA}
+\label{sec:id-estimation-lpca}
+One of the first and most simple kind of intrinsic dimension estimation algorithm is based on the PCA algorithm (\cref{sec:pca}). By using the information gained from the eigenvalue decomposition of PCA, one can estimate the intrinsic dimension. This algorithm is referred to as the \textit{local PCA} (LPCA) method and was first introduced in \cite{Fukunaga1971}, which we refer to when explaining it. The LPCA method works by reducing the dimensionality of the original data set $X$ from $D$ dimensions to $\hat{d}$ dimensions, such that most of the variance in the $\hat{d}$ dimensions are kept. In order to select $\hat{d}$, LPCA sums up the number of eigenvalues that are greater than a portion $\alpha$ of the largest eigenvalue, from PCAs eigenvalue decomposition. A typical value for $\alpha$ is 0.1, meaning that $\hat{d}$ is set to the number of eigenvalues that are greater than 90\% of the largest eigenvalue. The value $\hat{d}$ is then the estimated ID. The described LPCA algorithm for estimating ID is a local estimator, meaning that estimates the ID for every data point $x \in X$. LPCA is typically implemented using $k$-nearest neighbour, meaning that for every data point $x \in X$, PCA is computed using the $k$-nearest neighbourhood around $x$ to estimate its ID.
 
 \subsection{KNN}
-A popular approach to estimate the ID is to use $k$-nearest neighbour ($k$-NN) graphs. In this subsection, we will explain a simplified version of the \textit{$k$-NN algorithm} for ID estimation, as explained by \cite[p. 651]{Carter2010}.
-
-The $k$-NN algorithm starts by computing the total edge length of the $k$-NN graph built on the data $X$. Let $D(x_i, x_j)$ denote the distance between two data points $x_i, x_j \in X$, and let $\mathcal{N}_{k, i}$ denote the set of the $k$-nearest neighbours of data point $x_i$. Then, the total edge length of the $k$-NN graph is given by
+\label{sec:id-estimation-knn}
+A popular approach to estimate the ID is to use $k$-nearest neighbour ($k$-NN) graphs. In this subsection, we will explain the \textit{$k$-NN algorithm} for ID estimation, as explained by \cite[p. 651]{Carter2010}. The $k$-NN algorithm uses the notion of total edge length of the $k$-NN graph built on the data $X$, in order to estimate the ID $\hat{d}$. Let $D(x_i, x_j)$ denote the distance between two data points $x_i, x_j \in X$, and let $\mathcal{N}_{k, i}$ denote the set of the $k$-nearest neighbours of data point $x_i$. Then, the total edge length of the $k$-NN graph is given by
 \begin{align}
     L_{\gamma, k}(X) = \sumlim{i=1}{n} \sumlim{y \in \mathcal{N}_{k, i}}{} D(x_i, x_j)^\gamma,
     \label{eqn:k-nn-id-estimation-l}
 \end{align}
-where $\gamma>0$ is a constant, weighting the distances between the data points in the $k$-NN graph. For $\gamma>1$, big distances between data points become emphasized. Furthermore, assuming that the manifold hypothesis holds for the data $X$ (i.e. that the data $X$ can be fully described using a sub-manifold $X' \in \R^{n \times m}$), the equation \cref{eqn:k-nn-id-estimation-l} has an asymptotic behaviour \cite[Equation 2]{Carter2010} given by
-\begin{align}
-    L_{\gamma, k}(X) = n^{\alpha(m)}c + \epsilon_n
-\end{align}
-where $m$ is the unknown ID, $\alpha(m) = (m - \gamma)/m$, $c$ is a constant with respect to $\alpha(m)$ and $\epsilon_m$ is an error residual. In order to estimate the intrinsic dimension $\hat{m}$, a non-linear least squares approach is used; we will not go into detail of how it works here, but kindly refer the reader to \cite[p. 651]{Carter2010} for more details. The $k$-NN algorithm also uses sub-sampling of data in order to reduce noisy estimates of the ID. In particular, let $\enclc{p_1, p_2, \ldots, p_Q}$ be $Q$ integers such that $1 \leq p_1 < p_2 < \ldots < p_Q \leq n$. For each $p \in \enclc{p_1, p_2, \ldots, p_Q}$, sample $p$ data points from $X$, where the sampled data points are denoted $X_p^j$, for $j=1, 2, \ldots, p$. Let $L_p = \enclp{L_{\gamma, k}(X_p^1), \ldots, L_{\gamma, k}(X_p^p)}$. The estimated ID $\hat{m}$ is given by
-\begin{align}
-    \hat{m} = \argmin_{m \in \Z^{+}} \enclc{
-        \min_c \sumlim{i=1}{Q} || L_{p_i} - {p_i}^{\alpha(m)}c\textbf{1} ||^2
-    },
-    \label{eqn:k-nn-id-estimation-m-hat}
-\end{align}
-where \textbf{1} is a vector of length $p_i$ consisting of all ones. By minimizing over both $c$ and $m$ in \cref{eqn:k-nn-id-estimation-m-hat}, this yields the estimated ID based on the $k$-NN graphs.
-
-The described $k$-NN algorithm for estimating ID is a global estimator, meaning that estimates the ID of the whole data $X$. In order to estimate the ID locally for each data point $x_i \in X$, a similar approach that lPCA (\cref{sec:lpca}) uses can be applied. First, create a sub-region around $x_i$, denoted $\text{N}_{x_i}$, using $k$-nearest neighbours for instance. Then, apply the $k$-NN algorithm for estimating the ID on the $\text{N}_{x_i}$ sub-region in order to estimate the ID for data point $x_i$.
+where $\gamma>0$ is a constant, weighting the distances between the data points in the $k$-NN graph. For $\gamma>1$, big distances between data points become emphasized. The authors of \cite[p. 651]{Carter2010} then argue that, assuming the manifold hypothesis holds for the data $X$ (i.e. that the data $X$ can be fully described using a sub-manifold $X' \in \R^{N \times d}$), it is possible to estimate $\hat{d}$ by applying non-linear least squares to an approximation of the total edge length (\cref{eqn:k-nn-id-estimation-l}). The described $k$-NN algorithm for estimating ID is a global estimator, meaning that estimates the ID of the whole data $X$. It is possible to make it local by applying the procedure as specified in the introduction to ID estimation in \cref{sec:intrinsic-dimension-estimation}. 
 
 \subsection{TWO-NN}
-Estimating the ID can be a hard task, especially if the underlying manifold of the data is twisted and curved. It is for this reason, the authors of \cite{Facco2017twonn} propose a two nearest neighbours estimator for ID estimation, called TWO-NN. TWO-NN uses the first and the second nearest neighbour of each data point in $X$ to estimate the ID. The authors claim that this minimality reduce the effect of complex manifolds, varying density and reduces the computational cost. We refer to \cite{Facco2017twonn} when explaining the algorithm.
-
-The TWO-NN algorithm works as follows. First, the pairwise distances between every data point in $X$ is computed. For each data point $x_i$, we find the two shortest distances $r_1$ and $r_2$, where $r_2 \geq r_1$. Then, the ratio between $r_1$ and $r_2$ is computed, i.e. $\mu_i = r_2 / r_1$. Let $\mu = \enclp{\mu_1, \mu_2, \ldots, \mu_n}$. For data that comes from distributions with heavy tails, there is a high probability that $r_2$ is much larger than $r_1$, leading to large values for $\mu_i$, and thus makes the TWO-NN algorithm unstable. In order to cope with this, the authors of \cite{Facco2017twonn} suggest to remove the 10\% largest values of $\mu$ and only use the remaining 90\% for estimating the ID, leading to more stable results. We denote the discard fraction used to remove high values of $\mu$ as $\alpha=0.1$ and the remaining values for $\mu$ as $\mu^*$. The size of $\mu^*$ is computed as $n^* = n(1-\alpha)$. Following, we sort $\mu^*$ in ascending order, denoted $S(\mu^*)$, and compute the empirical cumulate as
-\begin{align}
-    F^{emp}(S(\mu^*)_i) = \frac{i}{n^*}.
-\end{align}
-The authors of \cite{Facco2017twonn} shows that the following relationship holds:
-\begin{align}
-    \frac{\log \enclp{1 - F^{emp}(S(\mu^*)_i)}}{\log \enclp{S(\mu^*)_i}} = d.
-    \label{eqn:two-nn-id-equation-frac}
-\end{align}
-In order to estimate $d$ from \cref{eqn:two-nn-id-equation-frac}, linear regression is used. A linear regression model is trained on the data
-\begin{align}
-    \enclb{\undertext{\log \enclp{S(\mu^*)_i}}{x}, \undertext{-\log \enclp{1 - F^{emp}(S(\mu^*)_i)}}{y}},
-\end{align}
-where $i = 1, \ldots, n^*$. The slope of the computed linear regression model is the estimated ID, which we denote $\hat{d}$.
-
-TODO: Write how to compute local ID estimates from TWO-NN model.
+\label{sec:id-estimation-twonn}
+Estimating the ID can be a hard task, especially if the underlying manifold of the data is twisted and curved. It is for this reason, the authors of \cite{Facco2017twonn} propose a two nearest neighbours estimator for ID estimation, called TWO-NN. TWO-NN uses the first and the second nearest neighbour of each data point in $X$ to estimate the ID. The authors of \cite{Facco2017twonn} show that we can use the ratio of the distance to the second nearest neighbour to to the first one in order to create a linear regression model which estimates the ID $\hat{d}$. Following, the authors claim that this minimality reduce the effect of complex manifolds, varying density and reduces the computational cost. The described TWO-NN algorithm for estimating ID is a global estimator, meaning that estimates the ID of the whole data $X$. It is possible to make it local by applying the procedure as specified in the introduction to ID estimation in \cref{sec:intrinsic-dimension-estimation}. 
 
 \subsection{MLE}
-TODO \cite{Haro2008}.
+\label{sec:id-estimation-mle}
+Maximum likelihood estimation (MLE) is a method for estimating the parameters of a probability distribution, by either maximizing a likelihood function. \cite{Levina2004} propose a method which uses MLE in order to estimate the ID of data points $x \in X$. The idea is to estimate the ID locally, by assuming that the density $f(x)$ is constant for a small sphere $S_x(R)$ of radius $R$ around $x$. Then, they use a Poisson process to measure the rate of the counting process $N(t, x)$ which measures the number of points falling onto the sphere $S_x(R)$ at time $t$. Furthermore, they use MLE on the Poisson process in order to estimate the local ID $\hat{d}$ for point $x$. Note that in practice, it is common to use $k$-nearest neighbours instead of radius $R$ to find neighbours of $x$. An extension of the MLE method for estimating local ID was proposed by \cite{Haro2008}, which makes the ID estimator more robust to noise.
 
 \subsection{TLE}
-TODO \cite{Amsaleg2019}.
+\label{sec:id-estimation-tle}
+Tight Local Intrinsic Dimensionality Estimator (TLE) \cite{Amsaleg2019} is a method for estimating the local ID of data points $x \in X$. TLE is particularly well suited to use in tight localities, that is, within neighbourhoods of small size (e.g. using $k$-nearest neighbour). By using distances from $x$ to its $k$-nearest neighbours, TLE is able to estimate the local ID $\hat{d}$. The authors of \cite{Amsaleg2019} claim that TLE can achieve more accurate ID estimates within small neighbourhoods around $x$ (i.e. for small values of $k$), which again can improve quality of algorithms that depend on local ID estimates.
