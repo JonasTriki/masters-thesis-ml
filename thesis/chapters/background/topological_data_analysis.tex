@@ -1,7 +1,7 @@
-\chapter{Topological Data Analysis}
-Topological Data Analysis (TDA) is a fast growing field of mathematics, providing a set of tools from topology in order to infer underlying features from data \cite{chazal2021introduction}. In this chapter, we will go over the concepts of TDA, such as simplicial complexes or persistence diagrams. Then, we will introduce a couple of algorithms which uses concepts from TDA. This chapter is based on \cites{Edelsbrunner2010}{chazal2021introduction}, if not stated otherwise.
+\section{Topological data analysis}
+Topological Data Analysis (TDA) is a fast growing field of mathematics, providing a set of tools from topology in order to infer underlying features from data \cite{chazal2021introduction}. In this section, we will go over the concepts of TDA, such as simplicial complexes or persistence diagrams. Then, we will introduce a couple of algorithms which uses concepts from TDA. This section is based on \cites{Edelsbrunner2010}{chazal2021introduction}, if not stated otherwise.
 
-\section{Simplicial complex}
+\subsection{Simplicial complex}
 \label{sec:simplicial-complex}
 In computer science, a graph is a datatype for describing possibly non-linear and complex relationships between data points. Graphs consist of vertices that are connected by edges. Edges can also have metadata such as weight and direction. An example of a commonly used graph is the k-nearest neighbour graph, where vertices are data points and edges represent neighbouring relationships, with distance as weight. A simplicial complex is a generalization of graphs and are particularly used in TDA, due to its topological properties. Simplicial complexes consist of $n$-simplices, where $0$-simplices are similar to vertices, $1$-simplices are similar to edges. The difference between graphs and simplicial complexes occur when we look at $n$-simplices for $n \geq 2$. For example, $2$-simplices form triangles and $3$-simplices form tetrahedrons (i.e. triangular pyramids). Examples of $n$-simplices are shown in \cref{fig:n-simplices-example}.
 \begin{figure}[H]
@@ -17,9 +17,9 @@ By combining one or more $n$-simplices, one can create simplicial complexes, as 
     \caption{Simplicial complex consisting of $0$-, $1$-, $2$- and $3$-simplices.}
     \label{fig:simplicial-complex}
 \end{figure}
-There exist several methods for creating simplicial complexes from data. In particular, we will look at the Vietoris–Rips complex in the next subsection.
+There exist several methods for creating simplicial complexes from data. In particular, we will look at the Vietoris–Rips complex in the next sub-subsection.
 
-\subsection{Vietoris–Rips complex}
+\subsubsection{Vietoris–Rips complex}
 \label{sec:vietoris-rips-complex}
 The Vietoris–Rips complex is a simplicial complex that can be created from data points, using any distance metric. Given a proximity diameter $\alpha$, the Vietoris–Rips complex is built by forming a simplex for every set of $k$ data points that have distance less than or equal to $\alpha$. That is, if $k$ data points satisfy $d(x_i, x_j) \leq \alpha$ (where $d(x_i, x_j)$ computes the distance between two data points $i$ and $j$), a $(k-1)$ simplex is created for that data point (1-simplex for two data points, 2-simplex for three data points, etc.). An example of a Vietoris–Rips complex is illustrated in \cref{fig:simplicial-complex-rips}.
 \begin{figure}[H]
@@ -28,9 +28,9 @@ The Vietoris–Rips complex is a simplicial complex that can be created from dat
     \caption{Vietoris–Rips complex on 2-dimensional data with proximity diameter $\alpha$.}
     \label{fig:simplicial-complex-rips}
 \end{figure}
-By carefully studying the $n$-simplices of a Vietoris–Rips complex, we can observe topological structures such as loops (i.e. $2$-simplices) or holes  (i.e. $3$-simplices). An example of a loop is shown in \cref{fig:simplicial-complex-rips}, where the rightmost data points that the bottom form a 2-simplex. In order to study topological properties of data, it is common to look at varying values of $\alpha$, starting at zero and increasing to infinity. The study of observing how the topology changes once a threshold (e.g. $\alpha$) increases is called persistent homology. In order to easily present and visualize persistent homology, persistence diagrams are used. We will look at persistence diagrams in the next section.
+By carefully studying the $n$-simplices of a Vietoris–Rips complex, we can observe topological structures such as loops (i.e. $2$-simplices) or holes  (i.e. $3$-simplices). An example of a loop is shown in \cref{fig:simplicial-complex-rips}, where the rightmost data points that the bottom form a 2-simplex. In order to study topological properties of data, it is common to look at varying values of $\alpha$, starting at zero and increasing to infinity. The study of observing how the topology changes once a threshold (e.g. $\alpha$) increases is called persistent homology. In order to easily present and visualize persistent homology, persistence diagrams are used. We will look at persistence diagrams in the next subsection.
 
-\section{Persistence diagram}
+\subsection{Persistence diagram}
 \label{sec:persistence diagram}
 In order to present persistent homology of a simplicial complex, persistence diagrams are frequently used. Persistence diagrams we look at a range of proximity diameters over multiple persistent homology dimensions (or degrees), where the dimension refer to which $n$-simplices we want to look at (0-dimensional persistent homology observe changes of $0$-simplices, 1-dimensional observe changes of $1$-simplices, etc.). A persistence diagram is 2-dimensional, where the x-axis denotes the birth time and y-axis the death time. Assuming that we want to create a persistence diagram of data points, we let the proximity diameter $\alpha$ start at zero. By gradually increasing $\alpha$, new topological properties appear and old topological properties gets merged into other properties. In particular, once a topological property is "birthed" (e.g. 1-simplex between two data points), the birth time is noted for the particular data point. A point in the persistence diagram appear once $n$-simplices gets merged into a new $m$-simplex (e.g. three 1-simplex becoming a 2-simplex).
 
@@ -41,9 +41,9 @@ To motivate the use of persistence diagrams, we show a simple example where we s
     \caption{Persistence diagrams on different levels of $\alpha$ of a data set consisting of two blobs.}
     \label{fig:persistence-diagram-example}
 \end{figure}
-An important aspect of machine learning is to predict some quantity given some features. If we want to use the persistence diagrams as features in a model, for instance, a typical approach would be to perform some feature extraction or vectorization first. An example of a vectorization of persistence diagrams are persistence images, which we will introduce in the next section.
+An important aspect of machine learning is to predict some quantity given some features. If we want to use the persistence diagrams as features in a model, for instance, a typical approach would be to perform some feature extraction or vectorization first. An example of a vectorization of persistence diagrams are persistence images, which we will introduce in the next subsection.
 
-\section{Persistence image}
+\subsection{Persistence image}
 \label{sec:persistence-image}
 Many machine leaning tasks require valuable features in order to yield good results. Persistence images \cite{adams2016persistence} are vector representations of persistence diagrams. When explaining persistence images, we refer to \cite{adams2016persistence}.
 
@@ -53,7 +53,7 @@ Let $B = \enclc{\enclp{b_1, d_1}, \enclp{b_2, d_2}, \ldots, \enclp{b_m, d_m}} \i
 \end{align}
 where $f(u)$ is the persistence weighing function and $\phi_u(z)$ is the probability distribution evaluated at point $z$ (if Gaussian, then centered at point $u$). Finally, the persistence surface $\rho_B(z)$ is reduced to a discretized representation. In particular, an $N \times M$ grid is formed and for each cell in the grid the integral of $\rho_B(z)$ over that region is computed and used as value. In other words, this discretization allows us to summarize the persistence surface using less information and we are left with an $N \times M$ matrix that can be used for machine learning tasks more easily.
 
-\section{Wasserstein distance}
+\subsection{Wasserstein distance}
 \label{sec:wasserstein-distance}
 Distance metrics (e.g. Euclidean distance) are often used to compare distance between data points. In order to compare differences between any two persistence diagrams $A$ and $B$, the $p$\textit{-Wasserstein distance} is often used, as defined in \cref{eqn:wasserstein-distance}.
 \begin{align}
@@ -62,7 +62,7 @@ Distance metrics (e.g. Euclidean distance) are often used to compare distance be
 \end{align}
 where $1 \leq p < \infty$ and $\gamma$ ranges over bijections between $A$ and $B$, and $\inf$ is the infimum (greatest lower bound, or similar to "minimum"). If we let $p=\infty$, i.e $W_\infty(A, B)$, we get what we call the \textit{bottleneck distance}. The bottleneck distance is often used to compare persistence diagrams as well, but has the disadvantage of only using the maximum distance between any two points over the bijections between $A$ and $B$.
 
-\section{Topological polysemy}
+\subsection{Topological polysemy}
 \label{sec:topological-polysemy}
 Recall the manifold hypothesis, which states that, in general, real-life high-dimensional data tends to live on a low-dimensional sub-manifold embedded within the high-dimensional space \cite[p. 16]{bengio2014representation}. To give an example, imagine that we have gathered some data about weight and height of humans. Naturally, we see that as the height increases, the weight increases as well. That is, we have a strong linear relationship (or correlation) between height and weight. We can therefore argue that the manifold dimension of the data is 1, even though the original data has dimension 2. The hypothesis should, in theory, also apply to word embeddings, but the authors of \cite{jakubowski2020topology} argue that word embeddings, should instead, live on a punched manifold. By a pinched manifold, we mean a manifold where particular points that are equal in some sense are glued together, creating singular areas in the manifold. An example of a pinched manifold is shown in \cref{fig:pinched-manifold}. For word embeddings, \cite{jakubowski2020topology} claim that these singular areas in the manifold represent polysemous words, where neighbouring words are related to the polysemous word. In order to identify such polysemous words from word embeddings, \cite{jakubowski2020topology} introduce a topological measure of polysemy based on persistent homology, that correlate well with the number of meanings of a word. To explain the topological measure of polysemy, we refer to \cite{jakubowski2020topology}.
 \textbf{TODO}: Add figure of pinched manifold.
@@ -77,7 +77,7 @@ Determining the number of word meanings is a non-trivial task. Consider the word
 
 Let $W \in \R^{|V| \times d}$ be word embeddings, where $|V|$ is the number of words in the vocabulary and $d$ is the word embedding dimension. Topological polysemy $\text{TPS}_n(w)$ is computed by fixing a target word $w$ and a neighbourhood size $n$. We denote the word vector of $w$ as $v_w \in \R^{d}$. To compute $\text{TPS}_n(w)$, we first normalize the word embeddings $W$ such that each vector are of unit length. The normalized word embeddings are denoted $W_\text{norm}$ and the normalized word vector of the target word $w$ is denoted as $v_{w_{\text{norm}}}$. Following, the punctured neighbourhood $N_n(w)$ is computed, that is, the neighbouring $n$ (normalized) word vectors around $v_{w_{\text{norm}}}$, excluding $w$ itself. Furthermore, we project the word vectors of $N_n(w)$ to lie at the unit sphere, with $v_{w_{\text{norm}}}$ as the center. We denote this normalized punctured neighbourhood as $N'_n(w)$. In other words, we make the word vector of $w$ to be the origin of a $d$-dimensional sphere and project the neighbouring words of $w$ to lie around it. Lastly, the 0-degree persistence diagram of $N'_n(w)$ is computed, denoted $PD_n(w)$. $\text{TPS}_n(w)$ is then the Wasserstein distance between $PD_n(w)$ and the empty persistence diagram, also known as the Wasserstein norm.
 
-\section{Geometric Anomaly Detection}
+\subsection{Geometric Anomaly Detection}
 \label{sec:geometric-anomaly-detection}
 The manifold hypothesis forms a foundation of modern data science. Many manifold learning and dimensionality reduction algorithms rely on this assumption in order to find meaningful low-dimensional representations of high-dimensional data. Examples of such algorithms include PCA and UMAP. Geometric Anomaly Detection (GAD) \cite{stolz2020geometric} is an algorithm for identifying possible points in data which fail to satisfy the manifold hypothesis. Following, we will describe the GAD algorithm and give a couple of examples of how it works. We refer to \cite{stolz2020geometric} when explaining the GAD algorithm.
 

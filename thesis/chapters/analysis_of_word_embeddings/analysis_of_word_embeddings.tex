@@ -1,0 +1,11 @@
+\chapter{Analysis of word embeddings}
+In this chapter, we will use methods from machine learning in order to analyze word embeddings. Due to the scope of the thesis, we will mainly analyze word embeddings from the word2vec (\cref{sec:word2vec}) model using Skip-gram and negative sampling. We will also run some of the analysis methods on published word embeddings from external papers, in particular in \cref{sec:analysis-of-embeddings-tda}.
+
+First, we will describe how we trained and evaluated our word2vec implementation. In particular, we will explain data preprocessing steps, implementation specifics and hyperparameter choices. We will also show how we evaluate our trained word2vec model. Second, we perform cluster analysis on word embeddings in order to look for deeper structure. In particular, we compare clustering algorithms trained on word embeddings, using internal cluster validation methods, and investigate clustering of distinct groups of words. Third, we investigate two methods from topological data analysis on word embeddings. Lastly, we end the chapter by creating supervised models for estimating the number of word meanings, using results from topological data analysis and intrinsic dimension estimation. The supervised models are trained and evaluation results are visualized.
+
+To perform the analyses in this chapter, we use a machine with two GPUs (GeForce RTX 2080 Ti $\times2$), one CPU (Intel i9-7900X @ 3.30GHz) and 64 GB of RAM. The computer was running an Ubuntu 18.04.5 operating system. In practice, we are only allotted to use a subset of the resources, as it is a shared computer by the research group in machine learning at UiB.
+
+% Include sections
+\input{chapters/analysis_of_word_embeddings/training_and_evaluation_of_word2vec}
+\input{chapters/analysis_of_word_embeddings/word_clustering}
+\input{chapters/analysis_of_word_embeddings/polysemous_words_prediction}
