@@ -37,8 +37,6 @@ fastdist = "*"
 seaborn = "*"
 scikit-learn-extra = "*"
 gudhi = "*"
-h5py = "*"
-hickle = "*"
 joblib = "*"
 xlrd = "*"
 tikzplotlib = "*"
@@ -57,6 +55,7 @@ scann = {file = "https://files.pythonhosted.org/packages/8d/ad/e6981da67acb1ba3e
 sharedmem = "*"
 xgboost = "*"
 scikit-optimize = "*"
+python-dotenv = "*"
 
 [requires]
 python_version = "3.6"
