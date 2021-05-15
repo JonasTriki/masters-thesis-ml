@@ -11,7 +11,7 @@ from tqdm import tqdm
 sys.path.append("..")
 
 from approx_nn import ApproxNN  # noqa: E402
-from utils import download_from_url  # noqa: E402
+from utils import download_from_url, get_env_config  # noqa: E402
 from word_embeddings.word_embeddings_utils import (  # noqa: E402
     load_word2vec_binary_format,
     load_word_embeddings_text_format,
@@ -448,6 +448,48 @@ def preprocess_fasttext(
             ann_index_scann.save(fasttext_word_vectors_scann_artifacts_dir)
 
 
+def preprocess_fasttext_tps(
+    raw_data_dir: str,
+    output_dir: str,
+    annoy_index_n_trees: int,
+    scann_num_leaves_scaling: int,
+) -> None:
+    """
+    Downloads and preprocessed external word embeddings from [1].
+
+    Parameters
+    ----------
+    raw_data_dir : str
+        Path to the raw data directory (where files will be downloaded to).
+    output_dir : str
+        Output directory to save processed data.
+    annoy_index_n_trees : int
+        Number of trees to pass to Annoys build method. More trees => higher precision.
+    scann_num_leaves_scaling : int
+        Number of leaves scaling to pass to ScaNNs build method. Higher scaling => higher precision.
+
+    References
+    ----------
+    .. Alexander Jakubowski, Milica Gašić, & Marcus Zibrowius. (2020).
+       Topology of Word Embeddings: Singularities Reflect Polysemy.
+    """
+    # Ensure output directory exists
+    output_dir = join(output_dir, "fastTextTPS")
+    makedirs(output_dir, exist_ok=True)
+
+    # Define constants
+    env_config = get_env_config()
+    tps_fasttext_model_filesender_token = env_config[
+        "TPS_FASTTEXT_MODEL_FILESENDER_TOKEN"
+    ]
+    tps_fasttext_model_filesender_token_files_ids = env_config[
+        "TPS_FASTTEXT_MODEL_FILESENDER_TOKEN_FILES_IDS"
+    ]
+    model_url = f"https://filesender.uninett.no/download.php?token={tps_fasttext_model_filesender_token}&files_ids={tps_fasttext_model_filesender_token_files_ids}"
+
+    # TODO: Implement this function.
+
+
 def preprocess_external_word_embeddings(
     raw_data_dir: str,
     output_dir: str,
@@ -459,6 +501,7 @@ def preprocess_external_word_embeddings(
     - GoogleNews-vectors-negative300.bin.gz [1]
     - GloVe Common Crawl, 840B tokens 300d (glove.840B.300d.zip) [2]
     - fastText pre-trained English 300d vectors (cc.en.300.bin.gz) [3]
+    - fastText model used in TPS paper [4]
 
     Parameters
     ----------
@@ -482,6 +525,8 @@ def preprocess_external_word_embeddings(
     .. [3] Grave, E., Bojanowski, P., Gupta, P., Joulin, A., & Mikolov, T. (2018).
        Learning Word Vectors for 157 Languages. In Proceedings of the International
        Conference on Language Resources and Evaluation (LREC 2018).
+    .. [4] Alexander Jakubowski, Milica Gašić, & Marcus Zibrowius. (2020).
+       Topology of Word Embeddings: Singularities Reflect Polysemy.
     """
     print("-- Preprocessing Google News... --")
     preprocess_google_news(
@@ -499,6 +544,13 @@ def preprocess_external_word_embeddings(
     )
     print("-- Preprocessing fastText... --")
     preprocess_fasttext(
+        raw_data_dir=raw_data_dir,
+        output_dir=output_dir,
+        annoy_index_n_trees=annoy_index_n_trees,
+        scann_num_leaves_scaling=scann_num_leaves_scaling,
+    )
+    print("-- Preprocessing TPS fastText --")
+    preprocess_fasttext_tps(
         raw_data_dir=raw_data_dir,
         output_dir=output_dir,
         annoy_index_n_trees=annoy_index_n_trees,
