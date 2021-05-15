@@ -12,13 +12,8 @@ from IPython.display import display
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
-from sklearn.metrics import (
-    confusion_matrix,
-    make_scorer,
-    mean_squared_error,
-    recall_score,
-)
-from sklearn.preprocessing import minmax_scale
+from sklearn.metrics import confusion_matrix, make_scorer, recall_score
+from sklearn.preprocessing import StandardScaler
 
 rng_seed = 399
 np.random.seed(rng_seed)
@@ -268,7 +263,8 @@ def estimate_num_meanings_supervised(train_data_filepath: str, output_dir: str) 
     )
 
     # Split into X and y
-    X_train = minmax_scale(
+    data_scaler = StandardScaler()
+    X_train = data_scaler.fit_transform(
         word_meaning_train_data[word_meaning_data_feature_cols].values
     )
     print(f"Train data shape: {X_train.shape}")

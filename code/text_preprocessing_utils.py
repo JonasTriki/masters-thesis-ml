@@ -105,7 +105,8 @@ def replace_contractions(text: str) -> str:
     # Create regex for matching contraction keys
     contractions_keys_re = "|".join(contractions_dict.keys())
     contractions_re = re.compile(
-        f"({contractions_keys_re})", flags=re.IGNORECASE | re.DOTALL,
+        f"({contractions_keys_re})",
+        flags=re.IGNORECASE | re.DOTALL,
     )
 
     # Replace all contraction occurrences.
