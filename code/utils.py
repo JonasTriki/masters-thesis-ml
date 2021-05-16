@@ -7,7 +7,6 @@ from typing import AnyStr, Callable, Dict, Generator, List, Union
 
 import numpy as np
 import requests
-from dotenv import dotenv_values
 from fastdist import fastdist
 from tqdm import tqdm
 
@@ -528,15 +527,3 @@ def normalize_array(arr: np.ndarray):
                 arr_norm[i] = row / np.linalg.norm(row)
 
     return arr_norm
-
-
-def get_env_config() -> dict:
-    """
-    Gets the .env config as a dictionary.
-
-    Returns
-    -------
-    env_config : dict
-        Dot env config as dictionary.
-    """
-    return dotenv_values(".env")

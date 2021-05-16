@@ -5,13 +5,15 @@ import zipfile
 from os import makedirs
 from os.path import isdir, isfile, join
 
+import fasttext
 import numpy as np
+from dotenv import dotenv_values
 from tqdm import tqdm
 
 sys.path.append("..")
 
 from approx_nn import ApproxNN  # noqa: E402
-from utils import download_from_url, get_env_config  # noqa: E402
+from utils import download_from_url  # noqa: E402
 from word_embeddings.word_embeddings_utils import (  # noqa: E402
     load_word2vec_binary_format,
     load_word_embeddings_text_format,
@@ -478,16 +480,99 @@ def preprocess_fasttext_tps(
     makedirs(output_dir, exist_ok=True)
 
     # Define constants
-    env_config = get_env_config()
+    env_config = dotenv_values(join("..", ".env"))
     tps_fasttext_model_filesender_token = env_config[
         "TPS_FASTTEXT_MODEL_FILESENDER_TOKEN"
     ]
     tps_fasttext_model_filesender_token_files_ids = env_config[
         "TPS_FASTTEXT_MODEL_FILESENDER_TOKEN_FILES_IDS"
     ]
-    model_url = f"https://filesender.uninett.no/download.php?token={tps_fasttext_model_filesender_token}&files_ids={tps_fasttext_model_filesender_token_files_ids}"
+    tps_fasttext_model_url = f"https://filesender.uninett.no/download.php?token={tps_fasttext_model_filesender_token}&files_ids={tps_fasttext_model_filesender_token_files_ids}"
+    tps_fasttext_model_name = "fastText.TPS.300d"
+    tps_fasttext_model_raw_filepath = join(
+        raw_data_dir, f"{tps_fasttext_model_name}.bin"
+    )
+    tps_fasttext_model_words_filepath = join(
+        output_dir, f"{tps_fasttext_model_name}_words.txt"
+    )
+    tps_fasttext_model_vectors_filepath = join(
+        output_dir, f"{tps_fasttext_model_name}.npy"
+    )
+    tps_fasttext_model_vectors_normalized_filepath = join(
+        output_dir, f"{tps_fasttext_model_name}_normalized.npy"
+    )
+    tps_fasttext_model_annoy_index_filepath = join(
+        output_dir, f"{tps_fasttext_model_name}_annoy_index.ann"
+    )
+    tps_fasttext_model_scann_artifacts_dir = join(
+        output_dir, f"{tps_fasttext_model_name}_scann_artifacts"
+    )
 
-    # TODO: Implement this function.
+    if not isfile(tps_fasttext_model_raw_filepath):
+        print(f"Downloading {tps_fasttext_model_name}...")
+        download_from_url(
+            url=tps_fasttext_model_url,
+            destination_filepath=tps_fasttext_model_raw_filepath,
+        )
+        print("Done!")
+
+    # Load output from trained fastText model
+    fasttext_model = fasttext.load_model(tps_fasttext_model_raw_filepath)
+    fasttext_model_words = fasttext_model.words
+    fasttext_model_embedding_weights = np.zeros(
+        (len(fasttext_model_words), fasttext_model.get_dimension())
+    )
+    for i, word in enumerate(fasttext_model.words):
+        fasttext_model_embedding_weights[i] = fasttext_model.get_word_vector(word)
+
+    # Save words
+    if not isfile(tps_fasttext_model_words_filepath):
+        with open(tps_fasttext_model_words_filepath, "w") as file:
+            for i, word in enumerate(fasttext_model.words):
+                if i > 0:
+                    file.write("\n")
+                file.write(word)
+
+    # Save word embeddings
+    if not isfile(tps_fasttext_model_vectors_filepath):
+        np.save(tps_fasttext_model_vectors_filepath, fasttext_model_embedding_weights)
+
+    # Save normalized word embeddings
+    fasttext_model_embedding_weights_normalized = None
+    if not isfile(tps_fasttext_model_vectors_normalized_filepath):
+        fasttext_model_embedding_weights_normalized = (
+            fasttext_model_embedding_weights
+            / np.linalg.norm(fasttext_model_embedding_weights, axis=1).reshape(-1, 1)
+        )
+        np.save(
+            tps_fasttext_model_vectors_normalized_filepath,
+            fasttext_model_embedding_weights_normalized,
+        )
+
+    annoy_index_created = isfile(tps_fasttext_model_annoy_index_filepath)
+    scann_instance_created = isdir(tps_fasttext_model_scann_artifacts_dir)
+    if not annoy_index_created or not scann_instance_created:
+        if fasttext_model_embedding_weights_normalized is None:
+            fasttext_model_embedding_weights_normalized = np.load(
+                tps_fasttext_model_vectors_normalized_filepath
+            )
+
+        if not annoy_index_created:
+            ann_index_annoy = ApproxNN(ann_alg="annoy")
+            ann_index_annoy.build(
+                data=fasttext_model_embedding_weights_normalized,
+                annoy_n_trees=annoy_index_n_trees,
+                distance_measure="euclidean",
+            )
+            ann_index_annoy.save(tps_fasttext_model_annoy_index_filepath)
+
+        if not scann_instance_created:
+            ann_index_scann = ApproxNN(ann_alg="scann")
+            ann_index_scann.build(
+                data=fasttext_model_embedding_weights_normalized,
+                scann_num_leaves_scaling=scann_num_leaves_scaling,
+            )
+            ann_index_scann.save(tps_fasttext_model_scann_artifacts_dir)
 
 
 def preprocess_external_word_embeddings(
