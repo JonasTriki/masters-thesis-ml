@@ -41,7 +41,7 @@ joblib = "*"
 xlrd = "*"
 tikzplotlib = "*"
 s-dbw = "*"
-tensorflow = "*"
+tensorflow = "==2.4.1"
 cdbw = "*"
 wikiextractor = {git = "https://github.com/JonasTriki/wikiextractor.git", ref = "master"}
 pot = "*"
