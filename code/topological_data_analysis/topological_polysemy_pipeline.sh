@@ -6,6 +6,7 @@ screen -dmS topological_polysemy_pipeline -L -Logfile topological_polysemy_pipel
 --word2vec_google_news_model_dir ../word_embeddings/data/GoogleNews \
 --glove_model_dir ../word_embeddings/data/GloVe \
 --fasttext_model_dir ../word_embeddings/data/fastText \
+--fasttext_tps_model_dir ../word_embeddings/data/fastTextTPS \
 --tps_neighbourhood_sizes 10 40 50 60 100 \
 --num_top_k_words_frequencies 10000 \
 --cyclo_octane_data_filepath custom_data/cyclo-octane.csv \

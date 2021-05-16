@@ -70,6 +70,12 @@ def parse_args() -> argparse.Namespace:
         help="Directory of the fastText model",
     )
     parser.add_argument(
+        "--fasttext_tps_model_dir",
+        type=str,
+        default="",
+        help="Directory of the TPS fastText model",
+    )
+    parser.add_argument(
         "--tps_neighbourhood_sizes",
         nargs="+",
         help="Neighbourhood sizes to use when computing TPS (e.g. 50, 60)",
@@ -365,6 +371,7 @@ def topological_polysemy_pipeline(
     word2vec_google_news_model_dir: str,
     glove_model_dir: str,
     fasttext_model_dir: str,
+    fasttext_tps_model_dir: str,
     tps_neighbourhood_sizes: str,
     num_top_k_words_frequencies: int,
     cyclo_octane_data_filepath: str,
@@ -390,6 +397,8 @@ def topological_polysemy_pipeline(
         Directory of the GloVe model.
     fasttext_model_dir : str
         Directory of the fastText model.
+    fasttext_tps_model_dir : str
+        Directory of the TPS fastText model.
     tps_neighbourhood_sizes : str
         Neighbourhood sizes to use when computing TPS (e.g. 50, 60).
     num_top_k_words_frequencies : int
@@ -476,6 +485,11 @@ def topological_polysemy_pipeline(
             "cc.en.300.vec",
             fasttext_model_dir,
         ),
+        (
+            "fasttext_tps_300d",
+            "fastText.TPS.300d",
+            fasttext_tps_model_dir,
+        ),
     ]
 
     # Compute TPS for each external word embeddings
@@ -561,6 +575,7 @@ if __name__ == "__main__":
         word2vec_google_news_model_dir=args.word2vec_google_news_model_dir,
         glove_model_dir=args.glove_model_dir,
         fasttext_model_dir=args.fasttext_model_dir,
+        fasttext_tps_model_dir=args.fasttext_tps_model_dir,
         tps_neighbourhood_sizes=args.tps_neighbourhood_sizes,
         num_top_k_words_frequencies=args.num_top_k_words_frequencies,
         cyclo_octane_data_filepath=args.cyclo_octane_data_filepath,
