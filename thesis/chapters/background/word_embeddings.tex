@@ -1,4 +1,5 @@
 \section{Word embeddings}
+\label{sec:word-embeddings}
 In this section, we will discuss ways of representing text numerically, how we can create word embeddings and details around the word2vec method, from architectural choices to presenting word2vec as an artificial neural network. Following, we describe a couple of alternative models for learning word embeddings, and lastly, how to evaluate word embedding models.
 
 \subsection{Numerical representation of text}
@@ -7,16 +8,17 @@ In this subsection, we will create some unique representation for words in a tex
 
 \subsubsection{Unique representation for each word}
 \label{unique-representation-for-each-word}
-A first strategy for vectorizing text could be to assign a unique number for each word in the text. We use the same order as the words appear in the text to assign a unique number. The set of unique words that appear in the text is called the \textit{vocabulary} of the text, usually denoted by $V$. We define the number of unique words in the text to be the vocabulary size, denoted by $|V|$. We replace each word in the text with its respective number. Let us consider the following sentence
+A first strategy for vectorizing text could be to assign a unique number for each word in the text. We use the same order as the words appear in the text to assign a unique number. The set of unique words that appear in the text is called the \textit{vocabulary} of the text, usually denoted by $V$. We define the number of unique words in the text to be the vocabulary size, denoted by $|V|$. We replace each word in the text with its respective number. Let us consider the following sentence:
 \begin{align}
-    \text{the cat sat on the mat} \label{txt:num-rep-ex-sent-words}
+    \text{the cat sat on the mat}.
+    \label{txt:num-rep-ex-sent-words}
 \end{align}
 
-We convert the words into numbers based on the order they appear in the text, e.g., the $\mapsto$ 0, cat $\mapsto$ 1, sat $\mapsto$ 2, etc.
+We convert the words into numbers based on the order they appear in the text, e.g., the $\mapsto$ 0, cat $\mapsto$ 1, sat $\mapsto$ 2, etc:
 \begin{align}
-    \text{0 1 2 3 0 4} \label{txt:num-rep-ex-sent}
+    \text{0 1 2 3 0 4} \label{txt:num-rep-ex-sent}.
 \end{align}
-We now have a numerical representation of the original sentence in $\cref{txt:num-rep-ex-sent-words}$ and may use it for machine learning modeling.
+We now have a numerical representation of the original sentence in \cref{txt:num-rep-ex-sent-words} and may use it for machine learning modeling.
 
 There are some problems with this method, however.
 \begin{itemize}
@@ -27,7 +29,7 @@ There are some problems with this method, however.
 In the next sub-subsection, we will look at another method of encoding words, using one-hot encodings. We will also apply it to the example sentence in \cref{txt:num-rep-ex-sent-words}.
 
 \subsubsection{One-hot encoded words}
-One-hot encoding is a method for converting categorical data into numeric data. Essentially, we create a unique, sparse vector consisting of all zeros, except for the value at the index of the element of interest, which we set to one. For instance, if we have the words "north", "east", "south", "west", then their one-hot encodings could be
+\textit{One-hot encoding} is a method for converting categorical data into numeric data. Essentially, we create a unique, sparse vector consisting of all zeros, except for the value at the index of the element of interest, which we set to one. For instance, if we have the words "north", "east", "south", "west", then their one-hot encodings could be
 \begin{align}
     \text{north} \mapsto \begin{pmatrix}
     1\\
@@ -52,12 +54,12 @@ One-hot encoding is a method for converting categorical data into numeric data. 
     0\\
     0\\
     1
-    \end{pmatrix}
+    \end{pmatrix}.
 \end{align}
 
-Let the vocabulary $V = \left \{ w_1, w_2, ..., w_{|V|} \right \}$ to be the set of unique words in a text. Then, the \textit{one-hot encoding} of a word, $e_{w_i}$, is defined as a $|V|$-dimensional vector of all zeros, except for the value at index $i$ which is one.
+Let the vocabulary $V = \left \{ w_1, w_2, ..., w_{|V|} \right \}$ to be the set of unique words in a text. Then, the one-hot encoding of a word, $e_{w_i}$, is defined as a $|V|$-dimensional vector of all zeros, except for the value at index $i$ which is one.
 
-If we convert the words from \cref{txt:num-rep-ex-sent-words} using the definition of a one-hot encoding, we get the following one-hot encoded vectors
+If we convert the words from \cref{txt:num-rep-ex-sent-words} using the definition of a one-hot encoding, we get the following one-hot encoded vectors:
 \begin{align}
     \begin{pmatrix}
     1\\
@@ -100,7 +102,7 @@ If we convert the words from \cref{txt:num-rep-ex-sent-words} using the definiti
     0\\
     0\\
     1
-    \end{pmatrix}
+    \end{pmatrix}.
 \end{align}
 
 We now have discarded the ordinal relationship of the numerical representation.
@@ -113,17 +115,17 @@ There are some downsides with this approach as well, however.
 \end{itemize}
 
 \subsubsection{Word embeddings}
-In contrast to the one-hot encoded vectors of words, word embeddings are low-dimensional dense vector representations. Word embeddings are typically learned from the data (e.g. texts) directly, whereas one-hot encoded vectors are arbitrarily defined (its ordering may change). Due to the lower dimensionality of word embeddings, it packs more information about words into less space, thus being more efficient than one-hot encoded word vectors. Common choices for the dimensionality of word embeddings are ranging from 50 to 600 \cite{mikolov2013a}, depending on the amount of training data. In the next subsection, we will take a look at a classic family of methods for creating such word embeddings, called word2vec.
+In contrast to the one-hot encoded vectors of words, \textit{word embeddings} are low-dimensional dense vector representations. Word embeddings are typically learned from the data (e.g. texts) directly, whereas one-hot encoded vectors are arbitrarily defined (its ordering may change). Due to the lower dimensionality of word embeddings, it packs more information about words into less space, thus being more efficient than one-hot encoded word vectors. Common choices for the dimensionality of word embeddings are ranging from 50 to 600 \cite{mikolov2013a}, depending on the amount of training data. In the next subsection, we will take a look at a classic family of methods for creating such word embeddings, called word2vec.
 
 \subsection{Learning word embeddings (word2vec)}
 \label{sec:word2vec}
-Word2vec was first introduced by Mikolov et al. in 2013 \cite{mikolov2013a}. It is a family of methods for learning dense and efficient vector representations of words. In the same year, Mikolov et al. published a follow-up paper, \cite{mikolov2013b}, which included several extensions that improved both the quality of the word embeddings and the training speed. In this subsection, we will go over the details of the original word2vec paper, \cite{mikolov2013a}, and the introduced extensions in the follow-up paper, \cite{mikolov2013b}. This subsection is based on \cites{mikolov2013a}{mikolov2013b}.
+\textit{Word2vec} was first introduced by Mikolov et al. in 2013 \cite{mikolov2013a}. It is a family of methods for learning dense and efficient vector representations of words. In the same year, Mikolov et al. published a follow-up paper, \cite{mikolov2013b}, which included several extensions that improved both the quality of the word embeddings and the training speed. In this subsection, we will go over the details of the original word2vec paper, \cite{mikolov2013a}, and the introduced extensions in the follow-up paper, \cite{mikolov2013b}. This subsection is based on \cites{mikolov2013a}{mikolov2013b}. Furthermore, the word2vec method will be used to create word embeddings for the analysis in \cref{sec:training-and-eval-our-word2vec-impl}.
 
 \subsubsection{Architectures}
-The authors of the word2vec paper introduced two new log-linear models for learning distributed representations of words that try to minimize computational complexity, namely the continuous bag-of-words model (CBOW) and the continuous Skip-gram model. Both models achieve high quality (see \cref{sec:eval-word2vec-model} for evaluation of word2vec models) word embeddings and share some core idea as to how one might create good vector representations of words. In this sub-subsection, we will go through both models.
+The authors of the word2vec paper introduced two new log-linear models for learning distributed representations of words that try to minimize computational complexity, namely the \textit{continuous bag-of-words model} (CBOW) and the \textit{continuous Skip-gram model}. Both models achieve high quality (see \cref{sec:eval-word2vec-model} for evaluation of word2vec models) word embeddings and share some core idea as to how one might create good vector representations of words. In this sub-subsection, we will go through both models.
 
 \paragraph*{Continuous bag-of-words model}\mbox{} \\
-The continuous bag-of-words model (CBOW) tries to predict a target word given some context words around it. Essentially, we select a target word $w_t$, where $t$ is the index of the current target word in our training data, and a number $C$ denoting the number of words to the left and to the right of $w_t$. $C$ is also called the window size. Let $S=2C$ denote the total number of words to the left and right. By combining the embedded context word vectors, we predict the target word $w_t$. This model is illustrated in \cref{fig:cbow-model}.
+The continuous bag-of-words model (CBOW) tries to predict a target word given some context words around it. Essentially, we select a target word $w_t$, where $t$ is the index of the current target word in our training data, and a number $C$ denoting the number of words to the left and to the right of $w_t$. $C$ is also called the \textit{window size}. Let $S=2C$ denote the total number of words to the left and right. By combining the embedded context word vectors, we predict the target word $w_t$. This model is illustrated in \cref{fig:cbow-model}.
 
 \begin{figure}[H]
     \centering
@@ -134,11 +136,11 @@ The continuous bag-of-words model (CBOW) tries to predict a target word given so
 
 More formally, we are considering a sequence of $T$ training words $w_1, w_2, \ldots, w_T$. The words $w_t$ belong to some vocabulary $V$ consisting of $|V|$ unique words, $1 \leq t \leq T$. The models task is to maximize the average log probability of the word $w_t$ being sampled given the context words $w_{t-C}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+C}$. The objective of the CBOW model then becomes
 \begin{align}
-    \frac{1}{T} \sumlim{t=1}{T} \log p(w_t | w_{t-C}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+C})
+    \frac{1}{T} \sumlim{t=1}{T} \log p(w_t | w_{t-C}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+C}).
     \label{eqn:cbow-objective-function}
 \end{align}
 
-Through it is not clear from the original authors of word2vec \cite{mikolov2013a, mikolov2013b}, we typically use two weight matrices, $W$ and $W'$, when setting up the word2vec model \cite{rong2016word2vec}. The first weight matrix, $W$, is a $|V| \times D$ matrix, mapping the input word vectors (usually represented using one-hot encodings) to their internal embedding, where $|V|$ is the vocabulary size and $D$ is the number of dimensions in the embedding layer. The second weight matrix, $W'$, is a $D \times |V|$ matrix mapping from the embedding layer to the output prediction.
+Through it is not clear from the original authors of word2vec \cite{mikolov2013a, mikolov2013b}, we typically use two weight matrices, $W$ and $W'$, when setting up the word2vec model \cite{rong2016word2vec}. The first weight matrix, $W$, is a $|V| \times D$ matrix, mapping the input word vectors (usually represented using one-hot encodings) to their internal embedding, where $|V|$ is the vocabulary size and $D$ is the number of dimensions in the embedding layer. The second weight matrix, $W'$, is a $D \times |V|$ matrix mapping from the embedding layer to the output prediction. In practice, the first weight matrix $W$ is used as word embeddings, but we note that some models utilize both weight matrices (e.g. GloVe in \cref{sec:glove}).
 
 \paragraph*{Continuous Skip-gram model}\mbox{} \\
 The continuous Skip-gram model is very similar to CBOW. In fact, the Skip-gram model tries to do the opposite; instead of predicting a target word given some context words, it tries to predict context words given some target word. Note that the ordering of the predicted context words does not matter. The Skip-gram model is illustrated in \cref{fig:skip-gram-model}.
@@ -150,74 +152,71 @@ The continuous Skip-gram model is very similar to CBOW. In fact, the Skip-gram m
     \label{fig:skip-gram-model}
 \end{figure}
 
-With the Skip-gram model, we also have some target word $w_t$ and context words around it. Let $C$ be the maximal distance from a target word to its contextual words. For each input to the model, we randomly sample a number $R$ in the range $[1, C]$ and denote this as the context size. In other words, for each target word $w_t$ we have $R$ context words around it, $w_{t-R}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+R}$. The objective of the Skip-gram model then becomes
+With the Skip-gram model, we also have some target word $w_t$ and context words around it. Let $C$ be the maximal distance from a target word to its contextual words. For each input to the model, we randomly sample a number $R$ in the range $[1, C]$ and denote this as the \textit{context size}. In other words, for each target word $w_t$ we have $R$ context words around it, $w_{t-R}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+R}$. The objective of the Skip-gram model then becomes
 \begin{align}
-    \frac{1}{T} \sumlim{t=1}{T} \sumlim{-R \leq j \leq R, j \neq 0}{} \log p(w_{t+j} | w_t)
+    \frac{1}{T} \sumlim{t=1}{T} \sumlim{-R \leq j \leq R, j \neq 0}{} \log p(w_{t+j} | w_t).
     \label{eqn:skip-gram-objective-function}
 \end{align}
 More generally, we define the objective of the Skip-gram model as such
 \begin{align}
-    \frac{1}{T} \sumlim{t=1}{T} \sumlim{w_O \in cw(w_I)}{} \log p(w_O | w_I)
+    \frac{1}{T} \sumlim{t=1}{T} \sumlim{w_O \in cw(w_I)}{} \log p(w_O | w_I),
     \label{eqn:skip-gram-objective-function-general}
 \end{align}
 where $w_I$ is the input word (e.g. target word), $w_O$ is the output word (e.g. context word) and $cw(w_I)$ is a function which returns the context words around input word $w_I$.
 
-Similar to CBOW, the Skip-gram model uses the two matrices $W$ and $W'$ for mapping from input to embedding layer and embedding layer to output respectively.
-
-Mikolov et al. reported that the Skip-gram model performed better than the CBOW model overall. For this reason and due to the scope of the masters thesis, we will stick to using the Skip-gram model throughout the thesis.
+Similar to CBOW, the Skip-gram model uses the two matrices $W$ and $W'$ for mapping from input to embedding layer and embedding layer to output respectively, and the weight matrix $W$ is used as word embeddings. Mikolov et al. reported that the Skip-gram model performed better than the CBOW model overall. For this reason and due to the scope of the masters thesis, we will stick to using the Skip-gram model throughout the thesis. For the rest of the master thesis, we refer to the weight matrix $W$ when talking about word embeddings of a word2vec model.
 
 \subsubsection{Negative Sampling}
-In the Skip-gram model, we typically define $p(w_O | w_I)$ using the softmax function (\cref{eqn:softmax-function})
+In the Skip-gram model, we typically define $p(w_O | w_I)$ using the softmax function (\cref{eqn:softmax-function}):
 \begin{align}
     p(w_O | w_I)
-    &= \frac{\exp{ \left( \trans{v'_{w_O}} v_{w_I} \right) }} {\exp{ \sumlim{k=1}{|V|} \left( \trans{v'_{w_k}} v_{w_I} \right) }}
+    &= \frac{\exp{ \left( \trans{v'_{w_O}} v_{w_I} \right) }} {\exp{ \sumlim{k=1}{|V|} \left( \trans{v'_{w_k}} v_{w_I} \right) }},
     \label{eqn:skip-gram-p-function}
 \end{align}
 where $v_w$ and $v'_w$ are the "input" and "output" vector representations of the word $w$, and $|V|$ is the number of words in the vocabulary. There are some downsides with this formulation, however. In practice, it becomes hard to compute since the summation in the denominator of \cref{eqn:skip-gram-p-function} depends on the number of words in the vocabulary, which is often large ($10^5 - 10^7$ terms).
 
-To deal with the computational requirements of the original Skip-gram model, \cite{mikolov2013b} first showed how one might use hierarchical softmax. Hierarchical softmax is an efficient way of computing the softmax function; instead of evaluating $|V|$ words to compute the probability in \cref{eqn:skip-gram-p-function}, we only have to evaluate $\log \left( |V| \right)$ words.
+To deal with the computational requirements of the original Skip-gram model, \cite{mikolov2013b} first showed how one might use \textit{hierarchical softmax}. Hierarchical softmax is an efficient way of computing the softmax function; instead of evaluating $|V|$ words to compute the probability in \cref{eqn:skip-gram-p-function}, we only have to evaluate $\log \left( |V| \right)$ words.
 
-As an alternative to hierarchical softmax, Mikolov et al. introduced negative sampling. Negative sampling builds on the concept of distinguishing target words $w_t$ from words randomly sampled from the vocabulary. In particular, we randomly sample words from the vocabulary using the unigram distribution raised to the power of $\alpha$. The unigram distribution is a distribution for sampling a word at random from the vocabulary using the word occurrence counts, and the choice of raising it to the power of $\alpha = 3/4$ was empirically found to be the best exponent. Furthermore, we will refer to this unigram distribution as the noise distribution $P_n(w)$. Note that negative sampling method can also be applied to CBOW in a similar manner.
+As an alternative to hierarchical softmax, Mikolov et al. introduced \textit{negative sampling}. Negative sampling builds on the concept of distinguishing target words $w_t$ from words randomly sampled from the vocabulary. In particular, we randomly sample words from the vocabulary using the \textit{unigram distribution} raised to the power of $\alpha$. The unigram distribution is a distribution for sampling a word at random from the vocabulary using the word occurrence counts, and the choice of raising it to the power of $\alpha = 3/4$ was empirically found to be the best exponent. Furthermore, we will refer to this unigram distribution as the noise distribution $P_n(w)$. Note that negative sampling method can also be applied to CBOW in a similar manner.
 
 Before we can explain negative sampling, we define the positive- and negative target-context pairs. Given a vocabulary $V$, a target word $w_t$ and the target words contextual words $w_{t-R}, \ldots, w_{t-1}, w_{t+1}, \ldots, w_{t+R}$ for some window size $R$, we define a \textit{positive target-context pair} to be the pair of the target word $w_t$ and a contextual word $w_{t+j}$, $-R \leq j \leq R, j \neq 0$, i.e., the pair $\left( w_t, w_{t+j} \right)$. Furthermore, we define a \textit{negative target-context pair} as the pair of the target word $w_t$ and a word $w_r$ randomly sampled from the noise distribution $P_n(w)$, i.e., the pair $\left( w_t, w_r \right)$.
 
-In negative sampling, we are only concerned with a subset of all the words in the vocabulary when computing the loss using the softmax function. For each word in the text we are training on, we create a positive target-context pair $\left( w_t, w_{t+j} \right)$, $-R \leq j \leq R, j \neq 0$. Furthermore, we generate $k$ negative target-context pairs for each word, where $k$ is in the range of $5-20$ for small training sets and $2-5$ for big training sets. We let $W_{np} = \left \{ w_i | i \in 1, \ldots, k \right \}$ be the set of $k$ negatively sampled words from the noise distribution $P_n(w)$. With these details in mind, the objective of negative sampling becomes \cite{mikolov2013b, rong2016word2vec}.
+In negative sampling, we are only concerned with a subset of all the words in the vocabulary when computing the loss using the softmax function. For each word in the text we are training on, we create a positive target-context pair $\left( w_t, w_{t+j} \right)$, $-R \leq j \leq R, j \neq 0$. Furthermore, we generate $k$ negative target-context pairs for each word, where $k$ is in the range of $5-20$ for small training sets and $2-5$ for big training sets. We let $W_{np} = \left \{ w_i | i \in 1, \ldots, k \right \}$ be the set of $k$ negatively sampled words from the noise distribution $P_n(w)$. With these details in mind, the objective of negative sampling becomes \cite{mikolov2013b, rong2016word2vec}
 \begin{align}
-    \log \sigma \left( \trans{v'_{w_O}} v_{w_I} \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -\trans{v'_{w_i}} v_{w_I} \right)
+    \log \sigma \left( \trans{v'_{w_O}} v_{w_I} \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -\trans{v'_{w_i}} v_{w_I} \right),
     \label{eqn:negative-sampling-obj-func}
 \end{align}
-where $\sigma$ is the sigmoid function (\cref{eqn:sigmoid-function}), and $v_t$ and $v'_t$ are the "input" and "output" vector representations of the word $w$. Note that the objective in \cref{eqn:negative-sampling-obj-func} can be seen as a special case of the negative cross-entropy loss function. Furthermore, we replace every $\log p(w_O | w_I)$ in the original Skip-gram objective function from \cref{eqn:skip-gram-objective-function-general} by the objective in \cref{eqn:negative-sampling-obj-func}, as seen in \cref{eqn:skip-gram-negative-sampling-objective}.
+where $\sigma$ is the sigmoid function (\cref{eqn:sigmoid-function}), and $v_t$ and $v'_t$ are the "input" and "output" vector representations of the word $w$. Note that the objective in \cref{eqn:negative-sampling-obj-func} can be seen as a special case of the negative cross-entropy loss function. Furthermore, we replace every $\log p(w_O | w_I)$ in the original Skip-gram objective function from \cref{eqn:skip-gram-objective-function-general} by the objective in \cref{eqn:negative-sampling-obj-func}, as seen in \cref{eqn:skip-gram-negative-sampling-objective}:
 \begin{align}
-    \frac{1}{T} \sumlim{t=1}{T} \sumlim{w_O \in cw(w_I)}{} \log \sigma \left( \trans{v'_{w_O}} v_{w_I} \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -\trans{v'_{w_i}} v_{w_I} \right)
+    \frac{1}{T} \sumlim{t=1}{T} \sumlim{w_O \in cw(w_I)}{} \log \sigma \left( \trans{v'_{w_O}} v_{w_I} \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -\trans{v'_{w_i}} v_{w_I} \right).
     \label{eqn:skip-gram-negative-sampling-objective}
 \end{align}
-
 From \cref{eqn:negative-sampling-obj-func}, we see that we only have to compute for $(1 + k)$ words, which is a big improvement over computing for $|V|$ words (assuming that $|V|$ is much larger than $k$). Mikolov et al. also reports that by using negative sampling, we increase the quality of the word embeddings.
 
 \subsubsection{Subsampling of words}
 When training a word2vec model, one usually has to train on big text corpora to achieve good quality of word embeddings. However, as the number of training words increase, the discrepancy between rare and frequent words increase as well. When using negative sampling, we are sampling negative target-context pairs from the vocabulary, which depends on the unigram distribution. In English text corpora, words such as "the", "of", "is" can easily occur hundreds of millions of times and usually provide less information than more rare words. For this reason, we apply a simple, yet efficient subsampling scheme to counter the imbalance between rare and frequent words; before the text corpora is processed into target-context pairs, each word $w_t$ is discarded with the probability computed by the formula \cite{mikolov2013b, levy-etal-2015-improving}
 \begin{equation}
-    P_d(w_t) = 1 - \sqrt{\frac{t}{f(w_t)}}
+    P_d(w_t) = 1 - \sqrt{\frac{t}{f(w_t)}},
 \end{equation}
 where $f(w_t)$ is the (relative) frequency of word $w_t$ and $t$ is a chosen threshold, usually around $10^{-5}$.
 
-It should be noted, however, that in the original source code of word2vec\footnote{\href{https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c\#L407}{word2vec.c at line 407 (of the original word2vec repository)}}, they use a slightly modified formula. We will use this formula when implementing word2vec (\textbf{TODO}: Add reference to section).
+It should be noted, however, that in the original source code of word2vec \cite[line 407]{Word2vecCCode}, they use a slightly modified formula. We will use subsampling of words, an in particular the following formula, when implementing word2vec in \cref{sec:training-and-eval-our-word2vec-impl}:
 \begin{align}
-    P_d(w_t) = \frac{f(w_t) - t}{f(w_t)} - \sqrt{\frac{t}{f(w_t)}}
+    P_d(w_t) = \frac{f(w_t) - t}{f(w_t)} - \sqrt{\frac{t}{f(w_t)}}.
 \end{align}
 
 \subsubsection{Learning word embeddings for phrases}
 \label{sec:learning-word-embeddings-for-phrases}
-Phrases are groups of words that occur frequently together, such as "New York" or "programming languages". Naturally, we would like to combine such words into a single token, such that word embedding models can learn them. In order to learn word embeddings for phrases, \cite[4 Learning Phrases]{mikolov2013b} propose a simple, yet efficient data-driven approach, where we combine phrases together based on word counts, as shown in \cref{eqn:word2phrase-score}. This phrase-learning procedure is referred to as word2phrase, as specified by the original source code.
+Phrases are groups of words that occur frequently together, such as "New York" or "programming languages". Naturally, we would like to combine such words into a single token, such that word embedding models can learn them. In order to learn word embeddings for phrases, \cite[4 Learning Phrases]{mikolov2013b} propose a simple, yet efficient data-driven approach, where we combine phrases together based on word counts, as shown in \cref{eqn:word2phrase-score}:
 \begin{align}
-    \text{score}(w_i, w_j) = \frac{\text{freq}(w_i, w_j) - \delta}{\text{freq}(w_i) \cdot \text{freq}(w_j)}
+    \text{score}(w_i, w_j) = \frac{\text{freq}(w_i, w_j) - \delta}{\text{freq}(w_i) \cdot \text{freq}(w_j)},
     \label{eqn:word2phrase-score}
 \end{align}
-where $w_i$ and $w_j$ are bigrams, or two neighboring words, from the vocabulary, $freq()$ returns the how many times the word (or bigram) occurs in the vocabulary and $\delta$ is a hyperparameter used to prevent long phrases consisting of infrequent words. If the score in \cref{eqn:word2phrase-score} is above the $\delta$ threshold parameter, the bigram is accepted into the vocabulary and replaces all occurrences of the two words $w_i$ and $w_j$ where they are next to each other.
+where $w_i$ and $w_j$ are bigrams, or two neighboring words, from the vocabulary, $freq()$ returns the how many times the word (or bigram) occurs in the vocabulary and $\delta$ is a hyperparameter used to prevent long phrases consisting of infrequent words. This phrase-learning procedure is referred to as \textit{word2phrase}, as specified by the original source code \cites{Word2phraseCCode}. If the score in \cref{eqn:word2phrase-score} is above the $\delta$ threshold parameter, the bigram is accepted into the vocabulary and replaces all occurrences of the two words $w_i$ and $w_j$ where they are next to each other. We will use word2phrase to convert phrases into single words when preprocessing the data used to train our word2vec model in \cref{sec:word2vec-data-preprocessing}.
 
 \subsubsection{Word2vec as an artificial neural network}
 \label{sec:word2vec-as-an-ann}
-Typically in the literature, word2vec is presented using the \cref{eqn:cbow-objective-function,eqn:skip-gram-p-function,eqn:negative-sampling-obj-func}. We will, however, explain how to set word2vec up as an artificial neural network (ANN), in the sense that we will implement it later in the thesis. In particular, we will explain how to set up the Skip-gram model with negative sampling as an ANN. This ANN consists of three fully-connected layers of artificial neurons \cite{rong2016word2vec} and is illustrated in \cref{fig:word2vec-skip-gram-negative-sampling}.
+Typically in the literature, word2vec is presented using the \cref{eqn:cbow-objective-function,eqn:skip-gram-p-function,eqn:negative-sampling-obj-func}. We will, however, explain how to set word2vec up as an artificial neural network (ANN, \cref{sec:artificial-neural-networks}), in the sense that we will implement it later in the thesis (\cref{sec:training-and-eval-our-word2vec-impl}). In particular, we will explain how to set up the Skip-gram model with negative sampling as an ANN. This ANN consists of three fully-connected layers of artificial neurons \cite{rong2016word2vec} and is illustrated in \cref{fig:word2vec-skip-gram-negative-sampling}. The ANN explained below will act as a baseline when implementing word2vec in \cref{sec:word2vec-impl-specifics}.
 
 \begin{figure}[ht]
     \centering
@@ -247,10 +246,10 @@ Recall that when we are using negative sampling, we would like to ensure that wo
 
 For each positive target-context pair we have in our data, we create a single sigmoid output plus $k$ sigmoid outputs for each negatively sampled word from the noise distribution $P_n(w)$. Thus, we could argue that we have $(k + 1)$ outputs in our network. As one should note, however, we are only interested in the learned embedding matrix $W$ and its corresponding word vectors; we will not use the ANN for predicting whether a certain word is more or less likely to be within a words contextual neighborhood, thus, discarding the output of the network.
 
-Similar to \cite{mikolov2013a}, we update the embedding weights $W$ and $W'$ using the stochastic gradient descent (SGD) optimizer, adjusting all the weights of the embedding matrices during the training of the ANN to minimize the loss in \cref{eqn:skip-gram-negative-sampling-objective}. Furthermore, we use a linearly decreasing learning rate, meaning that we start out with some initial learning rate $lr$ and decrease linearly to $lr_{min}$ until we reach end of training. The linearly decreasing learing rate was also implemented by \cite{mikolov2013a}.
+Similar to \cite{mikolov2013a}, we update the embedding weights $W$ and $W'$ using the stochastic gradient descent (\cref{sec:ann-optimizers}) optimizer, adjusting all the weights of the embedding matrices during the training of the ANN to minimize the loss in \cref{eqn:skip-gram-negative-sampling-objective}. Furthermore, we use a linearly decreasing learning rate, meaning that we start out with some initial learning rate $lr$ and decrease linearly to $lr_{min}$ until we reach end of training. The linearly decreasing learning rate was also implemented by \cite{mikolov2013a}.
 
 \subsubsection{Hyperparameters in word2vec}
-When training a word2vec model, we have to choose several hyperparameters. In this sub-subsection, we will go over all choices of hyperparameters and explain them.
+When training a word2vec model, we have to choose several hyperparameters. In this sub-subsection, we will go over all choices of hyperparameters and explain them. The specific choices of hyperparameters used to train a word2vec model are explained in \cref{sec:word2vec-hyperparameter-choices}.
 
 \begin{itemize}
     \item \textbf{min-word-count} \\
@@ -264,7 +263,7 @@ When training a word2vec model, we have to choose several hyperparameters. In th
     \item \textbf{learning-rate} \\
         The learning rate denotes how fast we want our weights to change in our ANN. The original authors of word2vec used 0.025 (i.e. $2.5\%$) as the initial learning rate for their experiments.
     \item \textbf{min-learning-rate} \\
-        The minimal learning rate denotes how small the learning rate should be when approaching the end of the training. Mikolov et al. stated that they decreased it linearly, such that it approaches zero at the end of the last training epoch. It should be noted, however, that in the original code of word2vec, they linearly decrease the learning rate to the initial learning rate $lr$ times $0.0001$ (i.e. $0.025 \times 0.0001 = 0.0000025$)\footnote{\href{https://github.com/tmikolov/word2vec/blob/e092540633572b883e25b367938b0cca2cf3c0e7/word2vec.c\#L398}{word2vec.c at line 398 (of the original word2vec repository)}}.
+        The minimal learning rate denotes how small the learning rate should be when approaching the end of the training. Mikolov et al. stated that they decreased it linearly, such that it approaches zero at the end of the last training epoch. It should be noted, however, that in the original code of word2vec, they linearly decrease the learning rate to the initial learning rate $lr$ times $0.0001$ (i.e. $0.025 \times 0.0001 = 0.0000025$) \cite[line 398]{Word2vecCCode}.
     \item \textbf{embedding-dim} \\
         The embedding dimension denotes the dimension we want to use for the internal matrices $W$ and $W'$ in our ANN, i.e., the dimensionality of the word vectors.
     \item \textbf{max-window-size} \\
@@ -278,54 +277,56 @@ When training a word2vec model, we have to choose several hyperparameters. In th
 \end{itemize}
 
 \subsection{Other models for learning word embeddings}
-Creating word embeddings is a task which can be achieves in various ways. In this subsection we will briefly introduce two different models for computing word embeddings. The first model is called Global Vectors (GloVe) \cite{pennington2014glove} and is a more "explicit" model for learning vector representations for words. The second model is called fastText \cite{bojanowski2017enriching} and is an extension of the original word2vec Skip-gram model to include sub-word information. Note that we will primarily focus on word2vec using Skip-gram with negative sampling in this thesis, and for this reason, we will not go into depth when explaining GloVe and fastText.
+Creating word embeddings is a task which can be achieves in various ways. In this subsection we will briefly introduce two different models for computing word embeddings. The first model is called Global Vectors (GloVe) \cite{pennington2014glove} and is a more "explicit" model for learning vector representations for words. The second model is called fastText \cite{bojanowski2017enriching} and is an extension of the original word2vec Skip-gram model to include sub-word information. Note that we will primarily focus on word2vec using Skip-gram with negative sampling in this thesis, and for this reason, we will not go into depth when explaining GloVe and fastText. Word embeddings from pre-trained GloVe and fastText models will be used later in the analysis in \cref{sec:analysis-of-embeddings-topological-polysemy}.
 
 \subsubsection{GloVe}
-Global Vectors (GloVe) \cite{pennington2014glove} is a model for learning vector representations for words. In contrast to word2vec, GloVe trains on word to word co-occurrence counts, and thus, makes efficient use of statistics. In addition to this, the objective of GloVe is more explicit, as opposed to the vector representations learned by word2vec, which are merely a bi-product of the training. This sub-subsection is based on \cite{pennington2014glove}.
+\label{sec:glove}
+\textit{Global Vectors} (GloVe) \cite{pennington2014glove} is a model for learning vector representations for words. In contrast to word2vec, GloVe trains on word to word co-occurrence counts, and thus, makes efficient use of statistics. In addition to this, the objective of GloVe is more explicit, as opposed to the vector representations learned by word2vec, which are merely a bi-product of the training. This sub-subsection is based on \cite{pennington2014glove}.
 
-To understand how GloVe works, we will first introduce the notion of the word to word co-occurrence matrix, denoted $X$. $X$ is a square matrix where each element $X_{ij}$ represent the number of times word $j$ occurs in the context of word $i$. Following, let $|V|$ denote the number of unique words in the vocabulary and let $X_i=\sumlim{k=1}{|V|} X_{ik}$ be the number of times any word appears in the context of word $i$. Using $X_{ij}$ and $X_i$, we can establish a probabilistic model $P_{ij}$ of how often a given word $j$ falls in the context of word $i$. Finally, we let $P_{ij}=P(j|i)=X_{ij} / {X_i}$. To motivate the use of $P_{ij}$, imagine that we want to investigate the concept of temperatures, which can be extracted directly from the co-occurrence probabilities. Consider the words $i = \text{sunny}$ and $j = \text{cloudy}$. We can explore relationships of the words $i$ and $j$ by studying the ratios of the co-occurrence probabilities with various other words, $k$. If we set the word $k = \text{hot}$, we expect that the ratio $P_{ik} / P_{jk}$ will be large, since intuitively heat is more related to the word sunny than cloudy. If the word $k$ is set to a word unrelated to both sunny and cloudy, the ratio should be around 1, since both probabilities will become rather low. The authors of \cite{pennington2014glove} give an example of studying the ratios of co-occurrence probabilities is the foundation of how GloVe incorporates word count statistics to learn vector representations.
+To understand how GloVe works, we will first introduce the notion of the \textit{word to word co-occurrence matrix}, denoted $X$. $X$ is a square matrix where each element $X_{ij}$ represent the number of times word $j$ occurs in the context of word $i$. Following, let $|V|$ denote the number of unique words in the vocabulary and let $X_i=\sumlim{k=1}{|V|} X_{ik}$ be the number of times any word appears in the context of word $i$. Using $X_{ij}$ and $X_i$, we can establish a probabilistic model $P_{ij}$ of how often a given word $j$ falls in the context of word $i$. Finally, we let $P_{ij}=P(j|i)=X_{ij} / {X_i}$. To motivate the use of $P_{ij}$, imagine that we want to investigate the concept of temperatures, which can be extracted directly from the co-occurrence probabilities. Consider the words $i = \text{sunny}$ and $j = \text{cloudy}$. We can explore relationships of the words $i$ and $j$ by studying the ratios of the co-occurrence probabilities with various other words, $k$. If we set the word $k = \text{hot}$, we expect that the ratio $P_{ik} / P_{jk}$ will be large, since intuitively heat is more related to the word sunny than cloudy. If the word $k$ is set to a word unrelated to both sunny and cloudy, the ratio should be around 1, since both probabilities will become rather low. The authors of \cite{pennington2014glove} give an example of studying the ratios of co-occurrence probabilities is the foundation of how GloVe incorporates word count statistics to learn vector representations.
 
-To learn vector representations of words, Glove uses two weight matrices, denoted $W=\enclc{w_1, w_2, \ldots, w_{|V|}} \in \R^{|V| \times d}$ and $\Tilde{W}=\enclc{\Tilde{w}_1, \Tilde{w}_2, \ldots, \Tilde{w}_{|V|}} \in \R^{|V| \times d}$, similar to word2vec. That is, the weight matrix $W$ represents the word vectors, while $\Tilde{W}$ represent the context word vectors. Furthermore, the objective function of GloVe consists of a weighted squared loss $J$, as shown in \cref{eqn:glove-loss}.
+To learn vector representations of words, Glove uses two weight matrices, denoted $W=\enclc{w_1, w_2, \ldots, w_{|V|}} \in \R^{|V| \times d}$ and $\Tilde{W}=\enclc{\Tilde{w}_1, \Tilde{w}_2, \ldots, \Tilde{w}_{|V|}} \in \R^{|V| \times d}$, similar to word2vec. That is, the weight matrix $W$ represents the word vectors, while $\Tilde{W}$ represent the context word vectors. Furthermore, the objective function of GloVe consists of a weighted squared loss $J$ and is defined as
 \begin{align}
-    J = \sumlim{i, j = 1}{|V|} f \enclp{X_{ij}} \enclp{\trans{w_i} \Tilde{w}_j + b_i + \Tilde{b}_j - \log X_{ij}}^2
+    J = \sumlim{i, j = 1}{|V|} f \enclp{X_{ij}} \enclp{\trans{w_i} \Tilde{w}_j + b_i + \Tilde{b}_j - \log X_{ij}}^2,
     \label{eqn:glove-loss}
 \end{align}
-where $f$ is a weighting function, $b_i$ is bias for $w_i$ and $\Tilde{b}_j$ is bias for $\Tilde{w}_j$. The authors of GloVe found the following class of functions for $f$ to be suitable
+where $f$ is a weighting function, $b_i$ is bias for $w_i$ and $\Tilde{b}_j$ is bias for $\Tilde{w}_j$. The authors of GloVe found the following class of functions for $f$ to be suitable:
 \begin{align}
     f(x) = \begin{cases}
         \enclp{x / x_{\text{max}}}^\alpha & \mbox{if } x < x_{\text{max}} \\
         1 & \text{otherwise}
-    \end{cases}
+    \end{cases},
     \label{eqn:glove-loss-f-function}
 \end{align}
 where $\alpha$ and $x_{\text{max}}$ are hyperparameters. In the experiments performed in \cite{pennington2014glove}, the authors let $x_{\text{max}}=100$ and $\alpha=3/4$. Furthermore, to train the GloVe model, they iteratively learn the weights over time in a gradient descent fashion, using AdaGrad \cite{Duchi2011} in particular, with an initial learning rate of $0.05$. Lastly, GloVe uses the sum of its weight matrices, i.e., $W + \Tilde{W}$, as the word vectors, leading to a minor increase in performance.
 
 \subsubsection{fastText}
-fastText is an extension the word2vec Skip-gram model with negative sampling \cite{bojanowski2017enriching}. In particular, fastText represent each word using character $n$-grams, that is, sub-words of length $n$ (e.g. $\textit{que}$ is a $3$-gram of the word $\textit{quest}$). Vector representations are associated to each character $n$-gram, and following, words are vectorized using the sum of such representations. By creating vector representations of character $n$-grams, fastText is able to create representations for words which were not in the training vocabulary. This sub-subsection is based on \cite{bojanowski2017enriching}.
+\label{sec:fasttext}
+\textit{fastText} is an extension the word2vec Skip-gram model with negative sampling \cite{bojanowski2017enriching}. In particular, fastText represent each word using character $n$-grams, that is, sub-words of length $n$ (e.g. $\textit{que}$ is a $3$-gram of the word $\textit{quest}$). Vector representations are associated to each character $n$-gram, and following, words are vectorized using the sum of such representations. By creating vector representations of character $n$-grams, fastText is able to create representations for words which were not in the training vocabulary. This sub-subsection is based on \cite{bojanowski2017enriching}.
 
-Recall the objective function (\cref{eqn:skip-gram-negative-sampling-objective}) of the Skip-gram model with negative sampling. The authors of fastText generalize it by replacing the dot product between word vectors with a scoring function $s(w_I, w_O) \mapsto \R$. We generalize \cref{eqn:skip-gram-negative-sampling-objective} using scoring function $s$ in \cref{eqn:skip-gram-negative-sampling-objective-general}.
+Recall the objective function (\cref{eqn:skip-gram-negative-sampling-objective}) of the Skip-gram model with negative sampling. The authors of fastText generalize it by replacing the dot product between word vectors with a scoring function $s(w_I, w_O) \mapsto \R$. We generalize \cref{eqn:skip-gram-negative-sampling-objective} using scoring function $s$ in \cref{eqn:skip-gram-negative-sampling-objective-general}:
 \begin{align}
-    \frac{1}{T} \sumlim{t=1}{T} \sumlim{w_O \in cw(w_I)}{} \log \sigma \left( s(w_I, w_O) \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -s(w_I, w_i) \right)
+    \frac{1}{T} \sumlim{t=1}{T} \sumlim{w_O \in cw(w_I)}{} \log \sigma \left( s(w_I, w_O) \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -s(w_I, w_i) \right),
     \label{eqn:skip-gram-negative-sampling-objective-general}
 \end{align}
 where $s(w_I, w_O)=\trans{v'_{w_O}} v_{w_I}$ for the Skip-gram model with negative sampling.
 
 As mentioned earlier, fastText vectorizes each word $w$ using the vector representation of its character $n$-grams. To indicate the start and end of a word, the characters $<$ and $>$ are used, respectively. This is done such that the model can distinguish between pre- and post-fixes of words. Now, to give an example, let $w=\text{carbon}$ and $n=3$. The word $w$ will then be represented by the character $n$-grams:
 \begin{align*}
-    \textless\text{ca}, \text{car}, \text{arb}, \text{rbo}, \text{bon}, \text{on}\textgreater
+    \textless\text{ca}, \text{car}, \text{arb}, \text{rbo}, \text{bon}, \text{on}\textgreater,
 \end{align*}
-in addition to the word itself $\textless\text{carbon}\textgreater$. Note that the $n$-gram $\textless\text{car}\textgreater$, from the word car, is different from the $n$-gram car of the word $w$, due to the pre- and post-fix characters. Furthermore, let $\mathcal{G}_w \subset \enclc{g_1, g_2, \ldots, g_G}$ be the set of $n$-grams appearing in word $w$, where $G$ is the total number of $n$-grams of all words in the vocabulary. A vector $z_g$ is associated to each entry $g$ in $\mathcal{G}_w$. The goal of fastText is to represent each word vector as a sum of its $n$-grams, and consequently, the desired scoring function $s$ is obtained, as shown in \cref{eqn:fasttext-scoring-function}.
+in addition to the word itself $\textless\text{carbon}\textgreater$. Note that the $n$-gram $\textless\text{car}\textgreater$, from the word car, is different from the $n$-gram car of the word $w$, due to the pre- and post-fix characters. Furthermore, let $\mathcal{G}_w \subset \enclc{g_1, g_2, \ldots, g_G}$ be the set of $n$-grams appearing in word $w$, where $G$ is the total number of $n$-grams of all words in the vocabulary. A vector $z_g$ is associated to each entry $g$ in $\mathcal{G}_w$. The goal of fastText is to represent each word vector as a sum of its $n$-grams, and consequently, the desired scoring function $s$ is obtained, as shown in \cref{eqn:fasttext-scoring-function}:
 \begin{align}
-    s(w_I, w_O) = \sumlim{z_g \in \mathcal{G}_{w_I}}{} \trans{z_g} v_{w_O}
+    s(w_I, w_O) = \sumlim{z_g \in \mathcal{G}_{w_I}}{} \trans{z_g} v_{w_O}.
     \label{eqn:fasttext-scoring-function}
 \end{align}
 This minor change to the scoring function allows the fastText model to share vector representations of $n$-grams between words, and thus, allow to learn more accurate representations for rare words (i.e. words that occur rarely in the training vocabulary).
 
-Similar to the training of word2vec, the authors of fastText use stochastic gradient descent on the objective function in \cref{eqn:skip-gram-negative-sampling-objective-general} with \cref{eqn:fasttext-scoring-function} as scoring function. For more details of the training process, we kindly refer the reader to \cite[4 Experimental setup]{bojanowski2017enriching}.
+Similar to the training of word2vec, the authors of fastText use stochastic gradient descent on the objective function in \cref{eqn:skip-gram-negative-sampling-objective-general} with \cref{eqn:fasttext-scoring-function} as scoring function. For more details of the training process, we kindly refer the reader to \cite[p. 3-4]{bojanowski2017enriching}.
 
 \subsection{Evaluating word embedding models}
 \label{sec:eval-word2vec-model}
-In typical machine learning projects, it is common to set aside some of the train data to be evaluated when we have finalized the model, e.g., the test data set. In word embedding models, however, it is more common to evaluate its word vectors on test data sets which measures word relatedness. An example of a word relatedness test could be to check whether or not the word \textit{Oslo} is related to \textit{Norway} as the word \textit{Rome} is related to \textit{Italy}. However, the word \textit{Italy} is hidden and must be guessed from the entire vocabulary. By accumulating many such word relatedness tests one can create test sets, usually referred to as analogy data sets in the literature. More generally, analogy data sets consists of questions to check whether or not a word \textit{A} is related to \textit{B} as \textit{C} is related to \textit{D}. By vectorizing the words, we want the differences between each pair of vectorized words to be roughly equal, as shown in \cref{eqn:word-embedding-model-eval-relation}.
+In typical machine learning projects, it is common to set aside some of the train data to be evaluated when we have finalized the model, e.g., the test data set. In word embedding models, however, it is more common to evaluate its word vectors on test data sets which measures word relatedness. An example of a word relatedness test could be to check whether or not the word \textit{Oslo} is related to \textit{Norway} as the word \textit{Rome} is related to \textit{Italy}. However, the word \textit{Italy} is hidden and must be guessed from the entire vocabulary. By accumulating many such word relatedness tests one can create test sets, usually referred to as \textit{analogy data sets} in the literature. More generally, analogy data sets consists of questions to check whether or not a word \textit{A} is related to \textit{B} as \textit{C} is related to \textit{D}. By vectorizing the words, we want the differences between each pair of vectorized words to be roughly equal, as shown in \cref{eqn:word-embedding-model-eval-relation}.
 \begin{align}
     v_{\textit{B}} - v_{\textit{A}} \approx v_{\textit{D}} - v_{\textit{C}}
     \label{eqn:word-embedding-model-eval-relation}
@@ -335,7 +336,7 @@ Solving \cref{eqn:word-embedding-model-eval-relation} for $v_{\textit{D}}$ we ge
     v_{\textit{D}} \approx v_{\textit{B}} - v_{\textit{A}} + v_{\textit{C}}
     \label{eqn:word-embedding-model-eval-relation-wrt-d}
 \end{align}
-Now, since $v_{\textit{D}}$ is "hidden" from the model, we need a way to search for the closest word matching the right-hand-side of \cref{eqn:word-embedding-model-eval-relation-wrt-d}. To do so, \textit{cosine similarity} is very often used, both for analogy tasks and measuring the distance between any two word vectors. Let $u$ and $v$ be two vectors of the same size. The dot product between the vectors $u$ and $v$ are defined as
+Now, since $v_{\textit{D}}$ is "hidden" from the model, we need a way to search for the closest word matching the right-hand-side of \cref{eqn:word-embedding-model-eval-relation-wrt-d}. To do so, cosine similarity is very often used, both for analogy tasks and measuring the distance between any two word vectors. Let $u$ and $v$ be two vectors of the same size. The dot product between the vectors $u$ and $v$ are defined as
 \begin{align}
     u \cdot v = ||u||\,||v|| \cos\enclp{\theta},
     \label{eqn:u-v-dot-product}
@@ -368,6 +369,4 @@ In other words, we see a clear relationship between the squared Euclidean distan
 \begin{align}
     \cos\enclp{\theta} = u \cdot v.
 \end{align}
-In other words, if we use normalized word embeddings, we may use squared Euclidean distance or dot-product to emulate cosine similarity.
-
-\textbf{TODO}: Mention cosine distance (1-similarity)?
+In other words, if we use normalized word embeddings, we may use squared Euclidean distance or dot-product to emulate cosine similarity. Lastly, we define the \textit{cosine distance} to be $(1 - \cos\enclp{\theta})$. The cosine distance is used to measure distances between word embeddings and in algorithms where the cosine distance is applicable. Furthermore, we will use cosine similarity when evaluating word embeddings models in \cref{sec:word2vec-model-evaluation}.
