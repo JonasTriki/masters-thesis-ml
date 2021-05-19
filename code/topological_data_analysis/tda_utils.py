@@ -42,6 +42,7 @@ def generate_points_in_spheres(
     sphere_dimensionality: int,
     space_dimensionality: int = None,
     create_intersection_point: bool = False,
+    noisy_spheres: bool = False,
     random_state: int = 0,
 ) -> tuple:
     """
@@ -60,6 +61,8 @@ def generate_points_in_spheres(
         Defaults to None (or sphere_dimensionality).
     create_intersection_point : bool, optional
         Whether or not to add intersection point between spheres (defaults to False).
+    noisy_spheres : bool, optional  
+        Whether or not to add noise to spheres (defaults to False).
     random_state : int, optional
         Random state to use when generating points (defaults to 0).
 
@@ -104,6 +107,8 @@ def generate_points_in_spheres(
             # http://extremelearning.com.au/how-to-generate-uniformly-random-points-on-n-spheres-and-n-balls/
             x = np.random.normal(loc=0, scale=1, size=sphere_dimensionality)
             x /= np.linalg.norm(x)
+            if noisy_spheres:
+                x += np.random.normal(loc=0, scale=0.1, size=sphere_dimensionality)
             if space_dimensionality is not None:
                 x = np.concatenate(
                     (x, np.zeros(space_dimensionality - sphere_dimensionality))

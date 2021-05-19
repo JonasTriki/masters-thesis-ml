@@ -42,12 +42,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def prepare_spheres_data(output_dir: str) -> list:
+def prepare_spheres_data(noisy_spheres: bool, output_dir: str) -> list:
     """
     Prepares spheres data.
 
     Parameters
     ----------
+    noisy_spheres : bool
+        Whether or not to create noisy sphere data
     output_dir : str
         Output directory where processed files will be saved to.
 
@@ -64,15 +66,16 @@ def prepare_spheres_data(output_dir: str) -> list:
     sphere_sample_num_intervals = 20
     sphere_sample_size = 1000
     sphere_points_data_filepaths = []
+    sphere_noisy_str = "_noisy" if noisy_spheres else ""
     for sphere_dimensionality in sphere_dimensionalities:
         print(f"Sphere dimensionality: {sphere_dimensionality}")
         sphere_points_data_filepath = join(
             output_dir,
-            f"sphere_points_data_{sphere_dimensionality}.npy",
+            f"sphere_points_data_{sphere_dimensionality}{sphere_noisy_str}.npy",
         )
         sampled_sphere_points_data_filepath = join(
             output_dir,
-            f"sampled_sphere_points_data_{sphere_dimensionality}.npy",
+            f"sampled_sphere_points_data_{sphere_dimensionality}{sphere_noisy_str}.npy",
         )
         sphere_points_data_filepaths.append(
             (
@@ -91,6 +94,7 @@ def prepare_spheres_data(output_dir: str) -> list:
             sphere_dimensionality=sphere_dimensionality,
             space_dimensionality=space_dimensionality,
             create_intersection_point=True,
+            noisy_spheres=noisy_spheres,
             random_state=rng_seed,
         )
         sphere_point_shift_arr = np.repeat(sphere_point_shift, space_dimensionality)
@@ -230,16 +234,19 @@ def tps_spheres_experiment_data_preprocessing(
     output_dir : str
         Output directory where processed files will be saved to.
     """
-    output_dir = join(output_dir, "tps_spheres_experiment")
-    makedirs(output_dir, exist_ok=True)
-    print("Preparing spheres data...")
-    sphere_data_filepaths = prepare_spheres_data(output_dir=output_dir)
-    print("Computing TPS scores...")
-    compute_tps_scores(
-        tps_neighbourhood_size=tps_neighbourhood_size,
-        sphere_data_filepaths=sphere_data_filepaths,
-        output_dir=output_dir,
-    )
+    for is_noisy in [False, True]:
+        print(f"Noisy: {is_noisy}")
+        noisy_str = "_noisy" if is_noisy else ""
+        experiment_output_dir = join(output_dir, f"tps_spheres_experiment{noisy_str}")
+        makedirs(experiment_output_dir, exist_ok=True)
+        print("Preparing spheres data...")
+        sphere_data_filepaths = prepare_spheres_data(noisy_spheres=is_noisy, output_dir=experiment_output_dir)
+        print("Computing TPS scores...")
+        compute_tps_scores(
+            tps_neighbourhood_size=tps_neighbourhood_size,
+            sphere_data_filepaths=sphere_data_filepaths,
+            output_dir=experiment_output_dir,
+        )
 
 
 if __name__ == "__main__":
