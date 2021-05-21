@@ -39,9 +39,9 @@
 
 \renewcommand{\labelenumii}{\theenumii}
 \renewcommand{\theenumii}{\theenumi.\arabic{enumii}.}
-\counterwithout{equation}{chapter}
-\counterwithout{figure}{chapter}
-\counterwithout{table}{chapter}
+\counterwithin{equation}{chapter}
+\counterwithin{figure}{chapter}
+\counterwithin{table}{chapter}
 
 % Multi-citing
 \usepackage{cite}
@@ -67,22 +67,6 @@
 \graphicspath{{figures/}}
 
 \usepackage{listings}
-\usepackage{generators/listings-golang} 	
-\lstset{
-    frame=single,
-    basicstyle=\linespread{0.8}\footnotesize\ttfamily,
-    keywordstyle=\color{red},
-    numbers=left,
-    numbersep=5pt,
-    showstringspaces=false, 
-    stringstyle=\color{blue},
-    commentstyle=\color{gray},
-    breakatwhitespace=true,
-    breaklines=true,
-    postbreak=\mbox{\textcolor{violet}{$\hookrightarrow$}\space},
-    tabsize=4,
-    language=Golang
-}
 
 \newlength\glsdescwidth
   \setlength{\glsdescwidth}{1\hsize}

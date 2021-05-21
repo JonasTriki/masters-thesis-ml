@@ -185,7 +185,7 @@ In \cref{sec:clustering-algorithms}, we describe a number of algorithms for clus
 
 \subsection{Cluster validation}
 \label{sec:cluster-validation}
-After we use clustering algorithms to perform clustering, we evaluate the result in order to find the best set of hyperparameters and/or clustering algorithm. This raises the question: which clustering algorithm perform the best on our data? Thankfully, there exist a handful of various methods to tackle this task. In particular, we differentiate between \textit{internal} and \textit{external cluster validation algorithms}. Internal cluster validation algorithms assess the performance of the clustering using statistics of the data, without knowing the true labels at hand. External cluster validation algorithms, on the other hand, use the knowledge of the true labels. In this thesis, we only use internal cluster validation algorithms, as we are mostly working with data where we do not know the labels beforehand. Recall that, in most clustering algorithms, we want the average distance between any two data points in the same cluster to be as small as possible (compactness); and the average distance between any two data points from different clusters to be as large as possible (separation). Internal cluster validation algorithms usually reflect compactness or separation of clusterings. In the next sub-subsections, we explain some common choices of internal cluster validation algorithms and discuss their strengths and weaknesses. Furthermore, we use the cluster validation methods we explain below when we analyze word embeddings (\cref{sec:word-embeddings}) in \cref{chap:analysis-of-word-embeddings}
+After we use clustering algorithms to perform clustering, we evaluate the result in order to find the best set of hyperparameters and/or clustering algorithm. This raises the question: which clustering algorithm perform the best on our data? Thankfully, there exist a handful of various methods to tackle this task. In particular, we differentiate between \textit{internal} and \textit{external cluster validation algorithms}. Internal cluster validation algorithms assess the performance of the clustering using statistics of the data, without knowing the true labels at hand. External cluster validation algorithms, on the other hand, use the knowledge of the true labels. In this thesis, we only use internal cluster validation algorithms, as we are mostly working with data where we do not know the labels beforehand. Recall that, in most clustering algorithms, we want the average distance between any two data points in the same cluster to be as small as possible (compactness); and the average distance between any two data points from different clusters to be as large as possible (separation). Internal cluster validation algorithms usually reflect compactness or separation of clusterings. In the next sub-subsections, we explain some common choices of internal cluster validation algorithms and discuss their strengths and weaknesses. Furthermore, we use the cluster validation methods we explain below when we analyze word embeddings (\cref{sec:word-embeddings}) in \cref{chap:analysis-of-word-embeddings}.
 
 \subsubsection{Silhouette Coefficient}
 \label{sec:silhouette-coefficient}
@@ -283,7 +283,7 @@ where $Y = \enclc{y_1, y_2, \ldots, y_n}$ represents the original data $X$ in (a
 
 \subsubsection{Uniform Manifold Approximation and Projection}
 \label{sec:umap}
-\textit{Uniform Manifold Approximation and Projection} (UMAP) is a dimensionality reduction algorithm which, among other things, uses ideas from topological data analysis \cite{2018arXivUMAP}. In particular, UMAP uses a fuzzy version of simplicial complexes (\cref{sec:simplicial-complex}) in order to create a graph representing the topological structure of the data in higher dimension. To explain how the fuzzy version works, we use the example from the "How UMAP Works" documentation page \cite{how-umap-works-2018}.
+\textit{Uniform Manifold Approximation and Projection} (UMAP) is a dimensionality reduction algorithm which, among other things, uses ideas from topological data analysis \cite{2018arXivUMAP}. In particular, UMAP uses a fuzzy version of simplicial complexes (\cref{sec:simplicial-complex}) in order to create a graph representing the topological structure of the data in higher dimension. To explain how UMAP works, we use the example from the "How UMAP Works" documentation page \cite{how-umap-works-2018}.
 
 Imagine that we have some data from a noisy sine, $X = \enclc{x_1, x_2, \ldots, x_n} \in \R^{n \times d}$, as we see in \cref{fig:how_umap_works_raw_data}.
 \begin{figure}[H]
@@ -375,16 +375,16 @@ The first layer in the ANN is the \textit{input layer} $\layer{x}{k} = \left\{ x
     \caption{Input layer in the ANN for a $K$-dimensional vector $x$.}
     \label{fig:input_layer_ann}
 \end{figure}
-Following, we define the input layer more formally using \cref{eqn:artificial_layer} in \cref{eqn:input_layer_ann}. We see that the input layer does not perform any changes to the incoming data and acts as a way for feeding data into the neural network. For this reason, \cref{eqn:input_layer_ann} uses the identity matrix $I_K$ as the weight matrix $W_{\layer{x}{k}}$, no bias (i.e. bias equal to zero vector) the identity function $id(x)=x$ as the activation function.
+Following, we define the input layer more formally using \cref{eqn:artificial_layer} in \cref{eqn:input_layer_ann}. We see that the input layer does not perform any changes to the incoming data and acts as a way for feeding data into the neural network. More formally, we define the input layer $\layer{x}{k}$ as
 \begin{align}
     \label{eqn:input_layer_ann}
     \layer{x}{k}
     &= f_{\layer{x}{k}}(W_{\layer{x}{k}} \cdot x) \\
-    &= id(I_K \cdot x) \\
-    &= I_K \cdot x \\
-    &= x
+    &= id(I_K \cdot x) \notag \\ 
+    &= I_K \cdot x \notag \\
+    &= x, \notag
 \end{align}
-In the following sub-subsection, we look at the next layer in the neural network, namely the hidden layer.
+where the weight matrix $W_{\layer{x}{k}}$ is the identity matrix $I_K$, we have no bias (i.e. bias equal to zero vector) and the activation function $f_{\layer{x}{k}}$ is the identity function $id(x)=x$. In the following sub-subsection, we look at the next layer in the neural network, namely the hidden layer.
 
 \subsubsection{Hidden layer}
 \label{sec:ann-hidden-layer}
@@ -430,14 +430,14 @@ The simplest type of activation is the identity function, which we define as
     \label{eqn:identity-function}
     f(x) = x.
 \end{align}
-We commonly use the identity function when we want to pass on the values from one layer to another without modifying the value itself, as we use in the input layer from \cref{sec:ann-input-layer}. Other choices of activation functions include \textit{sigmoid}, \textit{tanh}, \textit{Rectified Linear Unit} (ReLU) and \textit{softmax}, as we see below and in \cref{fig:activation-functions}:
+We commonly use the identity function when we want to pass on the values from one layer to another without modifying the value itself, as we use in the input layer from \cref{sec:ann-input-layer}. Other choices of activation functions include \textit{sigmoid}, \textit{tanh}, \textit{Rectified Linear Unit} (ReLU) and \textit{softmax}. We visualize activation functions in \cref{fig:activation-functions} and define them formally below as
 \begin{align}
     \label{eqn:sigmoid-function}
-    f(x) &= \frac{1}{1 + \exp{ \left( -x \right) }} \thickspace \text{(sigmoid function)} \\
+    f(x) &= \frac{1}{1 + \exp{ \left( -x \right) }} \thickspace \text{(sigmoid function)}, \\
     \label{eqn:tanh-function}
-    f(x) &= \frac{\exp{ \left( 2x \right) } - 1}{\exp{ \left( 2x \right) } + 1} \thickspace \text{(tanh function)} \\
+    f(x) &= \frac{\exp{ \left( 2x \right) } - 1}{\exp{ \left( 2x \right) } + 1} \thickspace \text{(tanh function)}, \\
     \label{eqn:relu-function}
-    f(x) &= \max{\left\{ x, 0 \right\}} \thickspace \text{(ReLU function)} \\
+    f(x) &= \max{\left\{ x, 0 \right\}} \thickspace \text{(ReLU function)}, \intertext{and}
     \label{eqn:softmax-function}
     f(x_i) &= \frac{\exp \left( x_i \right)}{\sumlim{j=1}{K} \exp \left( x_j \right)} \thickspace \text{, $i \in \left\{ 1, \ldots, K \right\}$ (softmax function)},
 \end{align}
@@ -450,11 +450,12 @@ where $K$ is the number of output values for the softmax layer.
     \label{fig:activation-functions}
 \end{figure}
 
-The sigmoid and tanh activation functions were typically used in the early development of neural networks. The sigmoid activation function maps a value to a value in $(0, 1)$ and is particularly useful since it creates a probabilistic output. The tanh activation function has a similar shape to the sigmoid activation function, and maps values to values in $[-1, 1]$. In fact, we show the relationship between the tanh and sigmoid activation functions below, where we observe a one-to-one relationship:
+The sigmoid and tanh activation functions were typically used in the early development of neural networks. The sigmoid activation function maps a value to a value in $(0, 1)$ and is particularly useful since it creates a probabilistic output. The tanh activation function has a similar shape to the sigmoid activation function, and maps values to values in $[-1, 1]$. In fact, we show the relationship between the tanh and sigmoid activation functions as
 \begin{align}
     \label{eqn:tanh-sigmoid-relation}
-    \text{tanh}(x) = 2 \cdot \text{sigmoid}(2x) - 1.
+    \text{tanh}(x) = 2 \cdot \text{sigmoid}(2x) - 1,
 \end{align}
+where we observe a one-to-one relationship.
 
 In more recent years, the ReLU activation function has become more popular, partly due to its computational simplicity. In fact, both the sigmoid and tanh activation function suffers from \textit{vanishing gradients} (i.e. gradients become zero, leading to very little learning) and we typically use ReLU as a substitute to overcome this problem. This does not mean, however, that we can use the ReLU activation function without problems, as it can "die out" since it is non-differentiable at 0.
 
@@ -464,7 +465,7 @@ So far we have only explained activation functions in the context of a single ou
 \label{sec:ann-loss-functions}
 So far we have seen how we connect the different layers in an ANN. In short terms, we use some input data, send it through some hidden layer, and at last, get the predicted output values from the output layer. We denote the predicted output values as $\hat{y}$. In this setting, we assume that we have the true output labels, which we denote $y$. The \textit{loss function} measures how much the predicted values $\hat{y}$ deviate from the true values $y$, and as such, the goal is to minimize this value. The output layer can have one or many outputs, and depending on the configuration of the network, the loss function changes as well. We separate the output types of an ANN into two categories, namely the \textit{regression} and \textit{classification} outputs.
 
-In a regression type output, we usually predict some real-value quantity, such as height, weight or distance. For such problems, it is common to use the \textit{mean squared error} (MSE) as loss function. MSE is calculated as the mean of the squared differences between the predicted and true values:
+In a regression type output, we usually predict some real-value quantity, such as height, weight or distance. For such problems, it is common to use the \textit{mean squared error} (MSE) as loss function. We calculate the MSE as the mean of the squared differences between the predicted and true values. Furthermore, we define MSE as
 \begin{align}
     \label{eqn:mean-squared-error}
     \text{MSE}(\hat{y}, y) = \frac{1}{N} \sumlim{i=1}{N} {\left( y_i - \hat{y_i} \right)}^2,
@@ -516,7 +517,7 @@ In this example, we have a network with one input node (neuron), a hidden layer 
 \end{align}
 From the example above, we see how to calculate the derivatives for a relatively small neural network. There exists, effective and more general frameworks to derive the derivative of the loss with respect to the input values, but we leave those details out and kindly refer the reader to \cite[Chapter 1.3]{Aggarwal18} for more details.
 
-We have now gone over the forward and backward passes, which are the first two steps of the so-called backpropagation algorithm. The remaining step of the algorithm is to use the computed derivatives to update the weights of the ANN. To do this, we use the \textit{gradient descent} (GD) algorithm. The main idea of gradient descent is to update the weights iteratively by moving them in the opposite direction of the gradient (i.e. the steepest descent), and by doing so, we hopefully reach some local minimum leading better to fitting weights for the input-output data. In standard gradient descent, we perform its steps in the following manner:
+We have now gone over the forward and backward passes, which are the first two steps of the so-called backpropagation algorithm. The remaining step of the algorithm is to use the computed derivatives to update the weights of the ANN. To do this, we use the \textit{gradient descent} (GD) algorithm. The main idea of gradient descent is to update the weights iteratively by moving them in the opposite direction of the gradient (i.e. the steepest descent), and by doing so, we hopefully reach some local minimum leading better to fitting weights for the input-output data. In standard gradient descent, we perform its steps by
 \begin{align}
     W \Leftarrow W - \alpha \cdot \parder{L}{W},
 \end{align}
@@ -527,17 +528,17 @@ Even though gradient descent works great for small applications, once we scale t
     \label{eqn:loss-function-sum-individual}
     L = \sumlim{i=1}{n} L_i.
 \end{align}
-Using the observation that we are able to write the loss function as the sum in \cref{eqn:loss-function-sum-individual}, we introduce the \textit{stochastic gradient descent} (SGD) method. Instead of performing gradient descent on the whole input data, SGD performs gradient descent for each input data separately:
+Using the observation that we are able to write the loss function as the sum in \cref{eqn:loss-function-sum-individual}, we introduce the \textit{stochastic gradient descent} (SGD) method. Instead of performing gradient descent on the whole input data, SGD performs gradient descent for each input data separately. More formally, SGD performs its steps by
 \begin{align}
     \label{eqn:sgd}
     W \Leftarrow W - \alpha \cdot \parder{L_i}{W},
 \end{align}
-where $n$ is the number of input data points and $L_i$ represents the loss of the $i$th input. We call SGD stochastic, because a random sample of the training data is chosen for each iteration. An advantage that SGD has over GD, is that it runs a lot faster, at the expense of greater loss. Thankfully, there exists a variant of SGD which seeks to find a balance between speed and loss, namely the \textit{mini-batch stochastic gradient descent} method. In mini-batch stochastic gradient descent, we use a batch $B=\enclc{j_1, \ldots, j_m}$ of input training data indices when computing the weight updating:
+where $n$ is the number of input data points and $L_i$ represents the loss of the $i$th input. We call SGD stochastic, because a random sample of the training data is chosen for each iteration. An advantage that SGD has over GD, is that it runs a lot faster, at the expense of greater loss. Thankfully, there exists a variant of SGD which seeks to find a balance between speed and loss, namely the \textit{mini-batch stochastic gradient descent} (mini-batch SGD) method. In mini-batch SGD, we use a batch $B=\enclc{j_1, \ldots, j_m}$ of input training data indices when computing the weight updating. In other words, mini-batch SGD performs its steps by
 \begin{align}
     \label{eqn:mbsgd}
     W \Leftarrow W - \alpha \cdot \sumlim{j \in B}{} \parder{L_j}{W}.
 \end{align}
-Mini-batch stochastic gradient descent often finds the best trade-off between stability, speed and memory requirements. However, we note that the memory requirement increases with the use of mini-batches. This is due to the fact that we have to store bigger matrices in memory during training. We typically choose batch sizes that are a power of 2 (e.g. 32, 64, 128 or 256), as most modern hardware architectures optimize for such values.
+Mini-batch SGD often finds the best trade-off between stability, speed and memory requirements. However, we note that the memory requirement increases with the use of mini-batches. This is due to the fact that we have to store bigger matrices in memory during training. We typically choose batch sizes that are a power of 2 (e.g. 32, 64, 128 or 256), as most modern hardware architectures optimize for such values.
 
 In addition to the different variants of gradient descent, there exist a bunch of other variants which can solve issues such as getting stuck in local minimas or speeding up the training process. We leave out the technical details of all these strategies here, but kindly refer the reader to \cite[Chapter 3.5]{Aggarwal18} for more details.
 
@@ -597,7 +598,7 @@ where $\hat{Y}$ is the predicted value of $Y$. To estimate the model parameters 
         \end{bmatrix},
     \label{eqn:y-hat-two-matrix-form-single-point}
 \end{align}
-where $\hat{y_i}$ is the predicted value for $x_i$. Since we have $n$ values for $X$ and $Y$, we need $n$ equations similar to \cref{eqn:y-hat-two-matrix-form-single-point}, which we combine into a single matrix equation:
+where $\hat{y_i}$ is the predicted value for $x_i$. Since we have $n$ values for $X$ and $Y$, we need $n$ equations similar to \cref{eqn:y-hat-two-matrix-form-single-point}, which we combine into a single matrix equation as
 \begin{align}
     \hat{Y} =
         \undertext{
@@ -634,7 +635,7 @@ We illustrate the use of OLS in \cref{fig:linear-regression-ols}, where see a cl
     \label{fig:linear-regression-ols}
 \end{figure}
 
-So far, we have only looked at the simplest form of linear regression, namely only using a single independent variable $X$ to predict a value for $Y$. In order to generalize the linear regression to $k$ independent variables, we now assume that our training data has $k$ variables (which we also refer to as \textit{features} or \textit{columns}), i.e. $X \in R^{n \times d}$. Finally, we add the new columns from $X$ to the model matrix $X'$, by extending \cref{eqn:y-hat-two-matrix-form} as follows
+So far, we have only looked at the simplest form of linear regression, namely only using a single independent variable $X$ to predict a value for $Y$. In order to generalize the linear regression to $k$ independent variables, we now assume that our training data has $k$ variables (which we also refer to as \textit{features} or \textit{columns}), i.e. $X \in R^{n \times d}$. Finally, we add the new columns from $X$ to the model matrix $X'$, by extending \cref{eqn:y-hat-two-matrix-form} as
 \begin{align}
     \hat{Y} =
         \undertext{
@@ -655,7 +656,7 @@ So far, we have only looked at the simplest form of linear regression, namely on
         }{$\hat{\beta}$},
     \label{eqn:y-hat-matrix-form-general}
 \end{align}
-In order to estimate the model parameters $\hat{\beta}$, we compute them using \cref{eqn:ordinary-least-squares}. Furthermore, we generalize the minimization objective of OLS (\cref{eqn:RSS-ols-two-variables}) to use $k$ independent variables as well:
+In order to estimate the model parameters $\hat{\beta}$, we compute them using \cref{eqn:ordinary-least-squares}. Furthermore, we generalize the minimization objective of OLS (\cref{eqn:RSS-ols-two-variables}) to use $k$ independent variables as well, by computing
 \begin{align}
     \text{RSS} = \sumlim{i=1}{n}{\enclb{y_i - \enclp{\hat{\beta_0} +  \sumlim{j=1}{k}{\hat{\beta_j}x_{ij}}}}^2}.
     \label{eqn:RSS-ols-k-variables}
@@ -703,7 +704,7 @@ where we refer the left-hand-side of \cref{eqn:logistic-function-odds}, i.e. $p(
 \end{align}
 where we refer the left-hand-side of \cref{eqn:logistic-function-logit} as the \textit{logit}. Thus, we see that the logistic regression model has a logit that is linear in $X$. If we increase $X$ by one unit, then the log odds increases by $\beta_1$. However, note that the relationship between $p(X)$ and $X$ in \cref{eqn:logistic-function-p-x} is not a straight line. For this reason, the amount of $p(X)$ changes due to a single unit change in $X$ depends on the current value of $X$. In \cref{fig:logistic-regression-example}, we see that once $X$ reaches a certain threshold (e.g. $X=30$), the rate at which $Y$ changes decreases towards zero.
 
-If we would like to model logistic regression using multiple predictors, we only have to perform a simple extension from simple to multiple linear regression. We generalize \cref{eqn:logistic-function-logit} as follows:
+If we would like to model logistic regression using multiple predictors, we only have to perform a simple extension from simple to multiple linear regression. We generalize \cref{eqn:logistic-function-logit} as
 \begin{align}
     \log \enclp{\frac{p(X)}{1 - p(X)}}
     &= \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots + \beta_k X_k \\
@@ -736,7 +737,7 @@ The validation set approach is simple and works fine in practice. There are, how
 
 \subsubsection{k-fold cross-validation}
 \label{sec:cross-validation}
-An alternative to the validation set approach is the \textit{$k$-fold cross validation} (CV) method. The $k$-fold CV method randomly divides the training data $X$ into $k$ groups, or \textit{folds}, of approximately equal size. We treat the first fold as the validation data set and train the model on the remaining $(k - 1)$ folds. We compute the validation error $\text{Err}_1$ on the first validation data set. Following, this procedure is repeated $k$ times, and for each time, we use a different group of data points from the original training data $X$ as the validation data. This results in $k$ estimates of the test error, i.e. $\text{Err}_1$, $\text{Err}_2$, \ldots, $\text{Err}_k$. We compute the total $k$-fold CV error estimate by taking the mean of these values:
+An alternative to the validation set approach is the \textit{$k$-fold cross validation} (CV) method. The $k$-fold CV method randomly divides the training data $X$ into $k$ groups, or \textit{folds}, of approximately equal size. We treat the first fold as the validation data set and train the model on the remaining $(k - 1)$ folds. We compute the validation error $\text{Err}_1$ on the first validation data set. Following, this procedure is repeated $k$ times, and for each time, we use a different group of data points from the original training data $X$ as the validation data. This results in $k$ estimates of the test error, i.e. $\text{Err}_1$, $\text{Err}_2$, \ldots, $\text{Err}_k$. We compute the total $k$-fold CV error estimate by taking the mean of these values, as
 \begin{align}
     \text{CV}_k = \frac{1}{k} \sumlim{i=1}{k} \text{Err}_i.
 \end{align}
@@ -777,7 +778,7 @@ One pitfall of using classification accuracy is when we are dealing with classif
 
 \subsubsection{Sensitivity}
 \label{sec:sensitivity}
-\textit{Sensitivity} is a performance metric which measures the ability of a classification model to correctly classify a positive class (e.g Class 1 in \cref{fig:confusion-matrix}). Sensitivity only focuses on the values where the true class is the positive class, i.e $FN$ and $TP$ for a binary classification problem. More formally, we define sensitivity as the portion of correctly predicted positive classes to the number of samples with class equal to the positive class:
+\textit{Sensitivity} is a performance metric which measures the ability of a classification model to correctly classify a positive class (e.g Class 1 in \cref{fig:confusion-matrix}). Sensitivity only focuses on the values where the true class is the positive class, i.e $FN$ and $TP$ for a binary classification problem. More formally, we define sensitivity as the portion of correctly predicted positive classes to the number of samples with class equal to the positive class. We compute the sensitivity as
 \begin{align}
     \text{SEN} = \frac{TP}{TP + FN}.
     \label{eqn:sensitivity}
