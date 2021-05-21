@@ -1,6 +1,6 @@
 \section{Topological data analysis}
 \label{sec:topological-data-analysis}
-\textit{Topological Data Analysis} (TDA) is a fast growing field of mathematics, providing a set of tools from topology in order to infer underlying features from data \cite{chazal2021introduction}. In this section, we go over the concepts of TDA, such as simplicial complexes or persistence diagrams. Then, we introduce a couple of algorithms which uses concepts from TDA. We base this section on \cites{Edelsbrunner2010}{chazal2021introduction}, we do not if not state otherwise.
+\textit{Topological Data Analysis} (TDA) is a fast growing field of mathematics, providing a set of tools from topology in order to infer underlying features from data \cite{chazal2021introduction}. In this section, we introduce relevant concepts from TDA. In particular, we introduce the simplicial complex in \cref{sec:simplicial-complex} and persistence diagrams in \cref{sec:persistence diagram}. Furthermore, we introduce a method for vectorizing persistence diagrams, namely the persistence image in \cref{sec:persistence-image}, and a commonly used distance metric for persistence diagrams, namely the $p$-Wasserstein distance in \cref{sec:wasserstein-distance}. Finally, we introduce two algorithms which uses concepts from TDA to identify singular words (or data points), namely topological polysemy in \cref{sec:topological-polysemy} and Geometric Anomaly Detection in \cref{sec:geometric-anomaly-detection}. This section is based on \cites{Edelsbrunner2010}{chazal2021introduction}, if not stated otherwise.
 
 \subsection{Simplicial complex}
 \label{sec:simplicial-complex}
@@ -61,7 +61,7 @@ To compare distances between data points, we commonly use distance metrics (e.g.
     W_p(A, B) = \inf_{\gamma: A \rightarrow B} \enclp{\sumlim{u \in A}{} ||u - \gamma(u)||_{\infty}^{p}}^{1/p},
     \label{eqn:wasserstein-distance}
 \end{align}
-where $1 \leq p < \infty$ and $\gamma$ ranges over bijections between $A$ and $B$, and $\inf$ is the infimum (greatest lower bound, or similar to "minimum"). If we let $p=\infty$, i.e $W_\infty(A, B)$, we get what we call the \textit{bottleneck distance}. We use the bottleneck distance to compare persistence diagrams as well, but has the disadvantage of only using the maximum distance between any two points over the bijections between $A$ and $B$.
+where $1 \leq p < \infty$ and $\gamma$ ranges over bijections between $A$ and $B$, and $\inf$ is the infimum (i.e. greatest lower bound; similar to "minimum"). If we let $p=\infty$, i.e $W_\infty(A, B)$, we get what we call the \textit{bottleneck distance}. We use the bottleneck distance to compare persistence diagrams as well, but has the disadvantage of only using the maximum distance between any two points over the bijections between $A$ and $B$.
 
 \subsection{Topological polysemy}
 \label{sec:topological-polysemy}

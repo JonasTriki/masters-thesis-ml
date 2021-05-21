@@ -1,3 +1,11 @@
 \section{Future work}
 \label{sec:future-work}
-TODO
+In this section, we explain our ideas for future work of the thesis. In particular, we will look at ideas for further developing the analysis of word embeddings, which we employed in \cref{chap:analysis-of-word-embeddings}.
+
+When analysing word embedding models, we have in this thesis mainly focused on the English language. An interesting approach would be to perform analysis of word embeddings of various languages, such as the Scandinavian languages, and compare the results to the analysis results using English word embeddings. Additionally, it would be interesting to expand the analysis by focusing at other models than word2vec, especially for the cluster analysis we performed in \cref{sec:analysis-of-word-embeddings-word-clustering}.
+
+Furthermore, we attempted to use persistence images (\cref{sec:persistence-image}) when creating features using Geometric Anomaly Detection (GAD) in \cref{sec:analysis-of-embeddings-supervised-polysemy-prediction}, but quickly noticed that we got far too many features and our model had too little capacity efficiently predict the number of word meanings. In order to create additional features using GAD, we thought it would be interesting to use convolutional neural network to learn features from persistence images of persistence diagrams from GAD. Convolutional neural networks are a special type of artificial neural networks and are commonly used to extract features from images \cite[Chapter 8]{Aggarwal18}.
+
+Next, we thought it would be interesting to use the estimation of local intrinsic dimension (ID) when specifying the manifold dimension $k$ hyperparameter of GAD. By doing so, we could get more realistic results when applying GAD to word embeddings. We note, however, that by setting the manifold dimensionality too high, we get numerical instabilities and overflows when computing the Vietoris–Rips simplicial complexes.
+
+Finally, using the two models for supervised estimation of word meanings, we could improve the training of word embedding models, by assigning a unique word vector for each meaning a word has. This could be possible if the performance of the supervised models gets to a point where we could effectively separate between monosemous and polysemous words.

@@ -1,8 +1,9 @@
 \section{Word embeddings}
 \label{sec:word-embeddings}
-In this section, we discuss ways of representing text numerically, how we can create word embeddings and details around the word2vec method, from architectural choices to presenting word2vec as an artificial neural network. Following, we describe a couple of alternative models for learning word embeddings, and lastly, how to evaluate word embedding models.
+In this section, we formulate the problem of creating efficient vectorized representations of text and explain methods for doing so. In particular, we discuss ways of representing text numerically in \cref{sec:numerical-repr-of-text}, describe how we can create word embeddings and details around the word2vec method in \cref{sec:word2vec}, from architectural choices to presenting word2vec as an artificial neural network. Finally, we introduce a couple of alternative models for learning word embeddings in \cref{sec:other-models-for-learning-word-embeddings} and explain how to evaluate word embedding models in \cref{sec:eval-word-embedding-models}.
 
 \subsection{Numerical representation of text}
+\label{sec:numerical-repr-of-text}
 Machine learning methods take in vectors (arrays of numbers) as input. When we want to work with text, we have to come up with some procedure for converting text into a vector, (i.e. vectorizing the text).
 In this subsection, we create unique representations for words in a text, discuss one-hot encoding of words and the motivation behind creating word embeddings.
 
@@ -58,7 +59,7 @@ In the next sub-subsection, we look at another method for encoding words, using 
 
 Let the vocabulary $V = \left \{ w_1, w_2, ..., w_{|V|} \right \}$ to be the set of unique words in a text. Then, we define the one-hot encoding of a word, $e_{w_i}$, to be the $|V|$-dimensional vector of all zeros, except for the value at index $i$ which is one.
 
-If we convert the words from \cref{txt:num-rep-ex-sent-words} using the definition of a one-hot encoding, we get the following one-hot encoded vectors:
+If we convert the words from \cref{txt:num-rep-ex-sent-words} using the definition of a one-hot encoding, we would get the following one-hot encoded vectors:
 \begin{align}
     \begin{pmatrix}
     1\\
@@ -115,12 +116,12 @@ In the next sub-subsection, we look at word embeddings, which solves many of the
 \subsubsection{Word embeddings}
 In contrast to the one-hot encoded vectors of words, \textit{word embeddings} are low-dimensional dense vector representations. Word embedding models learn its word embeddings from the data (e.g. texts) directly, whereas for one-hot encoded vectors, we can arbitrarily define them (e.g. its ordering may change). Due to the lower dimensionality of word embeddings, it packs more information about words into less space, thus being more efficient than one-hot encoded word vectors. Common choices for the dimensionality of word embeddings are ranging from 50 to 600 \cite{mikolov2013a}, depending on the amount of training data. In the next subsection, we take a look at a classic family of methods for creating such word embeddings, namely word2vec.
 
-\subsection{Learning word embeddings (word2vec)}
+\subsection{Learning word embeddings}
 \label{sec:word2vec}
 \textit{Word2vec} was first introduced by Mikolov et al. in 2013 \cite{mikolov2013a}. It is a family of methods for learning dense and efficient vector representations of words. In the same year, Mikolov et al. published a follow-up paper, \cite{mikolov2013b}, which includes several extensions that improves both the quality of the word embeddings and the training speed. In this subsection, we explain the details of the original word2vec paper, \cite{mikolov2013a}, and the introduced extensions in the follow-up paper, \cite{mikolov2013b}. We base this subsection on \cites{mikolov2013a}{mikolov2013b}. Furthermore, we use the word2vec method to create word embeddings for the analysis in \cref{sec:training-and-eval-our-word2vec-impl}.
 
 \subsubsection{Architectures}
-The authors of the word2vec paper introduced two new log-linear models for learning distributed representations of words that try to minimize computational complexity, namely the \textit{continuous bag-of-words model} (CBOW) and the \textit{continuous Skip-gram model}. Both models achieve high quality (see \cref{sec:eval-word2vec-model} for evaluation of word2vec models) word embeddings and share some core idea as to how we can create good vector representations of words. In this sub-subsection, we go through both models and explain the similarities and differences.
+The authors of the word2vec paper introduced two new log-linear models for learning distributed representations of words that try to minimize computational complexity, namely the \textit{continuous bag-of-words model} (CBOW) and the \textit{continuous Skip-gram model}. Both models achieve high quality (see \cref{sec:eval-word-embedding-models} for evaluation of word2vec models) word embeddings and share some core idea as to how we can create good vector representations of words. In this sub-subsection, we go through both models and explain the similarities and differences.
 
 \paragraph*{Continuous bag-of-words model}\mbox{} \\
 The continuous bag-of-words model (CBOW) tries to predict a target word given some context words around it. Essentially, we select a target word $w_t$, where $t$ is the index of the current target word in our training data, and a number $C$ denoting the number of words to the left and to the right of $w_t$. We also refer to $C$ as the \textit{window size}. Let $S=2C$ denote the total number of words to the left and right. By combining the embedded context word vectors, we predict the target word $w_t$. We illustrate the CBOW model in \cref{fig:cbow-model}.
@@ -163,7 +164,7 @@ where $w_I$ is the input word (e.g. target word), $w_O$ is the output word (e.g.
 Similar to CBOW, the Skip-gram model uses the two matrices $W$ and $W'$ for mapping from input to embedding layer and embedding layer to output respectively. Mikolov et al. report that the Skip-gram model performs better than the CBOW model overall, shown by their experiments in \cites{mikolov2013a}. For this reason and due to the scope of the masters thesis, we stick to using the Skip-gram model throughout the thesis. For the rest of the master thesis, we refer to the weight matrix $W$ when talking about word embeddings of a word2vec model.
 
 \subsubsection{Negative Sampling}
-In the Skip-gram model, we typically define $p(w_O | w_I)$ using the softmax function (\cref{eqn:softmax-function}):
+In the Skip-gram model, we typically compute $p(w_O | w_I)$ using the softmax function (\cref{eqn:softmax-function}) and, more formally, define it as
 \begin{align}
     p(w_O | w_I)
     &= \frac{\exp{ \left( \trans{v'_{w_O}} v_{w_I} \right) }} {\exp{ \sumlim{k=1}{|V|} \left( \trans{v'_{w_k}} v_{w_I} \right) }},
@@ -182,7 +183,7 @@ To explain the idea of negative sampling, we look at how we compute the softmax 
     \log \sigma \left( \trans{v'_{w_O}} v_{w_I} \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -\trans{v'_{w_i}} v_{w_I} \right),
     \label{eqn:negative-sampling-obj-func}
 \end{align}
-where $\sigma$ is the sigmoid function (\cref{eqn:sigmoid-function}), and $v_t$ and $v'_t$ are the "input" and "output" vector representations of the word $w$. Note that the objective in \cref{eqn:negative-sampling-obj-func} can be seen as a special case of the negative cross-entropy loss function. Furthermore, we replace every $\log p(w_O | w_I)$ in the original Skip-gram objective function from \cref{eqn:skip-gram-objective-function-general} by the objective in \cref{eqn:negative-sampling-obj-func}, as seen in \cref{eqn:skip-gram-negative-sampling-objective}:
+where $\sigma$ is the sigmoid function (\cref{eqn:sigmoid-function}), and $v_t$ and $v'_t$ are the "input" and "output" vector representations of the word $w$. Note that the objective in \cref{eqn:negative-sampling-obj-func} can be seen as a special case of the negative cross-entropy loss function. Furthermore, we replace every $\log p(w_O | w_I)$ in the original Skip-gram objective function from \cref{eqn:skip-gram-objective-function-general} by the objective in \cref{eqn:negative-sampling-obj-func}. As such, we define the objective of the Skip-gram model with negative sampling as
 \begin{align}
     \frac{1}{T} \sumlim{t=1}{T} \sumlim{w_O \in cw(w_I)}{} \log \sigma \left( \trans{v'_{w_O}} v_{w_I} \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -\trans{v'_{w_i}} v_{w_I} \right).
     \label{eqn:skip-gram-negative-sampling-objective}
@@ -196,10 +197,12 @@ When training a word2vec model, we typically have to train on big text corpora t
 \end{equation}
 where $f(w_t)$ is the (relative) frequency of word $w_t$ and $t$ is a chosen threshold, usually around $10^{-5}$.
 
-We note, however, that in the original source code of word2vec \cite[line 407]{Word2vecCCode}, they use a slightly modified formula. We use subsampling of words, and in particular the following formula, when implementing word2vec in \cref{sec:training-and-eval-our-word2vec-impl}:
+We note, however, that in the original source code of word2vec \cite[line 407]{Word2vecCCode}, they use a slightly modified formula. We define the modified formula as 
 \begin{align}
     P_d(w_t) = \frac{f(w_t) - t}{f(w_t)} - \sqrt{\frac{t}{f(w_t)}}.
+    \label{eqn:discard-probability-impl}
 \end{align}
+Furthermore, we will use subsampling of words when implementing word2vec in \cref{sec:training-and-eval-our-word2vec-impl}, and in particular, we will use \cref{eqn:discard-probability-impl} for computing the discard probability.
 
 \subsubsection{Learning word embeddings for phrases}
 \label{sec:learning-word-embeddings-for-phrases}
@@ -238,7 +241,7 @@ To map from the input to the hidden layer, we use a linear activation function (
 \end{smallmatrix} \right)}$, essentially performing a "copy" operation. We let $\enclc{v_{w_t}} = W \cdot \enclc{e_{w_t}}$ be the hidden layer for word $w_t$ and $\enclc{v'_{w_{t+j}}} = W' \cdot \enclc{e_{w_{t+j}}}$ be the hidden layer for word $w_{t+j}$. 
 
 \paragraph*{Output layer}\mbox{} \\
-Recall that when we are using negative sampling, we would like to ensure that words in the same context yield similar word vectors, and that words words that are not in the same context (i.e. a target word versus a word sampled from the noise distribution $P_n(w)$) to be dissimilar. From the objective of negative sampling from \cref{eqn:negative-sampling-obj-func}, we see that we use the sigmoid function on the dot product between the "input" and the "output" vectors $v$ and $v'$ (in our setting: $\enclc{v_{w_t}}$ and $\enclc{v'_{w_{t+j}}}$). When we take the dot product, we are essentially computing an unnormalized cosine similarity measure between the vectors. We come back to the use of cosine similarity in \cref{sec:eval-word2vec-model}. Following, the core idea is to use this dot product similarity measure and convert it into the range of $[0, 1]$ by using the sigmoid function. Following, we want similar vectors to have 1 as output from the sigmoid function and dissimilar vectors to have 0 as the output from the sigmoid function. When we compute the loss of the ANN, we generate $k$ samples from the noise distribution $P_n(w)$ such that we can use them for computing the loss of the network.
+Recall that when we are using negative sampling, we would like to ensure that words in the same context yield similar word vectors, and that words words that are not in the same context (i.e. a target word versus a word sampled from the noise distribution $P_n(w)$) to be dissimilar. From the objective of negative sampling from \cref{eqn:negative-sampling-obj-func}, we see that we use the sigmoid function on the dot product between the "input" and the "output" vectors $v$ and $v'$ (in our setting: $\enclc{v_{w_t}}$ and $\enclc{v'_{w_{t+j}}}$). When we take the dot product, we are essentially computing an unnormalized cosine similarity measure between the vectors. We come back to the use of cosine similarity in \cref{sec:eval-word-embedding-models}. Following, the core idea is to use this dot product similarity measure and convert it into the range of $[0, 1]$ by using the sigmoid function. Following, we want similar vectors to have 1 as output from the sigmoid function and dissimilar vectors to have 0 as the output from the sigmoid function. When we compute the loss of the ANN, we generate $k$ samples from the noise distribution $P_n(w)$ such that we can use them for computing the loss of the network.
 
 For each positive target-context pair we have in our data, we create a single sigmoid output plus $k$ sigmoid outputs for each negative word we sample from the noise distribution $P_n(w)$. Thus, we could argue that we have $(k + 1)$ outputs in our network.  We note that, however, our main interest is to learn the internal embedding matrix $W$; we do not use the ANN for predicting whether a certain word is more or less likely to be within a words contextual neighborhood, thus, discarding the output of the network.
 
@@ -273,6 +276,7 @@ When training a word2vec model, we have to choose several hyperparameters. In th
 \end{itemize}
 
 \subsection{Other models for learning word embeddings}
+\label{sec:other-models-for-learning-word-embeddings}
 Creating word embeddings is a task which can be achieves in various ways. In this subsection we briefly introduce two different models for computing word embeddings. The first model is the Global Vectors (GloVe) \cite{pennington2014glove} model. GloVe learns vector representations for words in a more "explicit" fashion than word2vec for example; we come back to this in \cref{sec:glove}. The second model is the fastText \cite{bojanowski2017enriching} model, which is an extension of the original word2vec Skip-gram model to include sub-word information. Note that we primarily focus on word2vec using Skip-gram with negative sampling in this thesis, and for this reason, we not go into depth when explaining GloVe and fastText. We use word embeddings from pre-trained GloVe and fastText models later in the analysis in \cref{sec:analysis-of-embeddings-topological-polysemy}.
 
 \subsubsection{GloVe}
@@ -286,7 +290,7 @@ To learn vector representations of words, Glove uses two weight matrices, which 
     J = \sumlim{i, j = 1}{|V|} f \enclp{X_{ij}} \enclp{\trans{w_i} \Tilde{w}_j + b_i + \Tilde{b}_j - \log X_{ij}}^2,
     \label{eqn:glove-loss}
 \end{align}
-where $f$ is a weighting function, $b_i$ is bias for $w_i$ and $\Tilde{b}_j$ is bias for $\Tilde{w}_j$. The authors of GloVe found the following class of functions for $f$ to be suitable:
+where $f$ is a weighting function, $b_i$ is bias for $w_i$ and $\Tilde{b}_j$ is bias for $\Tilde{w}_j$. The authors of GloVe found a particular class of functions for $f$ which was suitable, which we compute as
 \begin{align}
     f(x) = \begin{cases}
         \enclp{x / x_{\text{max}}}^\alpha & \mbox{if } x < x_{\text{max}} \\
@@ -300,7 +304,7 @@ where $\alpha$ and $x_{\text{max}}$ are hyperparameters. In the experiments perf
 \label{sec:fasttext}
 \textit{fastText} is an extension the word2vec Skip-gram model with negative sampling \cite{bojanowski2017enriching}. In particular, fastText represent each word using character $n$-grams, that is, sub-words of length $n$ (e.g. $\textit{que}$ is a $3$-gram of the word $\textit{quest}$). We associate vector representations to each character $n$-gram, and following, we vectorize words using the sum of such representations. By creating vector representations of character $n$-grams, fastText is able to create representations for words which were not in the training vocabulary. We base this sub-subsection on \cite{bojanowski2017enriching}.
 
-Recall the objective function (\cref{eqn:skip-gram-negative-sampling-objective}) of the Skip-gram model with negative sampling. The authors of fastText generalize it by replacing the dot product between word vectors with a scoring function $s(w_I, w_O) \mapsto \R$. We generalize \cref{eqn:skip-gram-negative-sampling-objective} using scoring function $s$ in \cref{eqn:skip-gram-negative-sampling-objective-general}:
+Recall the objective function (\cref{eqn:skip-gram-negative-sampling-objective}) of the Skip-gram model with negative sampling. The authors of fastText generalize it by replacing the dot product between word vectors with a scoring function $s(w_I, w_O) \mapsto \R$. We generalize \cref{eqn:skip-gram-negative-sampling-objective} using scoring function $s$ and define it as
 \begin{align}
     \frac{1}{T} \sumlim{t=1}{T} \sumlim{w_O \in cw(w_I)}{} \log \sigma \left( s(w_I, w_O) \right) + \sumlim{w_i \in W_{np}}{} \log \sigma \left( -s(w_I, w_i) \right),
     \label{eqn:skip-gram-negative-sampling-objective-general}
@@ -311,7 +315,7 @@ As we mention in the introduction of this sub-subsection (\cref{sec:fasttext}), 
 \begin{align*}
     \textless\text{ca}, \text{car}, \text{arb}, \text{rbo}, \text{bon}, \text{on}\textgreater,
 \end{align*}
-in addition to the word itself $\textless\text{carbon}\textgreater$. Note that the $n$-gram $\textless\text{car}\textgreater$, from the word car, is different from the $n$-gram car of the word $w$, due to the pre- and post-fix characters. Furthermore, let $\mathcal{G}_w \subset \enclc{g_1, g_2, \ldots, g_G}$ be the set of $n$-grams appearing in word $w$, where $G$ is the total number of $n$-grams of all words in the vocabulary. We associate a vector $z_g$ to each entry $g$ in $\mathcal{G}_w$. The goal of fastText is to represent each word vector as a sum of its $n$-grams, and consequently, we obtain the scoring function $s$ we so desire:
+in addition to the word itself $\textless\text{carbon}\textgreater$. Note that the $n$-gram $\textless\text{car}\textgreater$, from the word car, is different from the $n$-gram car of the word $w$, due to the pre- and post-fix characters. Furthermore, let $\mathcal{G}_w \subset \enclc{g_1, g_2, \ldots, g_G}$ be the set of $n$-grams appearing in word $w$, where $G$ is the total number of $n$-grams of all words in the vocabulary. We associate a vector $z_g$ to each entry $g$ in $\mathcal{G}_w$. The goal of fastText is to represent each word vector as a sum of its $n$-grams, and consequently, we obtain the scoring function $s$. We define the scoring function $s$ as
 \begin{align}
     s(w_I, w_O) = \sumlim{z_g \in \mathcal{G}_{w_I}}{} \trans{z_g} v_{w_O}.
     \label{eqn:fasttext-scoring-function}
@@ -321,15 +325,15 @@ This minor change to the scoring function allows the fastText model to share vec
 Similar to the training of word2vec, the authors of fastText use stochastic gradient descent on the objective function in \cref{eqn:skip-gram-negative-sampling-objective-general} with \cref{eqn:fasttext-scoring-function} as scoring function. For more details of the training process, we kindly refer the reader to \cite[p. 3-4]{bojanowski2017enriching}.
 
 \subsection{Evaluating word embedding models}
-\label{sec:eval-word2vec-model}
-In typical machine learning projects, we commonly set aside some portion of the data, e.g. the test data set, and then use this data to evaluate the unbiased performance of models. In word embedding models, however, we do not follow this kind of practice. Instead, we evaluate the quality of the word embeddings on test data sets which measures word relatedness, as our interest lies in how well the word embeddings relate to each other. An example of a word relatedness test could be to check whether or not the word \textit{Oslo} is related to \textit{Norway} as the word \textit{Rome} is related to \textit{Italy}. In practice, however, for such word relatedness tests we do not know the word \textit{Italy} (i.e. we hide it), and we must guess it from the entire vocabulary. By accumulating several word relatedness tests, we can create test sets, which we refer to as \textit{analogy data sets}. More generally, analogy data sets consists of questions to check whether or not a word \textit{A} is related to \textit{B} as \textit{C} is related to \textit{D}. By vectorizing the words, we want the differences between each pair of vectorized words to be roughly equal, as shown in \cref{eqn:word-embedding-model-eval-relation}.
+\label{sec:eval-word-embedding-models}
+In typical machine learning projects, we commonly set aside some portion of the data, e.g. the test data set, and then use this data to evaluate the unbiased performance of models. In word embedding models, however, we do not follow this kind of practice. Instead, we evaluate the quality of the word embeddings on test data sets which measures word relatedness, as our interest lies in how well the word embeddings relate to each other. An example of a word relatedness test could be to check whether or not the word \textit{Oslo} is related to \textit{Norway} as the word \textit{Rome} is related to \textit{Italy}. In practice, however, for such word relatedness tests we do not know the word \textit{Italy} (i.e. we hide it), and we must guess it from the entire vocabulary. By accumulating several word relatedness tests, we can create test sets, which we refer to as \textit{analogy data sets}. More generally, analogy data sets consists of questions to check whether or not a word \textit{A} is related to \textit{B} as \textit{C} is related to \textit{D}. By vectorizing the words, we want the differences between each pair of vectorized words to be roughly equal, and we show this relation as
 \begin{align}
-    v_{\textit{B}} - v_{\textit{A}} \approx v_{\textit{D}} - v_{\textit{C}}
+    v_{\textit{B}} - v_{\textit{A}} \approx v_{\textit{D}} - v_{\textit{C}}.
     \label{eqn:word-embedding-model-eval-relation}
 \end{align}
-Solving \cref{eqn:word-embedding-model-eval-relation} for $v_{\textit{D}}$ we get that
+Solving \cref{eqn:word-embedding-model-eval-relation} for $v_{\textit{D}}$, we get that
 \begin{align}
-    v_{\textit{D}} \approx v_{\textit{B}} - v_{\textit{A}} + v_{\textit{C}}
+    v_{\textit{D}} \approx v_{\textit{B}} - v_{\textit{A}} + v_{\textit{C}}.
     \label{eqn:word-embedding-model-eval-relation-wrt-d}
 \end{align}
 Now, since $v_{\textit{D}}$ is "hidden" from the model, we have to find a way of searching for the closest word matching the right-hand-side of \cref{eqn:word-embedding-model-eval-relation-wrt-d}. To do so, we often use cosine similarity, both for analogy tasks and measuring the distance between any two word vectors. Let $u$ and $v$ be two vectors of the same size. We define the dot product between the vectors $u$ and $v$ as
@@ -342,13 +346,13 @@ where $||\cdot||$ is the magnitude (length) of the vector and $\cos \enclp{\thet
     \cos\enclp{\theta} = \frac{u \cdot v}{||u||\,||v||}.
     \label{eqn:cosine-similarity}
 \end{align}
-Thus, we see that by computing the cosine similarity of two vectors $u$ and $v$, we discard their magnitude, and thus, both vectors both have unit length. The removal of the vector magnitude is important, as we would like to compare vectors using vector addition and subtraction, as motivated by \cref{eqn:word-embedding-model-eval-relation}. Using cosine similarity, we can find the closest matching word vector $v_{\textit{D}}$ (and associated word \textit{D}) as follows
+Thus, we see that by computing the cosine similarity of two vectors $u$ and $v$, we discard their magnitude, and thus, both vectors both have unit length. The removal of the vector magnitude is important, as we would like to compare vectors using vector addition and subtraction, as motivated by \cref{eqn:word-embedding-model-eval-relation}. Using cosine similarity, we can find the closest matching word vector $v_{\textit{D}}$ (and associated word \textit{D}) by computing
 \begin{align}
-    v_{\textit{D}} = \argmax_{v_{\Tilde{\textit{D}}} \in W^*} \enclp{\cos \enclp{v_{\Tilde{\textit{D}}}, v_{\textit{B}} - v_{\textit{A}} + v_{\textit{C}}}}
+    v_{\textit{D}} = \argmax_{v_{\Tilde{\textit{D}}} \in W^*} \enclp{\cos \enclp{v_{\Tilde{\textit{D}}}, v_{\textit{B}} - v_{\textit{A}} + v_{\textit{C}}}},
 \end{align}
 where $W^*$ are the word embeddings $W$ where we exclude the word vectors $v_{\textit{A}}$, $v_{\textit{B}}$ and $v_{\textit{C}}$. It is common to exclude the vectors $v_{\textit{A}}$, $v_{\textit{B}}$ and $v_{\textit{C}}$ from the search, as \cite{mikolov2013a} did in their experiments.
 
-Many machine learning algorithms require us to use Euclidean distance in order to compare distances between vectors. In order to convert from cosine similarity to Euclidean distance, we note the following relationship for two vectors $u$ and $v$:
+Many machine learning algorithms require us to use Euclidean distance in order to compare distances between vectors. In order to convert from cosine similarity to Euclidean distance, we observe that there is a relationship for the two vectors $u$ and $v$. We show this relationship as
 \begin{align}
     ||u - v||_2^2 = \trans{(u - v)} (u - v) = ||u||^2 + ||v||^2 + 2\trans{u}v,
     \label{eqn:eval-word-embeddings-u-v-relationship}
@@ -361,8 +365,8 @@ where $||\cdot||_2^2$ is the squared Euclidean distance. Let $||u|| = ||v|| = 1$
     &= 2(1 + \trans{u}v) \\
     &= 2(1 + \cos \enclp{u, v}).
 \end{align}
-In other words, we see a clear relationship between the squared Euclidean distance and cosine similarity. Some machine learning algorithms are applicable using dot-product as distance metric, and by expansion of \cref{eqn:cosine-similarity}, we see the following relationship for unit-length vectors $u$ and $v$:
+In other words, we see a clear relationship between the squared Euclidean distance and cosine similarity. Some machine learning algorithms are applicable using dot-product as distance metric, and by expansion of \cref{eqn:cosine-similarity}, we see a particular relationship for unit-length vectors $u$ and $v$, namely that
 \begin{align}
     \cos\enclp{\theta} = u \cdot v.
 \end{align}
-In other words, if we use normalized word embeddings, we may use (squared) Euclidean distance or dot-product to emulate cosine similarity, as we get the same distance ranking by using cosine similarity. Lastly, we define the \textit{cosine distance} to be $(1 - \cos\enclp{\theta})$. We use the cosine distance to measure distances between word embeddings and in algorithms where the cosine distance is applicable. Furthermore, we use cosine similarity when evaluating word embeddings models in \cref{sec:word2vec-model-evaluation}.
+Furthermore, by using normalized word embeddings, we may use (squared) Euclidean distance or dot-product to emulate cosine similarity, as we get the same distance ranking by using cosine similarity. Lastly, we define the \textit{cosine distance} to be $(1 - \cos\enclp{\theta})$. We use the cosine distance to measure distances between word embeddings and in algorithms where the cosine distance is applicable. Furthermore, we use cosine similarity when evaluating word embeddings models in \cref{sec:word2vec-model-evaluation}.
