@@ -46,13 +46,19 @@ An important aspect of machine learning is to predict some quantity given some f
 
 \subsection{Persistence image}
 \label{sec:persistence-image}
-Many machine leaning tasks require valuable features in order to yield good results. \textit{Persistence images} \cite{adams2016persistence} are vector representations of persistence diagrams. When explaining persistence images, we refer to \cite{adams2016persistence}. Furthermore, we explain the use of persistence images in \cref{sec:analysis-of-embeddings-geometric-anomaly-detection} and when discussing future work in \cref{sec:future-work}.
+Many machine leaning tasks require valuable features in order to yield good results. \textit{Persistence images} \cite{adams2016persistence} are vector representations of persistence diagrams. When explaining persistence images, we refer to \cite{adams2016persistence}. Furthermore, we explain the use of persistence images for the analysis of word embeddings in \cref{sec:analysis-of-embeddings-geometric-anomaly-detection} and when discussing future work in \cref{sec:future-work}.
 
 Let $B = \enclc{\enclp{b_1, d_1}, \enclp{b_2, d_2}, \ldots, \enclp{b_m, d_m}} \in \R^{m \times 2}$ be a persistence diagram in birth-death coordinates. First, we transform $B$ into birth-persistence coordinates, where \textit{persistence} is the difference between death and birth. That is, let $T(B) = \enclc{\enclp{b_1, p_1}, \enclp{b_2, p_2}, \ldots, \enclp{b_m, p_m}} \in \R^{m \times 2}$, where $p_i = b_i - d_i$ for $1 \leq i \leq m$. Following, for each of the point in the the $T(B)$ persistence diagram, we place a probability distribution. A common choice is to use the Gaussian distribution, which we center at each data point respectively. By placing probability distributions on each point, we are able to differentiate between dense and sparse areas. In addition to placing probability distributions on each point, we weight the distributions by the persistence of the point, making more persistent areas more prominent than others. Using the weighted probability distributions, for a particular persistence diagram $B$ we define the persistence surface of $\rho_B$ as
 \begin{align}
     \rho_B(z) = \sumlim{u \in T(B)}{} f(u) \phi_u(z),
 \end{align}
-where $f(u)$ is the persistence weighing function and $\phi_u(z)$ is the probability distribution which we evaluate at point $z$ (e.g. if Gaussian, then we center it at point $u$). Finally, we reduce the persistence surface $\rho_B(z)$ to a discretized representation. In particular, we form an $N \times M$ grid, and for each cell in the grid, we compute the integral of $\rho_B(z)$ over that region and use the result from the integral as value. In other words, this discretization allows us to summarize the persistence surface using less information and we are left with an $N \times M$ matrix which we can for machine learning tasks more easily.
+where $f(u)$ is the persistence weighing function and $\phi_u(z)$ is the probability distribution which we evaluate at point $z$ (e.g. if Gaussian, then we center it at point $u$). Finally, we reduce the persistence surface $\rho_B(z)$ to a discretized representation. In particular, we form an $N \times M$ grid, and for each cell in the grid, we compute the integral of $\rho_B(z)$ over that region and use the result from the integral as value. In other words, this discretization allows us to summarize the persistence surface using less information and we are left with an $N \times M$ matrix which we can for machine learning tasks more easily. Finally, we illustrate the use of persistence images in \cref{fig:persistence-image-example}, where we apply it to a 2-dimensional data set consisting of two circles. In \cref{fig:persistence-image-example}, we see how the data is transformed into a persistence diagram $B$, following by the transformed persistence diagram $T(B)$ and finally the persistence image of $B$. In the last plot (d), we see a 66 by 35 pixel image, representing the vectorization of persistence diagram $B$.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{thesis/figures/persistence-image-example.pdf}
+    \caption{Persistence image pipeline when applied to a 2-dimensional circles data set.}
+    \label{fig:persistence-image-example}
+\end{figure}
 
 \subsection{Wasserstein distance}
 \label{sec:wasserstein-distance}
