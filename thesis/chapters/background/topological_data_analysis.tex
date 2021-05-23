@@ -67,7 +67,14 @@ To compare distances between data points, we commonly use distance metrics (e.g.
     W_p(A, B) = \inf_{\gamma: A \rightarrow B} \enclp{\sumlim{u \in A}{} ||u - \gamma(u)||_{\infty}^{p}}^{1/p},
     \label{eqn:wasserstein-distance}
 \end{align}
-where $1 \leq p < \infty$ and $\gamma$ ranges over bijections between $A$ and $B$, and $\inf$ is the infimum (i.e. greatest lower bound; similar to "minimum"). If we let $p=\infty$, i.e $W_\infty(A, B)$, we get what we call the \textit{bottleneck distance}. We use the bottleneck distance to compare persistence diagrams as well, but has the disadvantage of only using the maximum distance between any two points over the bijections between $A$ and $B$.
+where $1 \leq p < \infty$ and $\gamma$ ranges over bijections between $A$ and $B$, and $\inf$ is the infimum (i.e. greatest lower bound; similar to "minimum"). We further visualize the idea behind the $p$-Wasserstein distance in \cref{fig:wasserstein-distance-example}, where we see how the points in each persistence diagram $A$ and $B$ gets paired up. We match points to the diagonal if we find no matches for the particular point.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{thesis/figures/wasserstein-distance_cropped.pdf}
+    \caption{$p$-Wasserstein distance between two persistence diagrams $A$ and $B$.}
+    \label{fig:wasserstein-distance-example}
+\end{figure}
+Finally, if we let $p=\infty$, i.e $W_\infty(A, B)$, we get what we call the \textit{bottleneck distance}. We use the bottleneck distance to compare persistence diagrams as well, but it has the disadvantage of only using the maximum distance between any two points over the bijections between $A$ and $B$.
 
 \subsection{Topological polysemy}
 \label{sec:topological-polysemy}
