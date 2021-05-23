@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6f3ab5e1dd88792b4d1107cc6d87de9781ec941f33aa512bc356f1166e0ca981"
+            "sha256": "b1ef759289a92704a38b98fa2d7094b7b7ec1af9e9a7b1593a5c3adb3d6c20bc"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1375,6 +1375,14 @@
             ],
             "index": "pypi",
             "version": "==0.6.0"
+        },
+        "ripserplusplus": {
+            "file": "https://files.pythonhosted.org/packages/a1/52/c153abe757da603fd314b1742e6f4386d4c013546208ad437c52a55d4984/ripserplusplus-1.1.2-cp36-cp36m-manylinux2014_x86_64.whl",
+            "hashes": [
+                "sha256:402573a5f9606b0a8323b1116c5afedc0dda8df3e71f02aa44f2cfaf7ba599e1"
+            ],
+            "markers": "sys_platform == 'linux'",
+            "version": "==1.1.2"
         },
         "rsa": {
             "hashes": [

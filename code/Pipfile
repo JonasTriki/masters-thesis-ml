@@ -50,6 +50,7 @@ scikit-dimension = "*"
 scann = {file = "https://files.pythonhosted.org/packages/8d/ad/e6981da67acb1ba3e5515b59b2ce0562498dfd7124298fbfd23f35db361e/scann-1.2.1-cp36-cp36m-manylinux2014_x86_64.whl", sys_platform = "== 'linux'"}
 sharedmem = "*"
 python-dotenv = "*"
+ripserplusplus = {file = "https://files.pythonhosted.org/packages/a1/52/c153abe757da603fd314b1742e6f4386d4c013546208ad437c52a55d4984/ripserplusplus-1.1.2-cp36-cp36m-manylinux2014_x86_64.whl", sys_platform = "== 'linux'"}
 
 [requires]
 python_version = "3.6"

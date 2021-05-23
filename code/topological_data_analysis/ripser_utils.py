@@ -1,5 +1,5 @@
 import numpy as np
-import ripser_plusplus_python as rpp_py
+import ripserplusplus as rpp_py
 
 
 def run_ripser_plus_plus(point_cloud: np.ndarray, max_dim: int) -> dict:
