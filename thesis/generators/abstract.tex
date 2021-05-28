@@ -2,12 +2,18 @@
 
 \begin{abstract}
 \noindent
-Over the last few years, advances in natural language processing have enabled us to learn more from textual data. To this end, word embedding models (e.g. word2vec) learn vectorized representations of words by training on big sets of texts (e.g. the entire Wikipedia corpus). Word embeddings are well-researched in terms of their syntactic and semantic relations, but little has been done in the field of clustering and topological data analysis (TDA). To expand on these fields, we perform cluster analysis of word embeddings and use recent methods from TDA to identify polysemous words. Our results show that we are effectively able to cluster word embeddings into groups of varying sizes. Results also revealed that it was more difficult than anticipated to identify polysemous words, and our proposed supervised models attempt to overcome this. Finally, this thesis emphasizes the usefulness of TDA of word embeddings.
+Over the last few years, advances in natural language processing (NLP) have enabled us to learn more from textual data. To this end, word embedding models learn vectorized representations of words by training on big sets of texts (e.g. the entire Wikipedia corpus). Word2vec is a word embedding model which learns a single vector representation for each word it is trained on. However, by creating single vector representations for words, it becomes hard to separate between word meanings. Words with multiple meanings are called \textit{polysemous}, and determining the word meanings of a given word is a difficult problem in NLP. Traditionally, word embeddings from word2vec are analyzed using analogy and cluster analysis. In analogy analysis of word embeddings, it is common to show relationships between words, i.e that the relationship between \textit{king} and \textit{man} is same as that between \textit{queen} and \textit{woman}. Moreover, in cluster analysis of word embeddings, it is commonly shown that similar words cluster together, such as colours, names and countries. Additionally, recent developments in the field of topological data analysis (TDA) introduces a topological measure of polysemy, which attempts to identify polysemous words from their word embeddings. The goal of this thesis is to show how word embeddings traditionally are analyzed using analogies and clustering algorithms, and additionally, to use methods such as topological polysemy to identify polysemous words, using various word embeddings. Our results show that we are effectively able to cluster word embeddings into groups of varying sizes. Results also revealed that the measure of topological polysemy was inconsistent across word embeddings, and our proposed supervised models attempt to overcome and improve on this work.
 \end{abstract}
 
 \renewcommand{\abstractname}{Acknowledgements}
 \begin{abstract}
-I would first and foremost like to thank my supervisor, Nello Blaser, for his outstanding guidance during the work of this thesis. I would also like to thank my fellow graduate students, particularly Naphat, for the long lunch breaks and the helpful academic discussions. Finally, I would like to thank my friends and family for all their love and support.
+I would first and foremost like to thank my supervisor, Nello Blaser, for his outstanding guidance during the work of this thesis.
+
+I would also like to thank my fellow graduate students, particularly Naphat, for the long lunch breaks and the helpful academic discussions.
+
+Finally, I would like to thank my friends and family for all their love and support.
+
+\textbf{TODO}: Add to the acknowledgements.
 
 \vspace{1cm}
 \hspace*{\fill}\texttt{Jonas Folkvord Triki}\\ 
