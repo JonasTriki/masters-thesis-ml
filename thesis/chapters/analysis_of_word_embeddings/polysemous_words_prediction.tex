@@ -308,12 +308,12 @@ Next, we will look at the results from the training of the BWME-enwiki model. We
     \label{fig:bwme-enwiki-confusion-matrices}
 \end{figure}
 
-To deepen our understanding of which words the BWME-enwiki model has a harder time with, we looked at the misclassified polysemous test words. Of the 1484 words the BWME-enwiki model predicted to be monosemous, we report the top 10 most common misclassified test words, namely the following words: "time", "age", "returned", "Italian", "Chicago", "gold", "tower", "jones", "unable" and "opposition". From these words, we do not see any particular pattern. Furthermore, we visualize the words from the test data set in \cref{fig:bwme-enwiki-umap-misclassified-polysemous-words}, using a 2-dimensional UMAP embedding. In \cref{fig:bwme-enwiki-umap-misclassified-polysemous-words}, we emphasize the misclassified words, and we do not see any particular pattern here either, as the words are spread throughout the UMAP embedding.
+To deepen our understanding of which words the BWME-enwiki model had a harder time with, we looked at the misclassified monosemous and polysemous test words. Of the 1484 words the BWME-enwiki model predicted to be monosemous, we report the top 10 most common misclassified test words, namely the following words: "time", "age", "returned", "Italian", "Chicago", "gold", "tower", "jones", "unable" and "opposition". Furthermore, of the 553 words the BWME-enwiki model predicted to be polysemous, we report the top 10 most common misclassified test words, namely the following words: "january", "ninety-six", "ninety-one", "seventy-one", "sixty-three", "fifty-four", "fifty-eight", "non", "citizens" and "additionally". From these sets of words, we do not see any particular pattern. Furthermore, we visualize the correctly and incorrectly classified words from the test data set in \cref{fig:bwme-enwiki-umap-classified-words}, using a 2-dimensional UMAP embedding. In \cref{fig:bwme-enwiki-umap-classified-words} (b) and (c), we emphasize the misclassified words, and we do not see any particular pattern here either, as the words are spread throughout the UMAP embedding.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{thesis/figures/bwme-enwiki-umap-misclassified-polysemous-words.pdf}
-    \caption{2-dimensional UMAP embedding of the test data set evaluated on the BWME-enwiki model. We emphasize the misclassified polysemous words.}
-    \label{fig:bwme-enwiki-umap-misclassified-polysemous-words}
+    \includegraphics[width=\textwidth]{thesis/figures/bwme-enwiki-umap-classified-words.pdf}
+    \caption{2-dimensional UMAP embedding of the test data set evaluated on the BWME-enwiki model. We emphasize the correctly and incorrectly classified words in a "correlation matrix" fashion.}
+    \label{fig:bwme-enwiki-umap-classified-words}
 \end{figure}
 
 Next, we will investigate the feature importance in the BWME-enwiki model by looking at the coefficient values of the features. We show the top 10 most important features of the BWME-enwiki model in \cref{fig:bwme-enwiki-feature-importances}. In \cref{fig:bwme-enwiki-feature-importances}, we see a similar pattern to the top 10 features importances from the WME-enwiki model, namely that the TPS features (for varying $n$) are most important, followed by the features from the ID estimator models.
