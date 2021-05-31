@@ -103,7 +103,7 @@ def evaluate_regression_model(
         (defaults to False).
     """
     num_test_sets = len(test_sets)
-    _, axes = plt.subplots(nrows=1, ncols=num_test_sets, figsize=(5 * num_test_sets, 5))
+    _, axes = plt.subplots(nrows=1, ncols=num_test_sets, figsize=(4 * num_test_sets, 5))
     test_set_chars = ascii_lowercase[:num_test_sets]
     for test_set, test_set_char, ax in zip(test_sets, test_set_chars, axes):
         X_eval, y_true, test_set_name, xlabel, ylabel = test_set
@@ -153,7 +153,7 @@ def evaluate_classification_model(
         Whether or not to call `plt.show()` to show the plot (defaults to True)
     """
     num_test_sets = len(test_sets)
-    _, axes = plt.subplots(nrows=1, ncols=num_test_sets, figsize=(7 * num_test_sets, 7))
+    _, axes = plt.subplots(nrows=1, ncols=num_test_sets, figsize=(6 * num_test_sets, 6))
     test_set_chars = ascii_lowercase[:num_test_sets]
     for ax, test_set, test_set_char in zip(axes, test_sets, test_set_chars):
         X_eval, y_true, test_set_name, xlabel, ylabel = test_set
