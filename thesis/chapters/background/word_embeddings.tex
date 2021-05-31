@@ -124,7 +124,7 @@ The authors of the word2vec paper introduced two new log-linear models for learn
 The continuous bag-of-words model (CBOW) tries to predict a target word given some context words around it. Essentially, we select a target word $w_t$, where $t$ is the index of the current target word in our training data, and a number $C$ denoting the number of words to the left and the right of $w_t$. We also refer to $C$ as the \textit{window size}. Let $S=2C$ denote the total number of words to the left and right. By combining the context word embeddings, we predict the target word $w_t$. We illustrate the CBOW model in \cref{fig:cbow-model}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=11cm]{thesis/figures/cbow_cropped.pdf}
+    \includegraphics[width=0.6\textwidth]{thesis/figures/cbow_cropped.pdf}
     \caption{An illustration of the CBOW architecture. The input value $x_{t+k}$ is the one-hot encoded vector of word $w_{t+k}$, where $k \in \enclc{-C, \ldots, -1, 1, \ldots, C}$, $t \in \enclc{1, \ldots, T}$ is training word position and $C$ is the window size. The output of CBOW is a $|V|$-dimensional vector $y_t$ of probabilities for sampling the target word $w_t$.}
     \label{fig:cbow-model}
 \end{figure}
@@ -141,7 +141,7 @@ Through it is not clear from the original authors of word2vec \cite{mikolov2013a
 The continuous Skip-gram model is very similar to CBOW, and in fact, the Skip-gram model tries to do the opposite; instead of predicting a target word given some context words, it tries to predict context words given some target word. We note that the ordering of the predicted context words does not matter. We illustrate the Skip-gram model in \cref{fig:skip-gram-model}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=11cm]{thesis/figures/skim-gram_cropped.pdf}
+    \includegraphics[width=0.6\textwidth]{thesis/figures/skim-gram_cropped.pdf}
     \caption{An illustration of the Skip-gram architecture. The input value $x_t$ is the one-hot encoded vector of word $w_t$, where $t \in \enclc{1, \ldots, T}$ is training word position and $C$ is the window size. The output values are $|V|$-dimensional vectors $y_{t+k}$ of probabilities for sampling the word $w_{t+k}$, where $k \in \enclc{-C, \ldots, -2, -1, 1, 2, \ldots, C}$. We note that the ordering of the vectors from the output layers does not matter, as we only want to predict that a particular word belongs to its contextual words.}
     \label{fig:skip-gram-model}
 \end{figure}
@@ -216,7 +216,7 @@ Typically in the literature, word2vec is presented using the \cref{eqn:cbow-obje
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=16cm]{thesis/figures/word2vec-sgns_cropped.pdf}
+    \includegraphics[width=\textwidth]{thesis/figures/word2vec-sgns_cropped.pdf}
     \caption{The artificial neural network architecture of word2vec Skip-gram model with negative sampling. The inputs to the network are $t$ and $c$, i.e, index of target word $w_t$ and context word $w_c$ in the vocabulary. For each forward pass in the network we sample $k$ word indices from $P_n(w)$. Furthermore, we use the $k$ sampled word indices to compute the negative sampling loss $L$.}
     \label{fig:word2vec-skip-gram-negative-sampling}
 \end{figure}
