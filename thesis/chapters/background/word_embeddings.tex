@@ -274,7 +274,7 @@ When training a word2vec model, we have to choose several hyperparameters. In th
 
 \subsection{Other models for learning word embeddings}
 \label{sec:other-models-for-learning-word-embeddings}
-Creating word embeddings is a task that can be achieved in various ways. In this subsection, we briefly introduce two different models for computing word embeddings. The first model is the Global Vectors (GloVe) \cite{pennington2014glove} model. GloVe learns vector representations for words in a more "explicit" fashion than word2vec for example; we come back to this in \cref{sec:glove}. The second model is the fastText \cite{bojanowski2017enriching} model, which is an extension of the original word2vec Skip-gram model to include sub-word information. Note that we primarily focus on word2vec using Skip-gram with negative sampling in this thesis, and for this reason, we not go into depth when explaining GloVe and fastText. We use word embeddings from pre-trained GloVe and fastText models later in the analysis in \cref{sec:analysis-of-embeddings-topological-polysemy}.
+Creating word embeddings is a task that can be achieved in various ways. In this subsection, we briefly introduce two different models for computing word embeddings. The first model is the Global Vectors (GloVe) \cite{pennington2014glove} model. GloVe learns vector representations for words in a more "explicit" fashion than word2vec for example; we come back to this in \cref{sec:glove}. The second model is the fastText \cite{bojanowski2017enriching} model, which is an extension of the original word2vec Skip-gram model to include sub-word information. Note that we primarily focus on word2vec using Skip-gram with negative sampling in this thesis, and for this reason, we not go into depth when explaining GloVe and fastText. We will use pre-trained GloVe and fastText models when comparing evaluation results of word embedding models in \cref{sec:word2vec-model-evaluation} and when we analyze word embeddings in \cref{sec:analysis-of-embeddings-topological-polysemy}.
 
 \subsubsection{GloVe}
 \label{sec:glove}
@@ -295,7 +295,7 @@ where $f$ is a weighting function, $b_i$ is bias for $w_i$ and $\Tilde{b}_j$ is 
     \end{cases},
     \label{eqn:glove-loss-f-function}
 \end{align}
-where $\alpha$ and $x_{\text{max}}$ are hyperparameters. In the experiments performed in \cite{pennington2014glove}, the authors let $x_{\text{max}}=100$ and $\alpha=3/4$. Furthermore, to train the GloVe model, they iteratively learn the weights over time in a gradient descent fashion, using AdaGrad \cite{Duchi2011} in particular, with an initial learning rate of $0.05$. Lastly, GloVe uses the sum of its weight matrices, i.e. $W + \Tilde{W}$, as the word embeddings, which the authors claim to lead to a minor increase in performance.
+where $\alpha$ and $x_{\text{max}}$ are hyperparameters. In the experiments performed in \cite{pennington2014glove}, the authors let $x_{\text{max}}=100$ and $\alpha=3/4$. Furthermore, to train the GloVe model, they iteratively learn the weights over time in a gradient descent fashion, using AdaGrad \cite{Duchi2011} in particular, with an initial learning rate of $0.05$. Finally, GloVe uses the sum of its weight matrices, i.e. $W + \Tilde{W}$, as the word embeddings, which the authors claim to lead to a minor increase in performance.
 
 \subsubsection{fastText}
 \label{sec:fasttext}
@@ -366,4 +366,4 @@ In other words, we see a clear relationship between the squared Euclidean distan
 \begin{align}
     \cos\enclp{\theta} = u \cdot v.
 \end{align}
-Furthermore, by using normalized word embeddings, we may use (squared) Euclidean distance or dot-product to emulate cosine similarity, as we get the same distance ranking by using cosine similarity. Lastly, we define the \textit{cosine distance} to be $(1 - \cos\enclp{\theta})$. We use the cosine distance in algorithms for measuring the distances between word embeddings. Furthermore, we will use cosine similarity when evaluating word embeddings models in \cref{sec:word2vec-model-evaluation}.
+Furthermore, by using normalized word embeddings, we may use (squared) Euclidean distance or dot-product to emulate cosine similarity, as we get the same distance ranking by using cosine similarity. Finally, we define the \textit{cosine distance} to be $(1 - \cos\enclp{\theta})$. We use the cosine distance in algorithms for measuring the distances between word embeddings. Furthermore, we will use cosine similarity when evaluating word embeddings models in \cref{sec:word2vec-model-evaluation}.
