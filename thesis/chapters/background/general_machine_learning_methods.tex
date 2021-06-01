@@ -45,7 +45,7 @@ where $C = \enclc{C_1, C_2, \ldots, C_k}$ are the clusters of the data $X$, $k$ 
 The main advantage of k-means clustering is its simplicity, both in implementation and when interpreting the results. The algorithm also scales well to larger data sets, and there is only one hyperparameter to tune (number of clusters $k$). As for the disadvantages, the algorithm is rather sensitive to the initialization of centroids in the first step. If we were to select very bad initial centroids, the convergence time of the algorithm increases greatly, and we end up with bad clusters. We also have to choose the number of clusters manually, which is a downside if we have no additional knowledge of the data beforehand. In addition to this, the algorithm suffers from the \textit{curse of dimensionality}, which is a set of problems that can occur when analyzing high-dimensional data (i.e. greater than two to three dimensions). In the context of k-means clustering, as the dimensionality increases, it becomes more and more difficult to distinguish between data points (all points converge to the same distance). We illustrate an effect of the curse of dimensionality in \cref{fig:curse-of-dimensionality}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{thesis/figures/curse-of-dimensionality.pdf}
+    \includegraphics[width=0.9\textwidth]{thesis/figures/curse-of-dimensionality.pdf}
     \caption{Four illustration plots showing an effect of the curse of dimensionality. The distance between points in higher dimensional spaces becomes the same as the dimensionality increases, and thus, it is harder to differentiate between points using distance metrics. The blue line represents the density of the pairwise Euclidean distances (we divide by the max distance to normalize the x-axis). The red line is the mean distance.}
     \label{fig:curse-of-dimensionality}
 \end{figure}
@@ -148,7 +148,7 @@ where $d(x, y)$ is the distance between data point $x$ and data point $y$ using 
 Next, using the MRD metric, we find dense areas in the data. To find such areas, we create a \textit{minimal spanning tree} (MST) where each node represents a data point $x \in X$ and edges connecting pairs of nodes has a weight equal to the MRD between the two nodes. By using an MST, we get a graph with the minimal set of edges between nodes such that the weight between the nodes is minimal. Additionally, if we drop exactly one edge of the graph, we disconnect it; for each pair of nodes, we connect them by exactly one edge. Using these two facts, we create a clustering hierarchy in a single-linkage clustering manner. First, we sort the weights of the edges of the MST in increasing order. Following, we iterate over the edges of the MST and merge data points into clusters (note that each data point is its own cluster initially). Now, from the hierarchical clustering, we are left with a dendrogram, which we illustrate in \cref{fig:hdbscan-dendrogram-example}. We are now are left with a critical question: How should we define the cut to get a flat clustering?
 \begin{figure}[H]
     \centering
-    \includegraphics[width=10cm]{thesis/figures/hdbscan-single-linage-tree-example.pdf}
+    \includegraphics[width=0.8\textwidth]{thesis/figures/hdbscan-single-linage-tree-example.pdf}
     \caption{Single-linkage dendrogram plot from HDBSCAN on the Iris data set \cite{Anderson1936,Fisher1936}.}
     \label{fig:hdbscan-dendrogram-example}
 \end{figure}
@@ -156,7 +156,7 @@ Next, using the MRD metric, we find dense areas in the data. To find such areas,
 Dendrograms can be very difficult to interpret, especially once we reach a certain number of data points. For this reason, the authors of HDBSCAN condense (or compact) the dendrogram from the hierarchical clustering such that they obtain a flat clustering. First, we define the notion of \textit{minClusterSize}, which is a hyperparameter controlling the minimal cluster size at any time. Following, we walk down the dendrogram, starting from the root cluster, and at each split, we check whether or not the new cluster has at least \textit{minClusterSize} data points in it. If the new cluster has at least \textit{minClusterSize} data points in it, we let that cluster be in the tree. If the new cluster has less than the \textit{minClusterSize} in it, then we let the parent cluster identify the new cluster and we remove the node from the tree. As we walk through the dendrogram to condense it, we also include at what distance clusters merge into the parent cluster, i.e. "fall out of clusters". We illustrate with an example of a condensed dendrogram in \cref{fig:hdbscan-condensed-dendrogram-example}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=10cm]{thesis/figures/hdbscan-condensed-tree-example.pdf}
+    \includegraphics[width=0.8\textwidth]{thesis/figures/hdbscan-condensed-tree-example.pdf}
     \caption{Condensed dendrogram plot from HDBSCAN on the Iris data set \cite{Anderson1936,Fisher1936}.}
     \label{fig:hdbscan-condensed-dendrogram-example}
 \end{figure}
@@ -164,7 +164,7 @@ Dendrograms can be very difficult to interpret, especially once we reach a certa
 Now, to define the flat cut in a condensed diagram, we select the clusters such that the largest total area of "ink" is maximal, under an additional constraint that we do not select clusters that are descendants of an already selected cluster. Furthermore, we mark any clusters which we do not select in the previous step as noise, as they are merely artefacts of the initial hierarchical clustering. We then decide the final clustering, which we illustrate in \cref{fig:hdbscan-condensed-dendrogram-final-cut-example}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=10cm]{thesis/figures/hdbscan-condensed-tree-final-cut-example.pdf}
+    \includegraphics[width=0.8\textwidth]{thesis/figures/hdbscan-condensed-tree-final-cut-example.pdf}
     \caption{Condensed dendrogram plot from HDBSCAN on the Iris data set \cite{Anderson1936,Fisher1936}. We show the "final cut" in the red circles and consider all data points below the clusters with the red circles as noise.}
     \label{fig:hdbscan-condensed-dendrogram-final-cut-example}
 \end{figure}
@@ -324,7 +324,7 @@ where $Y = \enclc{y_1, y_2, \ldots, y_n}$ represents the original data $X$ in (a
 Imagine that we have some data from a noisy sine, $X = \enclc{x_1, x_2, \ldots, x_n} \in \R^{n \times d}$, as we see in \cref{fig:how_umap_works_raw_data}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=10cm]{thesis/figures/how_umap_works_raw_data.png}
+    \includegraphics[width=0.8\textwidth]{thesis/figures/how_umap_works_raw_data.png}
     \caption{A noisy sine wave. The figure is from \cite{how-umap-works-2018}.}
     \label{fig:how_umap_works_raw_data}
 \end{figure}
@@ -332,14 +332,14 @@ Imagine that we have some data from a noisy sine, $X = \enclc{x_1, x_2, \ldots, 
 We would like to capture the topological structure of $X$, and we do so by creating a simplicial complex built on $X$, as we see in \cref{fig:how_umap_works_basic_graph}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=10cm]{thesis/figures/how_umap_works_basic_graph.png}
+    \includegraphics[width=0.8\textwidth]{thesis/figures/how_umap_works_basic_graph.png}
     \caption{A simplicial complex built on a noisy sine wave. The figure is from \cite{how-umap-works-2018}.}
     \label{fig:how_umap_works_basic_graph}
 \end{figure}
 We would like to capture the topological structure of all data points in $X$ and want a graph connecting all points. By using simplicial complexes, however, we see in \cref{fig:how_umap_works_basic_graph} that problems can occur, namely that not all data points have edges between them, which again disconnects the simplicial complex. This particular problem can occur when we have a too-small $\epsilon$ radius around each data point. In real-world data, the data points are typically not laying on a uniform distribution. Moreover, selecting a perfect $\epsilon$ to create a suitable simplicial complex is hard. The authors of UMAP overcome these problems by creating fuzzy open sets around each data point to create local connectivity in the graph, as we see in \cref{fig:how_umap_works_umap_open_cover}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=10cm]{thesis/figures/how_umap_works_umap_open_cover.png}
+    \includegraphics[width=0.8\textwidth]{thesis/figures/how_umap_works_umap_open_cover.png}
     \caption{Fuzzy open sets around each data point of a noisy sine wave to create local connectivity. The figure is from \cite{how-umap-works-2018}.}
     \label{fig:how_umap_works_umap_open_cover}
 \end{figure}
@@ -347,14 +347,14 @@ To create the fuzzy open sets, we compute the distance to the nearest neighbour 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=10cm]{thesis/figures/how_umap_works_raw_graph.png}
+    \includegraphics[width=0.8\textwidth]{thesis/figures/how_umap_works_raw_graph.png}
     \caption{A connected graph where nodes are data points and the edges between them have the fuzziness levels as weights. The figure is from \cite{how-umap-works-2018}.}
     \label{fig:how_umap_works_raw_graph}
 \end{figure}
 To finalize the connected graph from \cref{fig:how_umap_works_raw_graph}, we convert the edges between any two data points into a single edge. We do this because we want the distance between two data points $a$ and $b$ to be the same; currently, it depends locally on the distance to the nearest neighbour, as the fuzziness level decreases beyond it. To merge the edges between any two data points $a$ and $b$, we compute the combined weight by taking the union between them $w(a) + w(b) - w(a)w(b)$. We use the newly combined weight as the weight of the single edge between $a$ and $b$. If we apply this process, unioning edges together, we end up with a fuzzy simplicial complex. We show an example of a fuzzy simplicial complex in \cref{fig:how_umap_works_umap_graph}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=10cm]{thesis/figures/how_umap_works_umap_graph.png}
+    \includegraphics[width=0.8\textwidth]{thesis/figures/how_umap_works_umap_graph.png}
     \caption{A fuzzy simplicial complex of some sine wave data. The figure is from \cite{how-umap-works-2018}.}
     \label{fig:how_umap_works_umap_graph}
 \end{figure}
@@ -367,7 +367,7 @@ Now, using the fuzzy simplicial complex of \cref{fig:how_umap_works_umap_graph},
 In the first term of \cref{eqn:umap-loss-function}, we have an attractive force between the data points which $e$ spans, pulling them together; when $w_l(e)$ is large, the distance (i.e. weight) between any two data points becomes small. In the second term of \cref{eqn:umap-loss-function}, there is an opposite, repulsive force between the data points which $e$ spans, repelling them apart; when $w_h(e)$ is small (i.e. distance in high dimensional space), $w_l(e)$ becomes small since we want to minimize the term. The process of pulling and repelling the weights makes the low dimensional representation of the data settle into a balanced state, such that it represents the high dimensional topological structure of the original data in a fairly accurate way. In practice, the UMAP algorithm uses several different tricks to optimize it, but we leave out the technical details here. We kindly refer the reader to \cite{2018arXivUMAP} for more details. Finally, we show an example where we compute a 2-dimensional UMAP embedding of the Iris data set \cite{Anderson1936,Fisher1936} in \cref{fig:umap-2d-example}. In \cref{fig:umap-2d-example}, we see that UMAP can separate the classes in the Iris data set quite nicely, particularly for the \textit{setosa} class.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{thesis/figures/umap-2d-example.pdf}
+    \includegraphics[width=0.8\textwidth]{thesis/figures/umap-2d-example.pdf}
     \caption{2-dimensional UMAP embedding of the Iris data set \cite{Anderson1936,Fisher1936}.}
     \label{fig:umap-2d-example}
 \end{figure}
@@ -379,7 +379,7 @@ In this subsection we explain \textit{artificial neural networks} (ANN). In part
 An \textit{artificial neuron} (or \textit{unit}) is a function which receives one or more inputs and a \textit{bias}, and then sums them to produce an output. We illustrate an example of an artificial neuron in \cref{fig:artificial_neuron}, where $\left\{ x_1, \ldots, x_K \right\}$ are the input values, $b$ is the bias, $\left\{ w_1, \ldots, w_K \right\}$ are the weights and $y$ is a scalar output. We denote $f$ as the \textit{activation function}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=8cm]{thesis/figures/artificial-neuron_cropped.pdf}
+    \includegraphics[width=0.5\textwidth]{thesis/figures/artificial-neuron_cropped.pdf}
     \caption{An artificial neuron that takes in a $K$-dimensional input $x$ and bias $b$ to produce some output $y$.}
     \label{fig:artificial_neuron}
 \end{figure}
@@ -412,7 +412,7 @@ where $x$ is a $K$-dimensional input vector. In the following sub-subsections, w
 The first layer in the ANN is the \textit{input layer} $\layer{x}{k} = \left\{ x_1, x_2, \ldots, x_K \right\}$. It is responsible for taking in input and passing it to the proceeding layer in the network. We illustrate the input layer in \cref{fig:input_layer_ann}, where we see that each input value $x_i$ gets its own node.
 \begin{figure}[H]
     \centering
-    \includegraphics[height=7cm]{thesis/figures/artificial-neural-network-input-layer_cropped.pdf}
+    \includegraphics[height=5cm]{thesis/figures/artificial-neural-network-input-layer_cropped.pdf}
     \caption{Input layer in the ANN for a $K$-dimensional vector $x$.}
     \label{fig:input_layer_ann}
 \end{figure}
@@ -433,7 +433,7 @@ The \textit{hidden layer} is the second layer in the ANN $\layer{h}{i} = \left\{
 
 \begin{figure}[H]
     \centering
-    \includegraphics[height=7cm]{thesis/figures/artificial-neural-network-input-hidden-layer_cropped.pdf}
+    \includegraphics[height=6cm]{thesis/figures/artificial-neural-network-input-hidden-layer_cropped.pdf}
     \caption{Input to hidden layer in the ANN for a $K$-dimensional vector $x$, $N\times K$ dimensional weight matrix $\left\{ W_{h_i} \right\}$ and a $N$-dimensional hidden layer $h$.}
     \label{fig:hidden_layer_ann}
 \end{figure}
@@ -449,7 +449,7 @@ where $f_{\layer{h}{i}}$ is a user-specified activation function, $W_{\layer{h}{
 The last layer in the ANN is the \textit{output layer} $\layer{y}{j} = \left\{ y_1, y_2, \ldots, y_M \right\}$, which we connect to the last hidden layer of the network. Similar to the hidden layer, we connect each unit in the last hidden layer to each unit in the output layer. We illustrate an example of this in \cref{fig:mlnn-one-hidden}, where we see a complete, multilayered neural network (MLNN).
 \begin{figure}[H]
     \centering
-    \includegraphics[width=9cm]{thesis/figures/artificial-neural-network_cropped.pdf}
+    \includegraphics[width=0.6\textwidth]{thesis/figures/artificial-neural-network_cropped.pdf}
     \caption{Multilayered neural network with one input, hidden and output layer.}
     \label{fig:mlnn-one-hidden}
 \end{figure}
@@ -486,7 +486,7 @@ where $K$ is the number of output values for the softmax layer.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{thesis/figures/common-activation-functions.pdf}
+    \includegraphics[width=0.8\textwidth]{thesis/figures/common-activation-functions.pdf}
     \caption{Four plots of various activation functions showing how they respond to different values of $x$.}
     \label{fig:activation-functions}
 \end{figure}
@@ -532,7 +532,7 @@ In this sub-subsection, we explain how an ANN can effectively make predictions f
 So far, we have discussed what we call the \textit{forward pass} (or phase). A forward pass is simply the journey of the input data to the output layers where we in each step compute the output values at each layer and local derivatives using the current set of weights. Once we are at the output layer, the forward pass is complete and the \textit{backward pass} commences. Recall that the objective of the neural network is to minimize the loss function. To do so, we compute the derivative of the loss function with respect to the weights in the input layer, using the chain rule from calculus. The derivative of the loss function tells the neural network which direction it should move each weight in to minimize the loss (i.e. in the negative direction of the derivative). To give an example of forward and backward passes in an ANN, consider the example in \cref{fig:neural-network-example-backprop}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=12cm]{thesis/figures/artificial-neural-network-backprop-example_cropped.pdf}
+    \includegraphics[width=0.7\textwidth]{thesis/figures/artificial-neural-network-backprop-example_cropped.pdf}
     \caption{A neural network with one input node, one hidden layer with two nodes and one output layer.}
     \label{fig:neural-network-example-backprop}
 \end{figure}
@@ -675,7 +675,7 @@ The OLS method minimizes the \textit{residual sum of squares} (RSS), i.e. the su
 We illustrate the use of OLS in \cref{fig:linear-regression-ols}, where see a clear relationship between the variables $X$ and $Y$.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{thesis/figures/linear-regression-example.pdf}
+    \includegraphics[width=0.7\textwidth]{thesis/figures/linear-regression-example.pdf}
     \caption{A linear regression model using OLS, with one dependent variable Y and one independent variable $X$. The red line shows the OLS model.}
     \label{fig:linear-regression-ols}
 \end{figure}
@@ -772,7 +772,7 @@ We use the train data set to learn the models' parameters from the data, e.g. a 
 After selecting a model or a set of model parameters using the validation data set, we use the test data set to give an unbiased estimate of how the model performs on unseen data. Additionally, we refer to the test data set as the \textit{hold-out data set}, because its only use is at the end of model selection. Note that we do not necessarily require to have a test data set available to perform model selection, as it only evaluates the performance of the final model. A common approach is also to exclude the test data set and instead split the original data $X$ into training and validation only. By doing so, we are unable to get an unbiased estimate of the models' performance on unseen data. We illustrate the process of splitting data into train/validation/test splits in \cref{fig:train-val-test-splits}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{thesis/figures/train-val-test-splits_cropped.pdf}
+    \includegraphics[width=0.9\textwidth]{thesis/figures/train-val-test-splits_cropped.pdf}
     \caption{Example of ways to partition a data set for model selection. The partition on the top (a) splits the data into training, validation and test, while the partition on the bottom (b) splits the data into training and validation only.}
     \label{fig:train-val-test-splits}
 \end{figure}
