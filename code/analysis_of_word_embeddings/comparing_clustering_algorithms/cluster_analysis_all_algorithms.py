@@ -26,12 +26,14 @@ import sys  # noqa: E402
 
 sys.path.extend([analysis_of_embeddings_dir, root_code_dir])
 
-from analysis_of_embeddings.cluster_analysis_metrics import (  # noqa: E402
+from analysis_of_word_embeddings.cluster_analysis_metrics import (  # noqa: E402
     calinski_harabasz_score_metric,
     davies_bouldin_score_metric,
     silhouette_score_metric,
 )
-from analysis_of_embeddings.cluster_analysis_utils import cluster_analysis  # noqa: E402
+from analysis_of_word_embeddings.cluster_analysis_utils import (  # noqa: E402
+    cluster_analysis,
+)
 from word_embeddings.word2vec import load_model_training_output  # noqa: E402
 
 

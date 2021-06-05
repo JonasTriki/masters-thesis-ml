@@ -15,10 +15,11 @@ from tqdm.auto import tqdm
 
 sys.path.append("..")
 
-from analysis_of_embeddings.analysis_utils import (  # noqa: E402
+from analysis_of_word_embeddings.analysis_utils import (  # noqa: E402
     plot_cluster_metric_scores,
     words_in_clusters,
 )
+
 from utils import pairwise_cosine_distances, words_to_vectors  # noqa: E402
 from vis_utils import plot_word_vectors  # noqa: E402
 
