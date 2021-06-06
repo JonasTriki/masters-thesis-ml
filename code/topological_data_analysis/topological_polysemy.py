@@ -1,5 +1,5 @@
 import sys
-from multiprocessing import Array, Pool, cpu_count
+from multiprocessing import cpu_count
 from typing import List, Optional, Union
 
 import numpy as np
@@ -9,8 +9,8 @@ from fastdist.fastdist import vector_to_matrix_distance
 from gudhi.persistence_graphical_tools import (
     plot_persistence_diagram as gd_plot_persistence_diagram,
 )
-from gudhi.rips_complex import RipsComplex
-from gudhi.wasserstein import wasserstein_distance
+from ripser import ripser
+from sklearn.metrics.pairwise import euclidean_distances
 from tqdm import tqdm
 
 sys.path.append("..")
@@ -175,26 +175,30 @@ def tps(
 
     # Compute the degree zero persistence diagram of target_word_punct_neigh_sphere
     target_dim = 0
-    rips_complex = RipsComplex(points=target_word_punct_neigh_sphere)
-    simplex_tree = rips_complex.create_simplex_tree(max_dimension=target_dim)
-    barcodes = simplex_tree.persistence()
+    target_word_punct_neigh_sphere_pairwise_dists = euclidean_distances(
+        target_word_punct_neigh_sphere
+    )
+    rips_complex = ripser(
+        X=target_word_punct_neigh_sphere_pairwise_dists,
+        maxdim=target_dim,
+        distance_matrix=True,
+    )
+    zero_degree_diagram = rips_complex["dgms"][target_dim]
     if sanity_check:
-        gd_plot_persistence_diagram(barcodes)
+        gd_plot_persistence_diagram(zero_degree_diagram)
 
-    zero_degree_diagram_points = np.array(
-        [
-            [birth, death]
-            for dim, (birth, death) in barcodes
-            if dim == target_dim and death != np.inf
-        ]
+    zero_degree_diagram_no_inf = np.array(
+        [[birth, death] for birth, death in zero_degree_diagram if death != np.inf]
     )
-    empty_degree_diagram_points = np.zeros(zero_degree_diagram_points.shape)
-    wasserstein_norm = wasserstein_distance(
-        X=zero_degree_diagram_points, Y=empty_degree_diagram_points
-    )
+
+    # Since we only have zero-degree persistence diagrams, the
+    # wasserstein norm is defined as the sum of the death coordinates
+    # divided by two. We divide by two since we only focus on the upper
+    # diagonal (i.e. triangle) of the persistence diagram.
+    wasserstein_norm = zero_degree_diagram_no_inf[:, 1].sum() / 2
 
     if return_persistence_diagram:
-        return wasserstein_norm, zero_degree_diagram_points
+        return wasserstein_norm, zero_degree_diagram_no_inf
     else:
         return wasserstein_norm
 
