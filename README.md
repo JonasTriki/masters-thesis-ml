@@ -1,6 +1,6 @@
 # Master's thesis in machine learning
 
-This repository holds the Python and LaTeX code for my master's thesis in machine learning at UiB ([INF399](https://www.uib.no/en/course/INF399)), with the title: "Analysis of Word Embeddings: A Clustering and Topological Approach". The master's thesis was supervised by [Nello Blaser](https://www.uib.no/personer/Nello.Blaser) and was based on the topic from "[Topology of encodings](https://www.uib.no/en/rg/ml/128703/available-masters-thesis-topics-machine-learning#topology-of-encodings)". The finalized version of the thesis [can be found here](Master's%20Thesis%20in%20ML%20-%20Jonas%20Folkvord%20Triki.pdf).
+This repository holds the Python and LaTeX code for my master's thesis in machine learning at UiB ([INF399](https://www.uib.no/en/course/INF399)), with the title: "Analysis of Word Embeddings: A Clustering and Topological Approach". The master's thesis was supervised by [Nello Blaser](https://www.uib.no/personer/Nello.Blaser) and was based on the topic from "[Topology of encodings](https://www.uib.no/en/rg/ml/128703/available-masters-thesis-topics-machine-learning#topology-of-encodings)". The finalized version of the thesis [can be found here](https://github.com/JonasTriki/masters-thesis-ml/blob/master/Master's%20Thesis%20in%20ML%20-%20Jonas%20Folkvord%20Triki.pdf).
 
 ## Reposotory structure
 
