@@ -13,7 +13,7 @@ The repository is structed as follows:
 
 ## Running the code
 
-First, make sure Docker is installed and up to date. Then, from the root of the repository, run the Makefile to create up an ubuntu environment:
+First, make sure Docker is installed and up to date. Then, from the root of the repository, run the Makefile to create the code environment:
 
 ```bash
 make DETACHED=1
